@@ -27,6 +27,7 @@ http://localhost:8000/docs (Swagger UI) or http://localhost:8000/redoc
 app/
   main.py          # App factory, lifespan, router registration
   config.py        # Settings via pydantic-settings (.env)
+  logging.py       # Dev-mode file logging setup
   db.py            # Async SQLAlchemy engine + session factory
   models/          # ORM models (database tables)
   schemas/         # Pydantic request/response shapes (API contract)
@@ -46,6 +47,7 @@ database/          # Alembic migrations
 | `GITHUB_WEBHOOK_SECRET` | Webhook secret from GitHub App settings | — |
 | `SEED_TENANT_ID` | Dev tenant UUID | `00000000-0000-0000-0000-000000000001` |
 | `SEED_TENANT_NAME` | Dev tenant name | `dev` |
+| `ENVIRONMENT` | `development` enables local file logging | `production` |
 
 ## API endpoints
 
@@ -60,6 +62,10 @@ database/          # Alembic migrations
 | GET | `/api/deployments/{id}` | Deployment detail + attributed PRs |
 | GET | `/api/pull-requests` | List PRs (filter: repo, date range) |
 | GET | `/api/pull-requests/{id}` | PR detail + linked deployment |
+
+## Local dev logging
+
+When `ENVIRONMENT=development` (set in `.env`), logs are written to `logs/dev.log` in addition to stdout. The file is truncated on each app restart. In production (default), only stdout logging is used. The `logs/` directory is gitignored.
 
 ## Webhook events
 
