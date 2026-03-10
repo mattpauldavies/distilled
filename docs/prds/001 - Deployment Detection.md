@@ -10,7 +10,6 @@ A robust, explainable backend system for detecting **production deployments via 
 
 - Detect production deployments with **high confidence** using Environments.
 - Link PRs → production deployments with measurable coverage.
-- Provide a transparent **data quality score** and actionable setup guidance.
 
 ## 🚫 Non-goals (MVP)
 
@@ -74,10 +73,6 @@ For each Production Deployment Event:
 ### MVP heuristic (acceptable)
 
 - Attribute PRs merged between previous_deploy_at and deploy_at to deploy_at.
-- Record attribution confidence and coverage:
-  - % PRs attributed
-  - distribution of PRs per deploy (sanity signal)
-
 ### Explainability
 
 - For any PR’s lead time, show:
@@ -87,32 +82,11 @@ For each Production Deployment Event:
 
 ---
 
-## 🧪 Data Quality Scoring (MVP)
-
-Score (0–100) with clear breakdown:
-
-- **Environment coverage (0–40)**:
-  - % repos with environments present
-  - % repos with prod environment selected
-
-- **Deployment signal health (0–30)**:
-  - deployments detected in last 30 days
-  - % deployments with commit SHA/ref
-
-- **Attribution coverage (0–30)**:
-  - % merged PRs attributed to a deployment
-
-Display:
-
-- Overall score + breakdown + top 3 fixes.
-
----
-
 ## ✅ Acceptance Criteria
 
 - In repos using Environments for prod deploys, detection reliably identifies production deployments.
 - User can resolve ambiguous environment selection in one step.
-- Attribution coverage and confidence are measured and visible.
+- PRs are attributed to deployments via time-window heuristic.
 
 ---
 
