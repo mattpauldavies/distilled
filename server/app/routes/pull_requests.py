@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import get_session
-from app.db.models.deployment_attribution import DeploymentAttribution
-from app.db.models.deployment_event import ProductionDeploymentEvent
-from app.db.models.pull_request import PullRequest
+from app.db import get_session
+from app.models.deployment_attribution import DeploymentAttribution
+from app.models.deployment_event import ProductionDeploymentEvent
+from app.models.pull_request import PullRequest
 from app.middleware.tenant import get_tenant_id
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.pull_requests import DeploymentSummary, PullRequestDetailResponse, PullRequestResponse

@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import BigInteger, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.models.base import Base, ImmutableTimestampMixin
+from app.models.base import Base, ImmutableTimestampMixin
 
 
 class ProductionDeploymentEvent(ImmutableTimestampMixin, Base):

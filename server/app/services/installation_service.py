@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.github_installation import GitHubInstallation
-from app.db.models.repository import Repository
+from app.models.github_installation import GitHubInstallation
+from app.models.repository import Repository
 from app.services.environment_service import discover_environments
 from app.services.github_client import GitHubClient
 from app.services.webhook_service import register_handler

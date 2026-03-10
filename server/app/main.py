@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.db.base import dispose_db, init_db
+from app.db import dispose_db, init_db
 from app.routes import deployments, health, pull_requests, repos, webhooks
 
 # Import services to register webhook handlers

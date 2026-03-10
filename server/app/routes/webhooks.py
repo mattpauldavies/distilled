@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, BackgroundTasks, Request, Response
 
 from app.config import settings
-from app.db.base import async_session
+from app.db import async_session
 from app.services.webhook_service import EVENT_HANDLERS, verify_signature
 
 logger = logging.getLogger(__name__)

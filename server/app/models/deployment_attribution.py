@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.models.base import Base, ImmutableTimestampMixin
+from app.models.base import Base, ImmutableTimestampMixin
 
 
 class DeploymentAttribution(ImmutableTimestampMixin, Base):

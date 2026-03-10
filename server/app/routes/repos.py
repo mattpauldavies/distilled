@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import get_session
-from app.db.models.environment import Environment
-from app.db.models.repository import Repository
+from app.db import get_session
+from app.models.environment import Environment
+from app.models.repository import Repository
 from app.middleware.tenant import get_tenant_id
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.repos import EnvironmentResponse, RepoResponse, UpdateEnvironmentRequest

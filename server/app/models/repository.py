@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import BigInteger, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.models.base import Base, TimestampMixin
+from app.models.base import Base, TimestampMixin
 
 
 class Repository(TimestampMixin, Base):

@@ -6,10 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.deployment_event import ProductionDeploymentEvent
-from app.db.models.environment import Environment
-from app.db.models.pull_request import PullRequest
-from app.db.models.repository import Repository
+from app.models.deployment_event import ProductionDeploymentEvent
+from app.models.environment import Environment
+from app.models.pull_request import PullRequest
+from app.models.repository import Repository
 from app.services.attribution_service import attribute_prs_to_deployment
 from app.services.webhook_service import register_handler
 
