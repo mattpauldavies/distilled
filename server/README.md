@@ -11,7 +11,7 @@ poetry install
 ## Run
 
 ```sh
-poetry run uvicorn server.main:app --reload --port 8000
+poetry run uvicorn app.main:app --reload --port 8000
 ```
 
 ## API docs
@@ -40,7 +40,7 @@ FastAPI auto-generates interactive API documentation via OpenAPI:
 ## Structure
 
 ```
-server/
+app/
   main.py             # App factory, mounts routers
   config.py           # Settings via pydantic-settings
   routes/

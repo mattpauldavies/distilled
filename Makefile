@@ -7,7 +7,7 @@ dev:
 	wait
 
 dev-server:
-	cd server && poetry run uvicorn server.main:app --reload --port 8000
+	cd server && poetry run uvicorn app.main:app --reload --port 8000
 
 dev-client:
 	cd client && source ~/.nvm/nvm.sh && nvm use && npm run dev

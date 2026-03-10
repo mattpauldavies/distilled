@@ -1,4 +1,4 @@
-from server.domain.item import Item
+from app.domain.item import Item
 
 
 class ItemService:
