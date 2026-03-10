@@ -1,4 +1,4 @@
-![Distilled Logo](logo.png)
+![Distilled Logo](logo-small.png)
 
 # Distilled
 
