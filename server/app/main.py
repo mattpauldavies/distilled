@@ -3,7 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import settings
 from app.db import dispose_db, init_db
+from app.logging import configure_logging
 from app.routes import deployments, health, pull_requests, repos, webhooks
 
 # Import services to register webhook handlers
@@ -13,6 +15,7 @@ import app.services.deployment_service  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    configure_logging(settings)
     await init_db()
     yield
     await dispose_db()

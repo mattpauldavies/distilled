@@ -4,3 +4,4 @@ server/*.pem
 *.pem
 *.pyc
 __pycache__/
+logs/

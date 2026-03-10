@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     app_name: str = "server"
     debug: bool = False
+    environment: str = "production"
     database_url: str = "postgresql+asyncpg://distilled:distilled@localhost:5432/distilled"
     github_app_id: int = 0
     github_private_key_path: str = ""

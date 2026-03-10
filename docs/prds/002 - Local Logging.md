@@ -26,7 +26,7 @@ This feature is strictly for **local development** and must not affect productio
 
 ### 1️⃣ Development-only behaviour
 
-- Logging to a local file must be enabled **only when `NODE_ENV=development`** (or equivalent environment flag).
+- Logging to a local file must be enabled **only when `ENVIRONMENT=development`** (set via pydantic-settings in `config.py`).
 - In production environments, this feature must be disabled by default.
 
 ### 2️⃣ Log file location
