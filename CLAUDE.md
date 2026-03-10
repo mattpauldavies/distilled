@@ -2,7 +2,7 @@
 
 ## Workflow Orchestration
 
-### 1. Plan Node Default
+### 1. Plan Mode Default
 
 - Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
 - If something goes sideways, STOP and re-plan immediately - don't keep pushing
@@ -18,7 +18,7 @@
 
 ### 3. Self-Improvement Loop
 
-- After ANY correction from the user: update 'tasks/lessons.md' with the pattern
+- After ANY correction from the user: update 'docs/tasks/lessons.md' with the pattern
 - Write rules for yourself that prevent the same mistake
 - Ruthlessly iterate on these lessons until mistake rate drops
 - Review lessons at session start for relevant project
@@ -46,12 +46,12 @@
 
 ## Task Management
 
-- **Plan First**; Write plan to 'tasks/todo.md' with checkable items
+- **Plan First**; Write plan to 'docs/tasks/todo.md' with checkable items
 - **Verify Plan**: Check in before starting implementation
 - **Track Progress**: Mark items complete as you go
 - **Explain Changes**: High-level summary at each step
-- **Document Results**: Add review section to "tasks/todo.md"
-- **Capture Lessons**: Update tasks/lessons.md after corrections
+- **Document Results**: Add review section to 'docs/tasks/todo.md'
+- **Capture Lessons**: Update 'docs/tasks/lessons.md' after corrections
 
 ## Core Principles
 

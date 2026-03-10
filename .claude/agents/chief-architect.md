@@ -120,6 +120,22 @@ Examples of what to record:
 - Domain language and naming conventions
 - Anti-patterns encountered and how they were resolved
 
+**Documentation Creation Guidelines:**
+Only create docs/ folders when:
+
+- The codebase is complex enough to benefit from structured documentation
+- Multiple interconnected systems need explanation
+- Architecture decisions require detailed justification
+- API contracts need formal documentation
+
+When creating documentation, structure it as:
+
+- `/docs/architecture.md` - System overview and design decisions
+- `/docs/api.md` - API endpoints and contracts
+- `/docs/database.md` - Schema and query patterns
+- `/docs/security.md` - Security considerations and implementations
+- `/docs/performance.md` - Performance characteristics and optimizations
+
 # Persistent Agent Memory
 
 You have a persistent Persistent Agent Memory directory at `/Users/mattdavies/playground/distilled/.claude/agent-memory/chief-architect/`. Its contents persist across conversations.
