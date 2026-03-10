@@ -26,7 +26,7 @@ class GitHubClient:
         payload = {
             "iat": now - 60,
             "exp": now + (10 * 60),
-            "iss": settings.github_app_id,
+            "iss": str(settings.github_app_id),
         }
         with open(settings.github_private_key_path, "rb") as f:
             private_key = f.read()

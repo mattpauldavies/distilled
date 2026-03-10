@@ -57,6 +57,23 @@ async def _handle_created(payload: dict, session: AsyncSession) -> None:
     repos = payload.get("repositories", [])
     await sync_repos(tenant_id, installation, repos, session)
 
+    # Discover environments for each repo
+    github = GitHubClient()
+    try:
+        result = await session.execute(
+            select(Repository).where(
+                Repository.tenant_id == tenant_id,
+                Repository.installation_id == installation.id,
+            )
+        )
+        db_repos = result.scalars().all()
+        for repo in db_repos:
+            owner, name = repo.full_name.split("/", 1)
+            envs = await github.list_environments(owner, name, installation.installation_id)
+            await discover_environments(tenant_id, repo, envs, session)
+    finally:
+        await github.close()
+
 
 async def sync_repos(
     tenant_id: uuid.UUID,
