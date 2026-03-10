@@ -1,6 +1,6 @@
 # Client
 
-React 18 frontend built with Vite, TypeScript, and Tailwind CSS. Pre-configured for shadcn/ui.
+React 19 frontend built with Vite, TypeScript, and Tailwind CSS. Pre-configured for shadcn/ui.
 
 ## Setup
 

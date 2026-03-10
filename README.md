@@ -8,6 +8,7 @@ Distilled is designed to be effortless to adopt. Connect GitHub, and it automati
 
 - Python 3.12+ with [Poetry](https://python-poetry.org/)
 - Node 20+ via [nvm](https://github.com/nvm-sh/nvm) (`.nvmrc` in `client/`)
+- [Docker](https://docs.docker.com/get-docker/) (for Postgres)
 - Make
 
 ## Quick start
@@ -17,6 +18,13 @@ Distilled is designed to be effortless to adopt. Connect GitHub, and it automati
 cd server && poetry install && cd ..
 cd client && nvm use && npm install && cd ..
 
+# configure
+cd server && cp .env.example .env && cd ..  # edit with your GitHub App credentials
+
+# database
+make db-up        # start Postgres via Docker
+make migrate      # apply migrations
+
 # run both
 make dev
 ```
@@ -25,18 +33,32 @@ make dev
 - Server: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
+For full setup including GitHub App integration, see the [local testing runbook](docs/runbooks/local-testing.md).
+
 ## Structure
 
 ```
 server/   # FastAPI + Poetry
 client/   # React + Vite + TypeScript + Tailwind
-Makefile  # dev, dev-server, dev-client
+docs/     # Architecture, RFCs, runbooks
+Makefile  # dev commands + database management
 ```
 
 ## Makefile targets
 
-| Target       | Description             |
-| ------------ | ----------------------- |
-| `dev`        | Run both concurrently   |
-| `dev-server` | Server only (port 8000) |
-| `dev-client` | Client only (port 5173) |
+| Target          | Description                                |
+| --------------- | ------------------------------------------ |
+| `dev`           | Run server + client concurrently           |
+| `dev-server`    | Server only (port 8000)                    |
+| `dev-client`    | Client only (port 5173)                    |
+| `db-up`         | Start Postgres                             |
+| `db-down`       | Stop Postgres                              |
+| `db-reset`      | Drop volume + restart Postgres             |
+| `migrate`       | Run Alembic migrations                     |
+| `makemigration` | Create new migration (`MSG="description"`) |
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Local Testing Runbook](docs/runbooks/local-testing.md) — full setup guide including GitHub integration
+- [RFC 001: Deployment Detection](docs/rfcs/001-deployment-detection.md) — technical spec for the deployment detection system
