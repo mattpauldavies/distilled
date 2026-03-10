@@ -1,11 +1,14 @@
 # Server
 
-FastAPI backend with in-memory item store.
+FastAPI backend for deployment detection and DORA metrics. Ingests GitHub webhooks, detects production deployments, and attributes PRs to deployments.
 
 ## Setup
 
 ```sh
+cp .env.example .env  # edit as needed
 poetry install
+make db-up            # start Postgres
+make migrate          # apply migrations
 ```
 
 ## Run
@@ -16,38 +19,19 @@ poetry run uvicorn app.main:app --reload --port 8000
 
 ## API docs
 
-FastAPI auto-generates interactive API documentation via OpenAPI:
-
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **Raw OpenAPI spec (JSON)**: http://localhost:8000/openapi.json
-
-## Endpoints
-
-| Method | Path              | Description    |
-|--------|-------------------|---------------|
-| GET    | `/api/health`     | Health check   |
-| GET    | `/api/items`      | List items     |
-| GET    | `/api/items/{id}` | Get item by ID |
-| POST   | `/api/items`      | Create item    |
-
-### Create item body
-
-```json
-{ "name": "string", "description": "string" }
-```
+http://localhost:8000/docs (Swagger UI) or http://localhost:8000/redoc
 
 ## Structure
 
 ```
 app/
-  main.py             # App factory, mounts routers
-  config.py           # Settings via pydantic-settings
-  routes/
-    health.py         # GET /health
-    items.py          # CRUD routes
-  services/
-    item_service.py   # In-memory store
-  domain/
-    item.py           # Item entity
+  main.py          # App factory, lifespan, router registration
+  config.py        # Settings via pydantic-settings (.env)
+  db.py            # Async SQLAlchemy engine + session factory
+  models/          # ORM models (database tables)
+  schemas/         # Pydantic request/response shapes (API contract)
+  routes/          # FastAPI routers (HTTP layer)
+  services/        # Business logic (webhook handling, GitHub API, attribution)
+  middleware/      # Request-scoped context (tenant resolution)
+database/          # Alembic migrations
 ```
