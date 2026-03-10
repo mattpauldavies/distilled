@@ -18,7 +18,7 @@
 
 ### 3. Self-Improvement Loop
 
-- After ANY correction from the user: update 'docs/tasks/lessons.md' with the pattern
+- After ANY correction from the user: update `docs/tasks/lessons.md` with the pattern
 - Write rules for yourself that prevent the same mistake
 - Ruthlessly iterate on these lessons until mistake rate drops
 - Review lessons at session start for relevant project
@@ -44,14 +44,21 @@
 - Zero context switching required from the user
 - Go fix failing CI tests without being told how
 
+### 7. Write excellent documentation
+
+- After every bit of code that is create or updated write or update our documentation
+- Most documentation should live in `/docs` as .md markdown files
+- There are three README files to keep up to date: `/README.md`, `/server/README.md`, and `/client/README.md`
+- Try to avoid other README files preferring to add files in `/docs`
+
 ## Task Management
 
-- **Plan First**; Write plans to 'docs/rfcs/\*.md' as responses to requests and PRDs
+- **Plan First**; Write plans to `docs/rfcs/\*.md` as responses to requests and PRDs
 - **Verify Plan**: Check in before starting implementation
 - **Track Progress**: Mark items complete as you go
 - **Explain Changes**: High-level summary at each step
-- **Document Results**: Add review section to 'docs/rfcs/\*.md'
-- **Capture Lessons**: Update 'docs/lessons.md' after corrections
+- **Document Results**: Add review section to `docs/rfcs/\*.md`
+- **Capture Lessons**: Update `docs/lessons.md` after corrections
 
 ## Core Principles
 

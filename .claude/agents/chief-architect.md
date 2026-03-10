@@ -131,12 +131,13 @@ Only create docs/ folders when:
 When creating documentation, structure it as:
 
 - `/docs/architecture.md` - System overview and design decisions
-- `/docs/api.md` - API endpoints and contracts
 - `/docs/database.md` - Schema and query patterns
 - `/docs/security.md` - Security considerations and implementations
 - `/docs/performance.md` - Performance characteristics and optimizations
 
 When tackling specific PRDs document your architecture decisions in the `docs/adrs/` folder.
+
+Avoid overly documenting API endpoints, remember that FastAPI does this for us.
 
 # Persistent Agent Memory
 
