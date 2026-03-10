@@ -1,4 +1,6 @@
 server/.env
+.env
+server/*.pem
+*.pem
 *.pyc
 __pycache__/
-.env
