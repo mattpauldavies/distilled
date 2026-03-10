@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import BigInteger, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, ImmutableTimestampMixin
+from app.models.base import Base, ImmutableTimestampMixin, TZDatetime
 
 
 class ProductionDeploymentEvent(ImmutableTimestampMixin, Base):
@@ -20,7 +20,7 @@ class ProductionDeploymentEvent(ImmutableTimestampMixin, Base):
     deployment_id: Mapped[int] = mapped_column(BigInteger)
     commit_sha: Mapped[str] = mapped_column(String(40))
     ref: Mapped[str] = mapped_column(String(255))
-    started_at: Mapped[datetime]
-    completed_at: Mapped[datetime]
-    deployed_at: Mapped[datetime]
+    started_at: Mapped[TZDatetime]
+    completed_at: Mapped[TZDatetime]
+    deployed_at: Mapped[TZDatetime]
     html_url: Mapped[str] = mapped_column(String(2048), default="")

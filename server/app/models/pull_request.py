@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import BigInteger, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import Base, TimestampMixin, TZDatetime
 
 
 class PullRequest(TimestampMixin, Base):
@@ -20,7 +20,7 @@ class PullRequest(TimestampMixin, Base):
     number: Mapped[int]
     title: Mapped[str] = mapped_column(String(1024))
     base_ref: Mapped[str] = mapped_column(String(255))
-    merged_at: Mapped[datetime]
+    merged_at: Mapped[TZDatetime]
     merge_commit_sha: Mapped[str] = mapped_column(String(40))
     head_sha: Mapped[str] = mapped_column(String(40))
     author_login: Mapped[str] = mapped_column(String(255))
