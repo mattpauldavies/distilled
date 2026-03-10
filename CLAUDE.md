@@ -46,12 +46,12 @@
 
 ## Task Management
 
-- **Plan First**; Write plan to 'docs/tasks/todo.md' with checkable items
+- **Plan First**; Write plans to 'docs/rfcs/\*.md' as responses to requests and PRDs
 - **Verify Plan**: Check in before starting implementation
 - **Track Progress**: Mark items complete as you go
 - **Explain Changes**: High-level summary at each step
-- **Document Results**: Add review section to 'docs/tasks/todo.md'
-- **Capture Lessons**: Update 'docs/tasks/lessons.md' after corrections
+- **Document Results**: Add review section to 'docs/rfcs/\*.md'
+- **Capture Lessons**: Update 'docs/lessons.md' after corrections
 
 ## Core Principles
 

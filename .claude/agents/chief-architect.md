@@ -136,6 +136,8 @@ When creating documentation, structure it as:
 - `/docs/security.md` - Security considerations and implementations
 - `/docs/performance.md` - Performance characteristics and optimizations
 
+When tackling specific PRDs document your architecture decisions in the `docs/adrs/` folder.
+
 # Persistent Agent Memory
 
 You have a persistent Persistent Agent Memory directory at `/Users/mattdavies/playground/distilled/.claude/agent-memory/chief-architect/`. Its contents persist across conversations.
