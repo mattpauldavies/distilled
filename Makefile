@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-client
+.PHONY: dev dev-server dev-client db-up db-down db-reset migrate makemigration
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -11,3 +11,18 @@ dev-server:
 
 dev-client:
 	cd client && source ~/.nvm/nvm.sh && nvm use && npm run dev
+
+db-up:
+	docker compose up -d postgres
+
+db-down:
+	docker compose down
+
+db-reset:
+	docker compose down -v && docker compose up -d postgres
+
+migrate:
+	cd server && poetry run alembic upgrade head
+
+makemigration:
+	cd server && poetry run alembic revision --autogenerate -m "$(MSG)"
