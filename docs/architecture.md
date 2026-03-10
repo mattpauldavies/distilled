@@ -32,6 +32,14 @@ GitHub webhook ──► FastAPI ──► PostgreSQL
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
 - **environment_service** — auto-detects production environments by name pattern
 
+### Scheduled jobs
+
+- Scheduled jobs will be triggered via Railway Scheduled Jobs calling authenticated internal endpoints.
+- No in-process schedulers (e.g. APScheduler).
+- No OS-level cron.
+- All scheduled work must be idempotent. (Jobs must be safe to run multiple times.)
+- All scheduled endpoints must require internal authentication.
+
 ### Data flow: webhook to deployment
 
 1. GitHub sends `deployment_status` to `POST /api/webhooks/github`
@@ -52,12 +60,6 @@ React 19 + Vite + TypeScript + Tailwind. Scaffold stage — proxies `/api` to ba
 ## Database
 
 PostgreSQL 16 via Docker. Async access via SQLAlchemy + asyncpg. Migrations managed by Alembic.
-
-### Tables
-
-tenants, github_installations, repositories, environments, pull_requests, deployment_events, deployment_attributions
-
-See [RFC 001](rfcs/001-deployment-detection.md) for full schema.
 
 ## Auth model
 
