@@ -9,6 +9,8 @@ from app.db import get_session
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.pull_request import PullRequest
+from app.models.repository import Repository
+from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.pull_requests import DeploymentSummary, PullRequestDetailResponse, PullRequestResponse
@@ -20,14 +22,15 @@ router = APIRouter(prefix="/pull-requests")
 async def list_pull_requests(
     pagination: PaginationParams = Depends(),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
-    repo_id: uuid.UUID | None = Query(None),
     since: datetime | None = Query(None),
     until: datetime | None = Query(None),
 ) -> PaginatedResponse[PullRequestResponse]:
-    base = select(PullRequest).where(PullRequest.tenant_id == tenant_id)
-    if repo_id:
-        base = base.where(PullRequest.repo_id == repo_id)
+    base = select(PullRequest).where(
+        PullRequest.tenant_id == tenant_id,
+        PullRequest.repo_id == repo.id,
+    )
     if since:
         base = base.where(PullRequest.merged_at >= since)
     if until:
