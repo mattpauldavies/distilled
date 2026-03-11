@@ -28,7 +28,7 @@ async def test_recompute_requires_auth(metrics_client):
         "/api/metrics/recompute",
         json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
     )
-    assert resp.status_code == 422  # missing Authorization header
+    assert resp.status_code == 403  # HTTPBearer rejects missing credentials
 
 
 @pytest.mark.asyncio

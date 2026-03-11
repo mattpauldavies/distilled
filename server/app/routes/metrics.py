@@ -2,7 +2,8 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 from enum import IntEnum
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -26,11 +27,15 @@ class RecomputeRequest(BaseModel):
     repo_id: uuid.UUID
 
 
-def _verify_cron_secret(authorization: str = Header(...)) -> None:
+_bearer_scheme = HTTPBearer()
+
+
+def _verify_cron_secret(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+) -> None:
     if not settings.internal_cron_secret:
         raise HTTPException(status_code=401, detail="cron secret not configured")
-    expected = f"Bearer {settings.internal_cron_secret}"
-    if authorization != expected:
+    if credentials.credentials != settings.internal_cron_secret:
         raise HTTPException(status_code=401, detail="invalid authorization")
 
 
