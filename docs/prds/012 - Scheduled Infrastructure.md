@@ -2,34 +2,30 @@
 
 ## 💼 Summary
 
-Introduce hourly scheduled recompute using Railway.
+Configure Railway to trigger per-repo metric recomputes hourly.
+
+The recompute endpoint (`POST /api/internal/metrics/recompute`) and all metric logic already exist (built in PRD 005). This PRD covers only the Railway scheduling infrastructure.
 
 ---
 
 ## 🗓 Railway Scheduled Job
 
-Runs hourly:
+Fan-out: one HTTP call per repo, staggered to avoid parallel overload.
 
 ```bash
 curl -X POST https://app/api/internal/metrics/recompute \
-  -H "Authorization: Bearer $INTERNAL_CRON_SECRET"
+  -H "Authorization: Bearer $INTERNAL_CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"tenant_id": "...", "repo_id": "..."}'
 ```
 
 ---
 
-## 🔐 Internal Endpoint Requirements
+## 🎯 Scope
 
-- Must validate INTERNAL_CRON_SECRET.
-- Must return non-200 on failure.
-- Must log per-repo failures independently.
-
----
-
-## 🧱 Idempotency Rules
-
-- Safe to run multiple times.
-- Safe under partial failure.
-- No duplicate aggregate rows.
+- Railway job configuration (cron schedule, env vars)
+- Fan-out script that queries repos and calls the endpoint per-repo with staggered timing
+- Monitoring/alerting on job failures
 
 ---
 
@@ -42,13 +38,10 @@ curl -X POST https://app/api/internal/metrics/recompute \
 
 ---
 
-# Strategic Outcome
+## Strategic Outcome
 
-With this model:
-
-- Heavy math runs predictably every hour.
-- WIP feels real-time.
-- No caching complexity.
-- No in-process scheduler.
-- Horizontal scaling safe.
-- Correctness prioritised over premature optimisation.
+- Heavy math runs predictably every hour
+- Per-repo isolation — one repo failure doesn't block others
+- Staggered timing avoids resource spikes
+- No in-process scheduler
+- Horizontal scaling safe

@@ -31,24 +31,26 @@ Those are computed on demand (see PRD 007).
 
 ## 🗓 Scheduled Recompute Model
 
-Railway Scheduled Job runs hourly:
+Per-repo recompute endpoint (built as part of this PRD, not PRD 012):
 
 ```http
 POST /api/internal/metrics/recompute
 Authorization: Bearer <INTERNAL_CRON_SECRET>
+Content-Type: application/json
+
+{ "tenant_id": "...", "repo_id": "..." }
 ```
+
+Railway scheduling infrastructure (fan-out, staggering) is PRD 012's concern.
 
 ---
 
 ## 🧠 Recompute Rules
 
-- Recompute rolling window (e.g. last 30 / 60 / 90 days).
-- Use idempotent strategy:
-  - DELETE + INSERT for affected ranges
-    OR
-  - UPSERT per bucket.
-
+- Recompute last 90 days (covers all UI window sizes: 30/60/90).
+- UPSERT per bucket (not DELETE+INSERT) — safer under partial failure.
 - Must be safe to run multiple times.
+- No `recompute_all` — each call targets one repo. Scheduling/fan-out across repos is deferred to PRD 012. This isolates blast radius and allows staggered recompute timing.
 
 ---
 
@@ -74,24 +76,39 @@ Authorization: Bearer <INTERNAL_CRON_SECRET>
 
 ### PRCycleTimeWeeklyMetric
 
+- tenant_id
+- repo_id
+- week_start
+- median
+- p75
+- sample_size
+- algorithm_version
+
 ### PRThroughputWeeklyMetric
+
+- tenant_id
+- repo_id
+- week_start
+- pr_count
+- algorithm_version
 
 ---
 
 ## 🕒 Freshness Tracking
-
-Add:
 
 **MetricsRefreshLog**
 
 - id
 - tenant_id
 - repo_id
+- hour (truncated to hour — used for dedup)
 - started_at
 - completed_at
 - status (success/failed)
+- error_message
+- Unique: (tenant_id, repo_id, hour)
 
-Only one record per hourly run per repo.
+One record per hour per repo. Retries within the same hour UPSERT the existing row.
 
 ---
 
