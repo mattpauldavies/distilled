@@ -58,6 +58,8 @@ Makefile  # dev commands + database management
 | `db-reset`      | Drop volume + restart Postgres             |
 | `migrate`       | Run Alembic migrations                     |
 | `makemigration` | Create new migration (`MSG="description"`) |
+| `test`          | Run all server tests                       |
+| `test-coverage` | Run tests with coverage report             |
 
 ## Documentation
 

@@ -39,29 +39,29 @@ database/          # Alembic migrations
 
 ## Environment variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | Async Postgres connection string | `postgresql+asyncpg://distilled:distilled@localhost:5432/distilled` |
-| `GITHUB_APP_ID` | Numeric GitHub App ID | — |
-| `GITHUB_PRIVATE_KEY_PATH` | Path to `.pem` private key file | — |
-| `GITHUB_WEBHOOK_SECRET` | Webhook secret from GitHub App settings | — |
-| `SEED_TENANT_ID` | Dev tenant UUID | `00000000-0000-0000-0000-000000000001` |
-| `SEED_TENANT_NAME` | Dev tenant name | `dev` |
-| `ENVIRONMENT` | `development` enables local file logging | `production` |
+| Variable                  | Description                              | Default                                                             |
+| ------------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| `DATABASE_URL`            | Async Postgres connection string         | `postgresql+asyncpg://distilled:distilled@localhost:5432/distilled` |
+| `GITHUB_APP_ID`           | Numeric GitHub App ID                    | —                                                                   |
+| `GITHUB_PRIVATE_KEY_PATH` | Path to `.pem` private key file          | —                                                                   |
+| `GITHUB_WEBHOOK_SECRET`   | Webhook secret from GitHub App settings  | —                                                                   |
+| `SEED_TENANT_ID`          | Dev tenant UUID                          | `00000000-0000-0000-0000-000000000001`                              |
+| `SEED_TENANT_NAME`        | Dev tenant name                          | `dev`                                                               |
+| `ENVIRONMENT`             | `development` enables local file logging | `production`                                                        |
 
 ## API endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check |
-| POST | `/api/webhooks/github` | GitHub webhook receiver (HMAC verified) |
-| GET | `/api/repos` | List repos for tenant (paginated) |
-| GET | `/api/repos/{id}/environments` | List environments for a repo |
-| PATCH | `/api/repos/{id}/environments/{env_id}` | Toggle `is_production` |
-| GET | `/api/deployments` | List deployments (filter: repo, env, date range) |
-| GET | `/api/deployments/{id}` | Deployment detail + attributed PRs |
-| GET | `/api/pull-requests` | List PRs (filter: repo, date range) |
-| GET | `/api/pull-requests/{id}` | PR detail + linked deployment |
+| Method | Path                                    | Description                                      |
+| ------ | --------------------------------------- | ------------------------------------------------ |
+| GET    | `/api/health`                           | Health check                                     |
+| POST   | `/api/webhooks/github`                  | GitHub webhook receiver (HMAC verified)          |
+| GET    | `/api/repos`                            | List repos for tenant (paginated)                |
+| GET    | `/api/repos/{id}/environments`          | List environments for a repo                     |
+| PATCH  | `/api/repos/{id}/environments/{env_id}` | Toggle `is_production`                           |
+| GET    | `/api/deployments`                      | List deployments (filter: repo, env, date range) |
+| GET    | `/api/deployments/{id}`                 | Deployment detail + attributed PRs               |
+| GET    | `/api/pull-requests`                    | List PRs (filter: repo, date range)              |
+| GET    | `/api/pull-requests/{id}`               | PR detail + linked deployment                    |
 
 ## Local dev logging
 
@@ -69,8 +69,17 @@ When `ENVIRONMENT=development` (set in `.env`), logs are written to `logs/dev.lo
 
 ## Webhook events
 
-| Event | Trigger | Action |
-|-------|---------|--------|
-| `installation` (created) | App installed | Upsert installation, sync repos, discover environments |
-| `deployment_status` (success) | Deployment succeeds | Create deployment event if production environment |
-| `pull_request` (closed+merged) | PR merged | Upsert PR record, trigger attribution |
+| Event                          | Trigger             | Action                                                 |
+| ------------------------------ | ------------------- | ------------------------------------------------------ |
+| `installation` (created)       | App installed       | Upsert installation, sync repos, discover environments |
+| `deployment_status` (success)  | Deployment succeeds | Create deployment event if production environment      |
+| `pull_request` (closed+merged) | PR merged           | Upsert PR record, trigger attribution                  |
+
+## Testing
+
+```sh
+make test              # run all tests
+make test-coverage     # show coverage report
+```
+
+See [RFC 003: Better Python Tests](../docs/rfcs/003-better-python-tests.md) for architecture details.

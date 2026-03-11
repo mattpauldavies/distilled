@@ -20,6 +20,7 @@ cryptography = "^44.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
 pytest-asyncio = "^0.25"
+pytest-cov = "^6.0"
 httpx = "^0.28"
 
 [build-system]
@@ -28,3 +29,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+omit = ["app/services/github_client.py"]
