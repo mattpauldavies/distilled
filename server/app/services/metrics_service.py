@@ -188,3 +188,43 @@ async def compute_pr_cycle_time(
             },
         )
         await session.execute(stmt)
+
+
+async def compute_pr_throughput(
+    tenant_id: uuid.UUID,
+    repo_id: uuid.UUID,
+    default_branch: str,
+    session: AsyncSession,
+) -> None:
+    cutoff = _cutoff()
+    result = await session.execute(
+        select(PullRequest).where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo_id,
+            PullRequest.base_ref == default_branch,
+            PullRequest.merged_at >= cutoff,
+        )
+    )
+    prs = result.scalars().all()
+
+    weekly: Counter = Counter()
+    for pr in prs:
+        week = _week_start(pr.merged_at)
+        weekly[week] += 1
+
+    for week, count in weekly.items():
+        stmt = insert(PRThroughputWeeklyMetric).values(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            repo_id=repo_id,
+            week_start=week,
+            pr_count=count,
+            algorithm_version=ALGORITHM_VERSION,
+        ).on_conflict_do_update(
+            index_elements=["tenant_id", "repo_id", "week_start"],
+            set_={
+                "pr_count": count,
+                "algorithm_version": ALGORITHM_VERSION,
+            },
+        )
+        await session.execute(stmt)

@@ -132,3 +132,26 @@ async def test_pr_cycle_time_computes_from_opened_to_merged(mock_session):
 
     # 1 SELECT + 1 UPSERT (same week)
     assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_pr_throughput_counts_by_week(mock_session):
+    """Given 3 PRs in same week, should UPSERT 1 row with count=3."""
+    from app.services.metrics_service import compute_pr_throughput
+
+    prs = [
+        make_pr(repo_id=REPO_ID, base_ref="main", number=i,
+                merged_at=datetime(2025, 1, 13 + i, 8, 0, tzinfo=timezone.utc))
+        for i in range(3)
+    ]
+
+    result_mock = MagicMock()
+    scalars_mock = MagicMock()
+    scalars_mock.all.return_value = prs
+    result_mock.scalars.return_value = scalars_mock
+    mock_session.execute = AsyncMock(return_value=result_mock)
+
+    await compute_pr_throughput(TENANT_ID, REPO_ID, "main", mock_session)
+
+    # 1 SELECT + 1 UPSERT (same week)
+    assert mock_session.execute.call_count == 2
