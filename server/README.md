@@ -64,10 +64,13 @@ database/          # Alembic migrations
 | GET    | `/api/pull-requests`                    | List PRs (requires `repo_id`, filter: date range)              |
 | GET    | `/api/pull-requests/{id}`               | PR detail + linked deployment                                  |
 | POST   | `/api/metrics/recompute`                | Trigger per-repo metric recompute (Bearer auth)                |
+| GET    | `/api/metrics/deployment-frequency`     | Deployment frequency (daily counts, 30/60/90 day window)       |
 
 ## Local dev logging
 
-When `ENVIRONMENT=development` (set in `.env`), logs are written to `logs/dev.log` in addition to stdout. The file is truncated on each app restart. In production (default), only stdout logging is used. The `logs/` directory is gitignored.
+When `ENVIRONMENT=development` (set in `.env`), logs are written to `logs/dev.log` in addition to stdout.
+The file is truncated on each app restart. In production (default), only stdout logging is used.
+The `logs/` directory is gitignored.
 
 ## Webhook events
 
