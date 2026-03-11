@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-client db-up db-down db-reset migrate makemigration
+.PHONY: dev dev-server dev-client db-up db-down db-reset migrate makemigration test test-coverage
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -26,3 +26,9 @@ migrate:
 
 makemigration:
 	cd server && poetry run alembic revision --autogenerate -m "$(MSG)"
+
+test:
+	cd server && poetry run pytest
+
+test-coverage:
+	cd server && poetry run pytest --cov=app --cov-report=term-missing
