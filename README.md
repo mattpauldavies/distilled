@@ -63,6 +63,9 @@ Makefile  # dev commands + database management
 
 ## Documentation
 
+Find all documentation in `/docs` key highlights are:
+
 - [Architecture](docs/architecture.md)
 - [Local Testing Runbook](docs/runbooks/local-testing.md) — full setup guide including GitHub integration
 - [RFC 001: Deployment Detection](docs/rfcs/001-deployment-detection.md) — technical spec for the deployment detection system
+- [RFC 005: Metrics Aggregation Engine](docs/rfcs/005-metrics-aggregation-engine.md) — scheduled per-repo metric recompute

@@ -4,7 +4,7 @@
 
 Configure Railway to trigger per-repo metric recomputes hourly.
 
-The recompute endpoint (`POST /api/internal/metrics/recompute`) and all metric logic already exist (built in PRD 005). This PRD covers only the Railway scheduling infrastructure.
+The recompute endpoint (`POST /api/metrics/recompute`) and all metric logic already exist (built in PRD 005). This PRD covers only the Railway scheduling infrastructure.
 
 ---
 
@@ -13,7 +13,7 @@ The recompute endpoint (`POST /api/internal/metrics/recompute`) and all metric l
 Fan-out: one HTTP call per repo, staggered to avoid parallel overload.
 
 ```bash
-curl -X POST https://app/api/internal/metrics/recompute \
+curl -X POST https://app/api/metrics/recompute \
   -H "Authorization: Bearer $INTERNAL_CRON_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"tenant_id": "...", "repo_id": "..."}'

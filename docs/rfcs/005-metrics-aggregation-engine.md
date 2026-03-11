@@ -4,7 +4,7 @@
 
 **Goal:** Scheduled per-repo aggregation for deployment frequency, lead time, PR cycle time, and PR throughput — triggered via internal HTTP endpoint.
 
-**Architecture:** Per-repo recompute via `POST /api/internal/metrics/recompute`. Four metric compute functions run independently within a single call. Granular daily/weekly buckets stored via UPSERT; dashboard filters by date range for 30/60/90 day windows.
+**Architecture:** Per-repo recompute via `POST /api/metrics/recompute`. Four metric compute functions run independently within a single call. Granular daily/weekly buckets stored via UPSERT; dashboard filters by date range for 30/60/90 day windows.
 
 **Tech Stack:** FastAPI, SQLAlchemy async, Alembic, PostgreSQL, pytest
 
@@ -133,7 +133,7 @@ compute_pr_throughput(tenant_id, repo_id, session)
 
 ## Endpoint
 
-### POST /api/internal/metrics/recompute
+### POST /api/metrics/recompute
 
 - **Auth**: `Authorization: Bearer <INTERNAL_CRON_SECRET>` — validated against `INTERNAL_CRON_SECRET` env var
 - **Body**: `{ "tenant_id": "...", "repo_id": "..." }`
@@ -1160,7 +1160,7 @@ def internal_client(mock_session):
 @pytest.mark.asyncio
 async def test_recompute_requires_auth(internal_client):
     resp = await internal_client.post(
-        "/api/internal/metrics/recompute",
+        "/api/metrics/recompute",
         json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
     )
     assert resp.status_code == 401
@@ -1169,7 +1169,7 @@ async def test_recompute_requires_auth(internal_client):
 @pytest.mark.asyncio
 async def test_recompute_rejects_bad_token(internal_client):
     resp = await internal_client.post(
-        "/api/internal/metrics/recompute",
+        "/api/metrics/recompute",
         json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
         headers={"Authorization": "Bearer wrong-secret"},
     )
@@ -1186,7 +1186,7 @@ async def test_recompute_success(internal_client, mock_session):
         mock_recompute.return_value = RecomputeResult(status="success")
 
         resp = await internal_client.post(
-            "/api/internal/metrics/recompute",
+            "/api/metrics/recompute",
             json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
@@ -1205,7 +1205,7 @@ async def test_recompute_writes_refresh_log(internal_client, mock_session):
         mock_recompute.return_value = RecomputeResult(status="success")
 
         resp = await internal_client.post(
-            "/api/internal/metrics/recompute",
+            "/api/metrics/recompute",
             json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )

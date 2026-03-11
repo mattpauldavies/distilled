@@ -34,7 +34,7 @@ Those are computed on demand (see PRD 007).
 Per-repo recompute endpoint (built as part of this PRD, not PRD 012):
 
 ```http
-POST /api/internal/metrics/recompute
+POST /api/metrics/recompute
 Authorization: Bearer <INTERNAL_CRON_SECRET>
 Content-Type: application/json
 
