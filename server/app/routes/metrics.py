@@ -5,7 +5,7 @@ from enum import IntEnum
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,10 +13,12 @@ from app.config import settings
 from app.db import get_session
 from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
+from app.models.deployment_attribution import DeploymentAttribution
 from app.models.environment import Environment
-from app.models.metrics import DeploymentDailyMetric, MetricsRefreshLog
+from app.models.metrics import DeploymentDailyMetric, LeadTimeWeeklyMetric, MetricsRefreshLog
+from app.models.pull_request import PullRequest
 from app.models.repository import Repository
-from app.schemas.metrics import DailyCount, DeploymentFrequencyResponse
+from app.schemas.metrics import DailyCount, DeploymentFrequencyResponse, LeadTimeResponse, WeeklyLeadTime
 from app.services.metrics_service import recompute_repo
 
 router = APIRouter(prefix="/metrics")
@@ -136,4 +138,83 @@ async def get_deployment_frequency(
         total=total,
         days=int(days),
         daily_counts=daily_counts,
+    )
+
+
+@router.get("/lead-time")
+async def get_lead_time(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
+    session: AsyncSession = Depends(get_session),
+    days: DaysWindow = Query(DaysWindow.THIRTY),
+) -> LeadTimeResponse:
+    # Check for production environment
+    env_result = await session.execute(
+        select(Environment).where(
+            Environment.tenant_id == tenant_id,
+            Environment.repo_id == repo.id,
+            Environment.is_production.is_(True),
+        ).limit(1)
+    )
+    if not env_result.scalar_one_or_none():
+        return LeadTimeResponse(
+            status="setup_required",
+            message="no production environment configured",
+        )
+
+    since = date.today() - timedelta(days=int(days))
+    result = await session.execute(
+        select(LeadTimeWeeklyMetric).where(
+            LeadTimeWeeklyMetric.tenant_id == tenant_id,
+            LeadTimeWeeklyMetric.repo_id == repo.id,
+            LeadTimeWeeklyMetric.week_start >= since,
+        ).order_by(LeadTimeWeeklyMetric.week_start.desc())
+    )
+    metrics = result.scalars().all()
+
+    weekly = [
+        WeeklyLeadTime(
+            week_start=m.week_start,
+            median_seconds=m.median_seconds,
+            p75_seconds=m.p75_seconds,
+            sample_size=m.sample_size,
+        )
+        for m in metrics
+    ]
+
+    # Coverage: attributed PRs / total merged PRs in window
+    since_dt = datetime(since.year, since.month, since.day, tzinfo=timezone.utc)
+
+    total_prs_result = await session.execute(
+        select(func.count()).select_from(
+            select(PullRequest.id).where(
+                PullRequest.tenant_id == tenant_id,
+                PullRequest.repo_id == repo.id,
+                PullRequest.base_ref == repo.default_branch,
+                PullRequest.merged_at >= since_dt,
+            ).subquery()
+        )
+    )
+    total_prs = total_prs_result.scalar_one()
+
+    attributed_result = await session.execute(
+        select(func.count()).select_from(
+            select(PullRequest.id).where(
+                PullRequest.tenant_id == tenant_id,
+                PullRequest.repo_id == repo.id,
+                PullRequest.base_ref == repo.default_branch,
+                PullRequest.merged_at >= since_dt,
+                PullRequest.id.in_(select(DeploymentAttribution.pr_id)),
+            ).subquery()
+        )
+    )
+    attributed_prs = attributed_result.scalar_one()
+
+    coverage = round((attributed_prs / total_prs) * 100, 1) if total_prs > 0 else None
+
+    return LeadTimeResponse(
+        status="ok",
+        days=int(days),
+        coverage_percent=coverage,
+        weekly=weekly,
     )
