@@ -136,6 +136,7 @@ def make_pr(**overrides):
         title="Fix bug",
         base_ref="main",
         merged_at=NOW,
+        opened_at=NOW,
         merge_commit_sha="abc123" + "0" * 34,
         head_sha="def456" + "0" * 34,
         author_login="dev",

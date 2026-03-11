@@ -48,6 +48,7 @@ database/          # Alembic migrations
 | `SEED_TENANT_ID`          | Dev tenant UUID                          | `00000000-0000-0000-0000-000000000001`                              |
 | `SEED_TENANT_NAME`        | Dev tenant name                          | `dev`                                                               |
 | `ENVIRONMENT`             | `development` enables local file logging | `production`                                                        |
+| `INTERNAL_CRON_SECRET`    | Bearer token for scheduled recompute     | —                                                                   |
 
 ## API endpoints
 
@@ -62,6 +63,7 @@ database/          # Alembic migrations
 | GET    | `/api/deployments/{id}`                 | Deployment detail + attributed PRs                             |
 | GET    | `/api/pull-requests`                    | List PRs (requires `repo_id`, filter: date range)              |
 | GET    | `/api/pull-requests/{id}`               | PR detail + linked deployment                                  |
+| POST   | `/api/metrics/recompute`                | Trigger per-repo metric recompute (Bearer auth)                |
 
 ## Local dev logging
 

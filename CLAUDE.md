@@ -68,4 +68,5 @@
 
 ## Tips
 
-I might say to you something like "tackle <file path>" with the file being a Product Requirements Document. What I mean is "Read the PRD @<file path> and build a solution that meets the requirements laid out in the document"
+- I might say to you something like "tackle <file path>" with the file being a Product Requirements Document. What I mean is "Read the PRD @<file path> and build a solution that meets the requirements laid out in the document"
+- Don't include any references to yourself (Claude Code) when writing commit messages or PR descriptions.

@@ -6,6 +6,13 @@ from app.models.environment import Environment
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.pull_request import PullRequest
 from app.models.deployment_attribution import DeploymentAttribution
+from app.models.metrics import (
+    DeploymentDailyMetric,
+    LeadTimeWeeklyMetric,
+    PRCycleTimeWeeklyMetric,
+    PRThroughputWeeklyMetric,
+    MetricsRefreshLog,
+)
 
 __all__ = [
     "Base",
@@ -16,4 +23,9 @@ __all__ = [
     "ProductionDeploymentEvent",
     "PullRequest",
     "DeploymentAttribution",
+    "DeploymentDailyMetric",
+    "LeadTimeWeeklyMetric",
+    "PRCycleTimeWeeklyMetric",
+    "PRThroughputWeeklyMetric",
+    "MetricsRefreshLog",
 ]

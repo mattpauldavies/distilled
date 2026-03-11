@@ -139,3 +139,27 @@ async def test_inserts_merged_pr(mock_session):
     await handle_pull_request_event(payload, mock_session)
 
     assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_pull_request_event_stores_opened_at(mock_session):
+    """Webhook handler should parse opened_at from pr_data.created_at."""
+    from datetime import datetime, timezone
+
+    repo = make_repo(github_id=111)
+    payload = _pull_request_payload()
+    payload["pull_request"]["created_at"] = "2025-01-10T09:00:00Z"
+
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=repo),
+        mock_insert_result(1),
+    ]
+
+    await handle_pull_request_event(payload, mock_session)
+
+    insert_call = mock_session.execute.call_args_list[1]
+    stmt = insert_call.args[0]
+    compiled = stmt.compile(compile_kwargs={"literal_binds": True})
+    sql = str(compiled)
+    assert "opened_at" in sql
+    assert "2025-01-10" in sql

@@ -21,6 +21,7 @@ class PullRequest(TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(1024))
     base_ref: Mapped[str] = mapped_column(String(255))
     merged_at: Mapped[TZDatetime]
+    opened_at: Mapped[TZDatetime]
     merge_commit_sha: Mapped[str] = mapped_column(String(40))
     head_sha: Mapped[str] = mapped_column(String(40))
     author_login: Mapped[str] = mapped_column(String(255))
