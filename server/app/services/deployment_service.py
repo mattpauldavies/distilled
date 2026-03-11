@@ -116,6 +116,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         return
 
     merged_at = _parse_dt(pr_data.get("merged_at", ""))
+    opened_at = _parse_dt(pr_data.get("created_at", ""))
     stmt = insert(PullRequest).values(
         id=uuid.uuid4(),
         tenant_id=tenant_id,
@@ -129,12 +130,14 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         head_sha=pr_data.get("head", {}).get("sha", ""),
         author_login=pr_data.get("user", {}).get("login", ""),
         html_url=pr_data.get("html_url", ""),
+        opened_at=opened_at,
     ).on_conflict_do_update(
         index_elements=["tenant_id", "repo_id", "number"],
         set_={
             "title": pr_data.get("title", ""),
             "merged_at": merged_at,
             "merge_commit_sha": pr_data.get("merge_commit_sha", ""),
+            "opened_at": opened_at,
         },
     )
     await session.execute(stmt)
