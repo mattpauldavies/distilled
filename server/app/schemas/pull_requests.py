@@ -10,6 +10,7 @@ class PullRequestResponse(BaseModel):
     number: int
     title: str
     base_ref: str
+    opened_at: datetime
     merged_at: datetime
     author_login: str
     html_url: str

@@ -1,7 +1,8 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from enum import IntEnum
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -9,8 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import get_session
-from app.models.metrics import MetricsRefreshLog
+from app.middleware.repo import get_verified_repo
+from app.middleware.tenant import get_tenant_id
+from app.models.environment import Environment
+from app.models.metrics import DeploymentDailyMetric, MetricsRefreshLog
 from app.models.repository import Repository
+from app.schemas.metrics import DailyCount, DeploymentFrequencyResponse
 from app.services.metrics_service import recompute_repo
 
 router = APIRouter(prefix="/metrics")
@@ -76,3 +81,54 @@ async def recompute_metrics(
     await session.commit()
 
     return {"status": result.status, "error_message": result.error_message}
+
+
+class DaysWindow(IntEnum):
+    THIRTY = 30
+    SIXTY = 60
+    NINETY = 90
+
+
+@router.get("/deployment-frequency")
+async def get_deployment_frequency(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
+    session: AsyncSession = Depends(get_session),
+    days: DaysWindow = Query(DaysWindow.THIRTY),
+) -> DeploymentFrequencyResponse:
+    # Check for production environment
+    env_result = await session.execute(
+        select(Environment).where(
+            Environment.tenant_id == tenant_id,
+            Environment.repo_id == repo.id,
+            Environment.is_production.is_(True),
+        ).limit(1)
+    )
+    if not env_result.scalar_one_or_none():
+        return DeploymentFrequencyResponse(
+            status="setup_required",
+            message="no production environment configured",
+        )
+
+    since = date.today() - timedelta(days=int(days))
+    result = await session.execute(
+        select(DeploymentDailyMetric).where(
+            DeploymentDailyMetric.tenant_id == tenant_id,
+            DeploymentDailyMetric.repo_id == repo.id,
+            DeploymentDailyMetric.date >= since,
+        ).order_by(DeploymentDailyMetric.date.desc())
+    )
+    metrics = result.scalars().all()
+
+    daily_counts = [
+        DailyCount(date=m.date, count=m.deployment_count)
+        for m in metrics
+    ]
+    total = sum(dc.count for dc in daily_counts)
+
+    return DeploymentFrequencyResponse(
+        status="ok",
+        total=total,
+        days=int(days),
+        daily_counts=daily_counts,
+    )
