@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from unittest.mock import patch, AsyncMock as AsyncMockFn
+
 from tests.conftest import TENANT_ID, REPO_ID, make_deployment, make_pr
 
 
@@ -155,3 +157,41 @@ async def test_pr_throughput_counts_by_week(mock_session):
 
     # 1 SELECT + 1 UPSERT (same week)
     assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_recompute_repo_calls_all_four_metrics(mock_session):
+    """recompute_repo should call all 4 compute functions."""
+    from app.services.metrics_service import recompute_repo
+
+    with patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn) as mock_df, \
+         patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt, \
+         patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct, \
+         patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp:
+
+        result = await recompute_repo(TENANT_ID, REPO_ID, "main", mock_session)
+
+    mock_df.assert_called_once_with(TENANT_ID, REPO_ID, mock_session)
+    mock_lt.assert_called_once_with(TENANT_ID, REPO_ID, "main", mock_session)
+    mock_ct.assert_called_once_with(TENANT_ID, REPO_ID, "main", mock_session)
+    mock_tp.assert_called_once_with(TENANT_ID, REPO_ID, "main", mock_session)
+    assert result.status == "success"
+
+
+@pytest.mark.asyncio
+async def test_recompute_repo_continues_on_partial_failure(mock_session):
+    """If one metric fails, others still run."""
+    from app.services.metrics_service import recompute_repo
+
+    with patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn, side_effect=Exception("db error")), \
+         patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt, \
+         patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct, \
+         patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp:
+
+        result = await recompute_repo(TENANT_ID, REPO_ID, "main", mock_session)
+
+    mock_lt.assert_called_once()
+    mock_ct.assert_called_once()
+    mock_tp.assert_called_once()
+    assert result.status == "failed"
+    assert "deployment_frequency" in result.error_message

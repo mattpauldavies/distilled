@@ -2,6 +2,7 @@ import logging
 import statistics
 import uuid
 from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -228,3 +229,41 @@ async def compute_pr_throughput(
             },
         )
         await session.execute(stmt)
+
+
+@dataclass
+class RecomputeResult:
+    status: str = "success"
+    error_message: str | None = None
+    errors: list[str] = field(default_factory=list)
+
+
+async def recompute_repo(
+    tenant_id: uuid.UUID,
+    repo_id: uuid.UUID,
+    default_branch: str,
+    session: AsyncSession,
+) -> RecomputeResult:
+    errors: list[str] = []
+
+    metric_fns = [
+        ("deployment_frequency", compute_deployment_frequency, (tenant_id, repo_id, session)),
+        ("lead_time", compute_lead_time, (tenant_id, repo_id, default_branch, session)),
+        ("pr_cycle_time", compute_pr_cycle_time, (tenant_id, repo_id, default_branch, session)),
+        ("pr_throughput", compute_pr_throughput, (tenant_id, repo_id, default_branch, session)),
+    ]
+
+    for name, fn, args in metric_fns:
+        try:
+            await fn(*args)
+        except Exception:
+            logger.exception("failed to compute %s for repo=%s", name, repo_id)
+            errors.append(name)
+
+    if errors:
+        return RecomputeResult(
+            status="failed",
+            error_message=f"failed metrics: {', '.join(errors)}",
+            errors=errors,
+        )
+    return RecomputeResult(status="success")
