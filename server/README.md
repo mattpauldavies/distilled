@@ -51,17 +51,17 @@ database/          # Alembic migrations
 
 ## API endpoints
 
-| Method | Path                                    | Description                                      |
-| ------ | --------------------------------------- | ------------------------------------------------ |
-| GET    | `/api/health`                           | Health check                                     |
-| POST   | `/api/webhooks/github`                  | GitHub webhook receiver (HMAC verified)          |
-| GET    | `/api/repos`                            | List repos for tenant (paginated)                |
-| GET    | `/api/repos/{id}/environments`          | List environments for a repo                     |
-| PATCH  | `/api/repos/{id}/environments/{env_id}` | Toggle `is_production`                           |
-| GET    | `/api/deployments`                      | List deployments (filter: repo, env, date range) |
-| GET    | `/api/deployments/{id}`                 | Deployment detail + attributed PRs               |
-| GET    | `/api/pull-requests`                    | List PRs (filter: repo, date range)              |
-| GET    | `/api/pull-requests/{id}`               | PR detail + linked deployment                    |
+| Method | Path                                    | Description                                                    |
+| ------ | --------------------------------------- | -------------------------------------------------------------- |
+| GET    | `/api/health`                           | Health check                                                   |
+| POST   | `/api/webhooks/github`                  | GitHub webhook receiver (HMAC verified)                        |
+| GET    | `/api/repos`                            | List repos for tenant (paginated)                              |
+| GET    | `/api/repos/{id}/environments`          | List environments for a repo                                   |
+| PATCH  | `/api/repos/{id}/environments/{env_id}` | Toggle `is_production`                                         |
+| GET    | `/api/deployments`                      | List deployments (requires `repo_id`, filter: env, date range) |
+| GET    | `/api/deployments/{id}`                 | Deployment detail + attributed PRs                             |
+| GET    | `/api/pull-requests`                    | List PRs (requires `repo_id`, filter: date range)              |
+| GET    | `/api/pull-requests/{id}`               | PR detail + linked deployment                                  |
 
 ## Local dev logging
 

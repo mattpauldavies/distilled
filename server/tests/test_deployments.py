@@ -1,5 +1,5 @@
 import pytest
-from tests.conftest import mock_result, mock_count_result, make_deployment, make_pr
+from tests.conftest import mock_result, mock_count_result, make_deployment, make_pr, REPO_ID
 import uuid
 
 
@@ -11,7 +11,7 @@ async def test_list_deployments(client, mock_session):
         mock_result(rows=[deployment]),
     ]
 
-    response = await client.get("/api/deployments")
+    response = await client.get(f"/api/deployments?repo_id={REPO_ID}")
 
     assert response.status_code == 200
     data = response.json()
@@ -29,7 +29,7 @@ async def test_list_deployments_empty(client, mock_session):
         mock_result(rows=[]),
     ]
 
-    response = await client.get("/api/deployments")
+    response = await client.get(f"/api/deployments?repo_id={REPO_ID}")
 
     assert response.status_code == 200
     data = response.json()

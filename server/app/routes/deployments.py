@@ -9,6 +9,8 @@ from app.db import get_session
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.pull_request import PullRequest
+from app.models.repository import Repository
+from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.deployments import DeploymentDetailResponse, DeploymentResponse
@@ -21,17 +23,16 @@ router = APIRouter(prefix="/deployments")
 async def list_deployments(
     pagination: PaginationParams = Depends(),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
-    repo_id: uuid.UUID | None = Query(None),
     environment: str | None = Query(None),
     since: datetime | None = Query(None),
     until: datetime | None = Query(None),
 ) -> PaginatedResponse[DeploymentResponse]:
     base = select(ProductionDeploymentEvent).where(
-        ProductionDeploymentEvent.tenant_id == tenant_id
+        ProductionDeploymentEvent.tenant_id == tenant_id,
+        ProductionDeploymentEvent.repo_id == repo.id,
     )
-    if repo_id:
-        base = base.where(ProductionDeploymentEvent.repo_id == repo_id)
     if environment:
         base = base.where(ProductionDeploymentEvent.environment_name == environment)
     if since:

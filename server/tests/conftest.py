@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.db import get_session
 from app.main import create_app
+from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
@@ -17,6 +18,7 @@ from app.models.repository import Repository
 from app.models.tenant import Tenant
 
 TENANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+REPO_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 NOW = datetime(2025, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
 
 
@@ -72,8 +74,11 @@ def client(mock_session, tenant_id):
     async def override_session():
         yield mock_session
 
+    repo = make_repo(id=REPO_ID)
+
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_tenant_id] = lambda: tenant_id
+    app.dependency_overrides[get_verified_repo] = lambda: repo
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     return AsyncClient(transport=transport, base_url="http://test")
