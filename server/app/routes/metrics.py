@@ -183,7 +183,7 @@ async def get_lead_time(
     ]
 
     # Coverage: attributed PRs / total merged PRs in window
-    since_dt = datetime(since.year, since.month, since.day, tzinfo=timezone.utc)
+    since_dt = datetime.combine(since, datetime.min.time(), tzinfo=timezone.utc)
 
     total_prs_result = await session.execute(
         select(func.count()).select_from(
@@ -204,7 +204,11 @@ async def get_lead_time(
                 PullRequest.repo_id == repo.id,
                 PullRequest.base_ref == repo.default_branch,
                 PullRequest.merged_at >= since_dt,
-                PullRequest.id.in_(select(DeploymentAttribution.pr_id)),
+                PullRequest.id.in_(
+                    select(DeploymentAttribution.pr_id).where(
+                        DeploymentAttribution.tenant_id == tenant_id,
+                    )
+                ),
             ).subquery()
         )
     )
