@@ -65,3 +65,7 @@
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+
+## Tips
+
+I might say to you something like "tackle <file path>" with the file being a Product Requirements Document. What I mean is "Read the PRD @<file path> and build a solution that meets the requirements laid out in the document"
