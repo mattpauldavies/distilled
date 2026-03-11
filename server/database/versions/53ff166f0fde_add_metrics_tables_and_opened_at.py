@@ -1,8 +1,8 @@
 """add metrics tables and opened_at
 
-Revision ID: 3bdfcdbc6f2f
+Revision ID: 53ff166f0fde
 Revises: f75b331fdc76
-Create Date: 2026-03-11 16:54:08.228652
+Create Date: 2026-03-11 16:58:06.702431
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '3bdfcdbc6f2f'
+revision: str = '53ff166f0fde'
 down_revision: Union[str, Sequence[str], None] = 'f75b331fdc76'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -87,7 +87,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('tenant_id', 'repo_id', 'week_start')
     )
-    op.add_column('pull_requests', sa.Column('opened_at', sa.DateTime(timezone=True), nullable=True))
+    op.add_column('pull_requests', sa.Column('opened_at', sa.DateTime(timezone=True), nullable=False))
     # ### end Alembic commands ###
 
 
