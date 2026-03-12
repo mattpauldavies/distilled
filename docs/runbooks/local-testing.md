@@ -227,11 +227,11 @@ By default, environments matching `production|prod|live` (case-insensitive) are 
 To manually toggle an environment:
 
 ```sh
-# list environments for a repo
-curl http://localhost:8000/api/repos/{repo_id}/environments | python3 -m json.tool
+# list environments (optionally filter by repo_id)
+curl http://localhost:8000/api/environments?repo_id={repo_id} | python3 -m json.tool
 
 # toggle is_production
-curl -X PATCH http://localhost:8000/api/repos/{repo_id}/environments/{env_id} \
+curl -X PATCH http://localhost:8000/api/environments/{env_id} \
   -H "Content-Type: application/json" \
   -d '{"is_production": true}'
 ```
@@ -260,7 +260,7 @@ curl -X PATCH http://localhost:8000/api/repos/{repo_id}/environments/{env_id} \
 ### Deployments not detected
 
 - Confirm the repo has a GitHub Environment named `production` (or matching `prod|live`)
-- Check that `is_production` is `true` for the environment: `GET /api/repos/{id}/environments`
+- Check that `is_production` is `true` for the environment: `GET /api/environments?repo_id={id}`
 - Verify the GitHub Actions workflow targets the environment with `environment: production`
 
 ### Database issues
