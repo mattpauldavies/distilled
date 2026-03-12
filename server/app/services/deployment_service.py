@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -92,12 +92,15 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
     await attribute_prs_to_deployment(dep_event, repo, session)
 
 
+HANDLED_PR_ACTIONS = {"opened", "reopened", "closed", "converted_to_draft", "ready_for_review"}
+
+
 @register_handler("pull_request")
 async def handle_pull_request_event(payload: dict, session: AsyncSession) -> None:
     action = payload.get("action")
     pr_data = payload.get("pull_request", {})
 
-    if action != "closed" or not pr_data.get("merged"):
+    if action not in HANDLED_PR_ACTIONS:
         return
 
     repo_data = payload["repository"]
@@ -115,8 +118,29 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         logger.warning("repo not found for PR, github_id=%s", repo_data["id"])
         return
 
-    merged_at = _parse_dt(pr_data.get("merged_at", ""))
+    merged_at = _parse_dt_optional(pr_data.get("merged_at"))
     opened_at = _parse_dt(pr_data.get("created_at", ""))
+    is_draft = pr_data.get("draft", False)
+    is_merged = action == "closed" and pr_data.get("merged", False)
+
+    # Determine closed_at
+    closed_at = None
+    if action == "closed" and not is_merged:
+        closed_at = _parse_dt_optional(pr_data.get("closed_at")) or datetime.now(
+            tz=timezone.utc
+        )
+
+    # Determine field overrides based on action
+    if action == "converted_to_draft":
+        is_draft = True
+    elif action == "ready_for_review":
+        is_draft = False
+    elif action == "reopened":
+        closed_at = None
+        merged_at = None
+
+    merge_commit_sha = pr_data.get("merge_commit_sha") or None
+
     stmt = insert(PullRequest).values(
         id=uuid.uuid4(),
         tenant_id=tenant_id,
@@ -126,18 +150,22 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         title=pr_data.get("title", ""),
         base_ref=pr_data.get("base", {}).get("ref", ""),
         merged_at=merged_at,
-        merge_commit_sha=pr_data.get("merge_commit_sha", ""),
+        merge_commit_sha=merge_commit_sha,
         head_sha=pr_data.get("head", {}).get("sha", ""),
         author_login=pr_data.get("user", {}).get("login", ""),
         html_url=pr_data.get("html_url", ""),
         opened_at=opened_at,
+        is_draft=is_draft,
+        closed_at=closed_at,
     ).on_conflict_do_update(
         index_elements=["tenant_id", "repo_id", "number"],
         set_={
             "title": pr_data.get("title", ""),
             "merged_at": merged_at,
-            "merge_commit_sha": pr_data.get("merge_commit_sha", ""),
+            "merge_commit_sha": merge_commit_sha,
             "opened_at": opened_at,
+            "is_draft": is_draft,
+            "closed_at": closed_at,
         },
     )
     await session.execute(stmt)
@@ -146,4 +174,10 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
 def _parse_dt(value: str) -> datetime:
     if not value:
         return datetime(2000, 1, 1)
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _parse_dt_optional(value: str | None) -> datetime | None:
+    if not value:
+        return None
     return datetime.fromisoformat(value.replace("Z", "+00:00"))

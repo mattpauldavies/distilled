@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, ForeignKey, String, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, TZDatetime
@@ -20,9 +20,11 @@ class PullRequest(TimestampMixin, Base):
     number: Mapped[int]
     title: Mapped[str] = mapped_column(String(1024))
     base_ref: Mapped[str] = mapped_column(String(255))
-    merged_at: Mapped[TZDatetime]
+    merged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     opened_at: Mapped[TZDatetime]
-    merge_commit_sha: Mapped[str] = mapped_column(String(40))
+    merge_commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
     head_sha: Mapped[str] = mapped_column(String(40))
     author_login: Mapped[str] = mapped_column(String(255))
     html_url: Mapped[str] = mapped_column(String(2048), default="")
+    is_draft: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

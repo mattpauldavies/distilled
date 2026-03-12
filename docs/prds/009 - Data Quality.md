@@ -1,4 +1,4 @@
-# Data Quality Panel
+# Data Quality
 
 ## 💼 Summary
 
