@@ -35,3 +35,12 @@ class OpenPRsResponse(BaseModel):
     total: int
     live: int
     draft: int
+
+
+class AgeBucket(BaseModel):
+    bucket: str
+    count: int
+
+
+class PRAgeingResponse(BaseModel):
+    buckets: list[AgeBucket]

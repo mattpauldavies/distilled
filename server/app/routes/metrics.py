@@ -21,7 +21,7 @@ from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 from app.schemas.metrics import (
     DailyCount, DeploymentFrequencyResponse, LeadTimeResponse, WeeklyLeadTime,
-    OpenPRsResponse,
+    OpenPRsResponse, AgeBucket, PRAgeingResponse,
 )
 from app.services.metrics_service import recompute_repo
 
@@ -252,4 +252,38 @@ async def get_open_prs(
         total=row.total or 0,
         live=row.live or 0,
         draft=row.draft or 0,
+    )
+
+
+@router.get("/pr-ageing")
+async def get_pr_ageing(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
+    session: AsyncSession = Depends(get_session),
+) -> PRAgeingResponse:
+    now = func.now()
+    age = now - PullRequest.opened_at
+    bucket_expr = sa.case(
+        (age < sa.text("interval '2 days'"), sa.literal("<2d")),
+        (age < sa.text("interval '7 days'"), sa.literal("2-7d")),
+        (age < sa.text("interval '14 days'"), sa.literal("7-14d")),
+        else_=sa.literal(">14d"),
+    ).label("bucket")
+
+    result = await session.execute(
+        select(
+            bucket_expr,
+            func.count().label("count"),
+        ).where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo.id,
+            PullRequest.base_ref == repo.default_branch,
+            PullRequest.merged_at.is_(None),
+            PullRequest.closed_at.is_(None),
+            PullRequest.is_draft.is_(False),
+        ).group_by(sa.text("bucket"))
+    )
+    rows = result.all()
+    return PRAgeingResponse(
+        buckets=[AgeBucket(bucket=row.bucket, count=row.count) for row in rows],
     )
