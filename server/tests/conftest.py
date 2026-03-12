@@ -143,6 +143,8 @@ def make_pr(**overrides):
         html_url="https://github.com/org/repo/pull/1",
         created_at=NOW,
         updated_at=NOW,
+        is_draft=False,
+        closed_at=None,
     )
     defaults.update(overrides)
     return _make_model(PullRequest, defaults)
