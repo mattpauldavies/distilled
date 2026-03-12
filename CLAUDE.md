@@ -50,6 +50,7 @@
 - Most documentation should live in `/docs` as .md markdown files
 - There are three README files to keep up to date: `/README.md`, `/server/README.md`, and `/client/README.md`
 - Try to avoid other README files preferring to add files in `/docs`
+- If we make adjustments that change the way people would contribute to the project make sure to update `/CONTRIBUTING.md`
 
 ## Task Management
 
