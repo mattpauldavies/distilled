@@ -18,6 +18,7 @@ from app.models.metrics import (
     PRThroughputWeeklyMetric,
 )
 from app.models.pull_request import PullRequest
+from app.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +230,84 @@ async def compute_pr_throughput(
             },
         )
         await session.execute(stmt)
+
+
+async def get_deployment_frequency(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    since = date.today() - timedelta(days=days)
+    result = await session.execute(
+        select(DeploymentDailyMetric).where(
+            DeploymentDailyMetric.tenant_id == tenant_id,
+            DeploymentDailyMetric.repo_id == repo.id,
+            DeploymentDailyMetric.date >= since,
+        ).order_by(DeploymentDailyMetric.date.desc())
+    )
+    metrics = result.scalars().all()
+    daily_counts = [{"date": m.date, "count": m.deployment_count} for m in metrics]
+    return {"total": sum(dc["count"] for dc in daily_counts), "daily_counts": daily_counts}
+
+
+async def get_lead_time_summary(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> list[dict]:
+    since = date.today() - timedelta(days=days)
+    result = await session.execute(
+        select(LeadTimeWeeklyMetric).where(
+            LeadTimeWeeklyMetric.tenant_id == tenant_id,
+            LeadTimeWeeklyMetric.repo_id == repo.id,
+            LeadTimeWeeklyMetric.week_start >= since,
+        ).order_by(LeadTimeWeeklyMetric.week_start.desc())
+    )
+    return [
+        {"week_start": m.week_start, "median_seconds": m.median_seconds,
+         "p75_seconds": m.p75_seconds, "sample_size": m.sample_size}
+        for m in result.scalars().all()
+    ]
+
+
+async def get_pr_cycle_time_summary(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> list[dict]:
+    since = date.today() - timedelta(days=days)
+    result = await session.execute(
+        select(PRCycleTimeWeeklyMetric).where(
+            PRCycleTimeWeeklyMetric.tenant_id == tenant_id,
+            PRCycleTimeWeeklyMetric.repo_id == repo.id,
+            PRCycleTimeWeeklyMetric.week_start >= since,
+        ).order_by(PRCycleTimeWeeklyMetric.week_start.desc())
+    )
+    return [
+        {"week_start": m.week_start, "median_seconds": m.median_seconds,
+         "p75_seconds": m.p75_seconds, "sample_size": m.sample_size}
+        for m in result.scalars().all()
+    ]
+
+
+async def get_pr_throughput(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> list[dict]:
+    since = date.today() - timedelta(days=days)
+    result = await session.execute(
+        select(PRThroughputWeeklyMetric).where(
+            PRThroughputWeeklyMetric.tenant_id == tenant_id,
+            PRThroughputWeeklyMetric.repo_id == repo.id,
+            PRThroughputWeeklyMetric.week_start >= since,
+        ).order_by(PRThroughputWeeklyMetric.week_start.desc())
+    )
+    return [{"week_start": m.week_start, "pr_count": m.pr_count} for m in result.scalars().all()]
 
 
 @dataclass
