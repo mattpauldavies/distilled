@@ -9,7 +9,7 @@ from app.db import get_session
 from app.main import create_app
 from tests.conftest import TENANT_ID, REPO_ID, make_repo
 from app.schemas.metrics import (
-    UnifiedDashboardResponse, ScheduledMetrics, LiveMetrics, DataQuality,
+    UnifiedDashboardResponse, DataQuality,
     DeploymentFrequencySection, LeadTimeSection, PRCycleTimeSection, ThroughputSection,
     OpenPRsSection, PRAgeingSection, FreshnessInfo, SetupInfo,
 )
@@ -93,16 +93,12 @@ async def test_recompute_repo_not_found(metrics_client, mock_session):
 @pytest.mark.asyncio
 async def test_unified_endpoint_returns_full_dashboard(client, mock_session):
     mock_response = UnifiedDashboardResponse(
-        scheduled=ScheduledMetrics(
-            deployment_frequency=DeploymentFrequencySection(status="ok", total=5, days=30, daily_counts=[]),
-            lead_time=LeadTimeSection(status="ok", weekly=[]),
-            pr_cycle_time=PRCycleTimeSection(status="ok", weekly=[]),
-            throughput=ThroughputSection(weekly=[]),
-        ),
-        live=LiveMetrics(
-            open_prs=OpenPRsSection(total=3, live=2, draft=1),
-            pr_ageing=PRAgeingSection(buckets=[]),
-        ),
+        deployment_frequency=DeploymentFrequencySection(status="ok", total=5, days=30, daily_counts=[]),
+        lead_time=LeadTimeSection(status="ok", weekly=[]),
+        pr_cycle_time=PRCycleTimeSection(status="ok", weekly=[]),
+        throughput=ThroughputSection(weekly=[]),
+        open_prs=OpenPRsSection(total=3, live=2, draft=1),
+        pr_ageing=PRAgeingSection(buckets=[]),
         data_quality=DataQuality(
             attribution_coverage_percent=87.5,
             freshness=FreshnessInfo(status="ok", last_refresh_at=None),
@@ -116,6 +112,6 @@ async def test_unified_endpoint_returns_full_dashboard(client, mock_session):
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["scheduled"]["deployment_frequency"]["status"] == "ok"
-    assert data["live"]["open_prs"]["total"] == 3
+    assert data["deployment_frequency"]["status"] == "ok"
+    assert data["open_prs"]["total"] == 3
     assert data["data_quality"]["attribution_coverage_percent"] == 87.5

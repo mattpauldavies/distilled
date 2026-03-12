@@ -87,13 +87,6 @@ class ThroughputSection(BaseModel):
     weekly: list[WeeklyThroughput] | None = None
 
 
-class ScheduledMetrics(BaseModel):
-    deployment_frequency: DeploymentFrequencySection
-    lead_time: LeadTimeSection
-    pr_cycle_time: PRCycleTimeSection
-    throughput: ThroughputSection
-
-
 class OpenPRsSection(BaseModel):
     total: int
     live: int
@@ -102,11 +95,6 @@ class OpenPRsSection(BaseModel):
 
 class PRAgeingSection(BaseModel):
     buckets: list[AgeBucket]
-
-
-class LiveMetrics(BaseModel):
-    open_prs: OpenPRsSection
-    pr_ageing: PRAgeingSection
 
 
 class FreshnessInfo(BaseModel):
@@ -126,6 +114,10 @@ class DataQuality(BaseModel):
 
 
 class UnifiedDashboardResponse(BaseModel):
-    scheduled: ScheduledMetrics
-    live: LiveMetrics
+    deployment_frequency: DeploymentFrequencySection
+    lead_time: LeadTimeSection
+    pr_cycle_time: PRCycleTimeSection
+    throughput: ThroughputSection
+    open_prs: OpenPRsSection
+    pr_ageing: PRAgeingSection
     data_quality: DataQuality

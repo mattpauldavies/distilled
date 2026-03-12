@@ -27,47 +27,43 @@ GET /api/metrics/unified?repo={id}&window=30d
 
 ```json
 {
-  "scheduled": {
-    "deployment_frequency": {
-      "status": "ok | setup_required",
-      "total": 42,
-      "days": 30,
-      "daily_counts": [{ "date": "2026-03-11", "count": 3 }]
-    },
-    "lead_time": {
-      "status": "ok | setup_required",
-      "weekly": [
-        {
-          "week_start": "2026-03-03",
-          "median_seconds": 3600.0,
-          "p75_seconds": 7200.0,
-          "sample_size": 5
-        }
-      ]
-    },
-    "pr_cycle_time": {
-      "status": "ok | setup_required",
-      "weekly": [
-        {
-          "week_start": "2026-03-03",
-          "median_seconds": 1800.0,
-          "p75_seconds": 3600.0,
-          "sample_size": 8
-        }
-      ]
-    },
-    "throughput": {
-      "weekly": [{ "week_start": "2026-03-03", "pr_count": 12 }]
-    }
+  "deployment_frequency": {
+    "status": "ok | setup_required",
+    "total": 42,
+    "days": 30,
+    "daily_counts": [{ "date": "2026-03-11", "count": 3 }]
   },
-  "live": {
-    "open_prs": { "total": 5, "live": 3, "draft": 2 },
-    "pr_ageing": {
-      "buckets": [
-        { "bucket": "<2d", "count": 2 },
-        { "bucket": "2-7d", "count": 1 }
-      ]
-    }
+  "lead_time": {
+    "status": "ok | setup_required",
+    "weekly": [
+      {
+        "week_start": "2026-03-03",
+        "median_seconds": 3600.0,
+        "p75_seconds": 7200.0,
+        "sample_size": 5
+      }
+    ]
+  },
+  "pr_cycle_time": {
+    "status": "ok | setup_required",
+    "weekly": [
+      {
+        "week_start": "2026-03-03",
+        "median_seconds": 1800.0,
+        "p75_seconds": 3600.0,
+        "sample_size": 8
+      }
+    ]
+  },
+  "throughput": {
+    "weekly": [{ "week_start": "2026-03-03", "pr_count": 12 }]
+  },
+  "open_prs": { "total": 5, "live": 3, "draft": 2 },
+  "pr_ageing": {
+    "buckets": [
+      { "bucket": "<2d", "count": 2 },
+      { "bucket": "2-7d", "count": 1 }
+    ]
   },
   "data_quality": {
     "attribution_coverage_percent": 87.5,
@@ -86,7 +82,7 @@ GET /api/metrics/unified?repo={id}&window=30d
 **Notes:**
 
 - `deployment_frequency`, `lead_time`, `pr_cycle_time` return `"status": "setup_required"` with null data fields when no production environment exists
-- `throughput` and live metrics don't require prod env — always return data. `throughput` has no `status` field (it never fails).
+- `throughput`, `open_prs`, `pr_ageing` don't require prod env — always return data. `throughput` has no `status` field (it never fails).
 - `data_quality.freshness.last_refresh_at` is `null` when status is `no_data`
 - `data_quality.attribution_coverage_percent` is `null` when no merged PRs exist in window
 
@@ -181,35 +177,31 @@ async def get_unified_dashboard(
         tenant_id, repo.id, repo.default_branch, session, days,
     )
 
-    # Assemble response
+    # Assemble response — flat structure, no scheduled/live grouping
     return UnifiedDashboardResponse(
-        scheduled=ScheduledMetrics(
-            deployment_frequency=DeploymentFrequencySection(
-                status="ok" if has_prod else "setup_required",
-                total=dep_freq["total"] if dep_freq else None,
-                days=days if dep_freq else None,
-                daily_counts=dep_freq["daily_counts"] if dep_freq else None,
-            ),
-            lead_time=LeadTimeSection(
-                status="ok" if has_prod else "setup_required",
-                weekly=lead_time if lead_time else None,
-            ),
-            pr_cycle_time=PRCycleTimeSection(
-                status="ok" if has_prod else "setup_required",
-                weekly=cycle_time if cycle_time else None,
-            ),
-            throughput=ThroughputSection(
-                weekly=throughput,
-            ),
+        deployment_frequency=DeploymentFrequencySection(
+            status="ok" if has_prod else "setup_required",
+            total=dep_freq["total"] if dep_freq else None,
+            days=days if dep_freq else None,
+            daily_counts=dep_freq["daily_counts"] if dep_freq else None,
         ),
-        live=LiveMetrics(
-            open_prs=OpenPRsSection(
-                total=open_prs["total"],
-                live=open_prs["live"],
-                draft=open_prs["draft"],
-            ),
-            pr_ageing=PRAgeingSection(buckets=ageing),
+        lead_time=LeadTimeSection(
+            status="ok" if has_prod else "setup_required",
+            weekly=lead_time if lead_time else None,
         ),
+        pr_cycle_time=PRCycleTimeSection(
+            status="ok" if has_prod else "setup_required",
+            weekly=cycle_time if cycle_time else None,
+        ),
+        throughput=ThroughputSection(
+            weekly=throughput,
+        ),
+        open_prs=OpenPRsSection(
+            total=open_prs["total"],
+            live=open_prs["live"],
+            draft=open_prs["draft"],
+        ),
+        pr_ageing=PRAgeingSection(buckets=ageing),
         data_quality=DataQuality(
             attribution_coverage_percent=coverage,
             freshness=FreshnessInfo(
@@ -292,12 +284,6 @@ class PRCycleTimeSection(BaseModel):
 class ThroughputSection(BaseModel):
     weekly: list[WeeklyThroughput] | None = None
 
-class ScheduledMetrics(BaseModel):
-    deployment_frequency: DeploymentFrequencySection
-    lead_time: LeadTimeSection
-    pr_cycle_time: PRCycleTimeSection
-    throughput: ThroughputSection
-
 class OpenPRsSection(BaseModel):
     total: int
     live: int
@@ -305,10 +291,6 @@ class OpenPRsSection(BaseModel):
 
 class PRAgeingSection(BaseModel):
     buckets: list[AgeBucket]
-
-class LiveMetrics(BaseModel):
-    open_prs: OpenPRsSection
-    pr_ageing: PRAgeingSection
 
 class FreshnessInfo(BaseModel):
     status: str  # "ok" | "stale" | "no_data"
@@ -324,8 +306,12 @@ class DataQuality(BaseModel):
     setup: SetupInfo
 
 class UnifiedDashboardResponse(BaseModel):
-    scheduled: ScheduledMetrics
-    live: LiveMetrics
+    deployment_frequency: DeploymentFrequencySection
+    lead_time: LeadTimeSection
+    pr_cycle_time: PRCycleTimeSection
+    throughput: ThroughputSection
+    open_prs: OpenPRsSection
+    pr_ageing: PRAgeingSection
     data_quality: DataQuality
 ```
 

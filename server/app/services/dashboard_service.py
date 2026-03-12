@@ -10,11 +10,9 @@ from app.schemas.metrics import (
     DeploymentFrequencySection,
     FreshnessInfo,
     LeadTimeSection,
-    LiveMetrics,
     OpenPRsSection,
     PRAgeingSection,
     PRCycleTimeSection,
-    ScheduledMetrics,
     SetupInfo,
     ThroughputSection,
     UnifiedDashboardResponse,
@@ -57,30 +55,26 @@ async def get_unified_dashboard(
     )
 
     return UnifiedDashboardResponse(
-        scheduled=ScheduledMetrics(
-            deployment_frequency=DeploymentFrequencySection(
-                status="ok" if has_prod else "setup_required",
-                total=dep_freq["total"] if dep_freq else None,
-                days=days if dep_freq else None,
-                daily_counts=[DailyCount(**dc) for dc in dep_freq["daily_counts"]] if dep_freq else None,
-            ),
-            lead_time=LeadTimeSection(
-                status="ok" if has_prod else "setup_required",
-                weekly=[WeeklyPercentiles(**w) for w in lead_time] if lead_time else None,
-            ),
-            pr_cycle_time=PRCycleTimeSection(
-                status="ok" if has_prod else "setup_required",
-                weekly=[WeeklyPercentiles(**w) for w in cycle_time] if cycle_time else None,
-            ),
-            throughput=ThroughputSection(
-                weekly=[WeeklyThroughput(**w) for w in throughput],
-            ),
+        deployment_frequency=DeploymentFrequencySection(
+            status="ok" if has_prod else "setup_required",
+            total=dep_freq["total"] if dep_freq else None,
+            days=days if dep_freq else None,
+            daily_counts=[DailyCount(**dc) for dc in dep_freq["daily_counts"]] if dep_freq else None,
         ),
-        live=LiveMetrics(
-            open_prs=OpenPRsSection(**open_prs),
-            pr_ageing=PRAgeingSection(
-                buckets=[AgeBucket(**b) for b in ageing],
-            ),
+        lead_time=LeadTimeSection(
+            status="ok" if has_prod else "setup_required",
+            weekly=[WeeklyPercentiles(**w) for w in lead_time] if lead_time else None,
+        ),
+        pr_cycle_time=PRCycleTimeSection(
+            status="ok" if has_prod else "setup_required",
+            weekly=[WeeklyPercentiles(**w) for w in cycle_time] if cycle_time else None,
+        ),
+        throughput=ThroughputSection(
+            weekly=[WeeklyThroughput(**w) for w in throughput],
+        ),
+        open_prs=OpenPRsSection(**open_prs),
+        pr_ageing=PRAgeingSection(
+            buckets=[AgeBucket(**b) for b in ageing],
         ),
         data_quality=DataQuality(
             attribution_coverage_percent=coverage,
