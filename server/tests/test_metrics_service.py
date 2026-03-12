@@ -195,3 +195,97 @@ async def test_recompute_repo_continues_on_partial_failure(mock_session):
     mock_tp.assert_called_once()
     assert result.status == "failed"
     assert "deployment_frequency" in result.error_message
+
+
+# --- Read-side query functions ---
+
+from tests.conftest import make_repo, mock_result
+from datetime import date
+
+
+@pytest.mark.asyncio
+async def test_get_deployment_frequency_returns_total_and_daily_counts(mock_session):
+    from app.services.metrics_service import get_deployment_frequency
+
+    repo = make_repo(id=REPO_ID)
+    m1 = MagicMock(date=date(2026, 3, 11), deployment_count=3)
+    m2 = MagicMock(date=date(2026, 3, 10), deployment_count=1)
+    mock_session.execute = AsyncMock(return_value=mock_result(rows=[m1, m2]))
+
+    result = await get_deployment_frequency(TENANT_ID, repo, mock_session, 30)
+
+    assert result["total"] == 4
+    assert len(result["daily_counts"]) == 2
+    assert result["daily_counts"][0]["date"] == date(2026, 3, 11)
+    assert result["daily_counts"][0]["count"] == 3
+
+
+@pytest.mark.asyncio
+async def test_get_deployment_frequency_empty(mock_session):
+    from app.services.metrics_service import get_deployment_frequency
+
+    repo = make_repo(id=REPO_ID)
+    mock_session.execute = AsyncMock(return_value=mock_result(rows=[]))
+
+    result = await get_deployment_frequency(TENANT_ID, repo, mock_session, 30)
+
+    assert result["total"] == 0
+    assert result["daily_counts"] == []
+
+
+@pytest.mark.asyncio
+async def test_get_lead_time_summary_returns_weekly_percentiles(mock_session):
+    from app.services.metrics_service import get_lead_time_summary
+
+    repo = make_repo(id=REPO_ID)
+    m1 = MagicMock(week_start=date(2026, 3, 3), median_seconds=3600.0, p75_seconds=7200.0, sample_size=5)
+    mock_session.execute = AsyncMock(return_value=mock_result(rows=[m1]))
+
+    result = await get_lead_time_summary(TENANT_ID, repo, mock_session, 30)
+
+    assert len(result) == 1
+    assert result[0]["week_start"] == date(2026, 3, 3)
+    assert result[0]["median_seconds"] == 3600.0
+    assert result[0]["p75_seconds"] == 7200.0
+    assert result[0]["sample_size"] == 5
+
+
+@pytest.mark.asyncio
+async def test_get_lead_time_summary_empty(mock_session):
+    from app.services.metrics_service import get_lead_time_summary
+
+    repo = make_repo(id=REPO_ID)
+    mock_session.execute = AsyncMock(return_value=mock_result(rows=[]))
+
+    result = await get_lead_time_summary(TENANT_ID, repo, mock_session, 30)
+
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_pr_cycle_time_summary_returns_weekly_percentiles(mock_session):
+    from app.services.metrics_service import get_pr_cycle_time_summary
+
+    repo = make_repo(id=REPO_ID)
+    m1 = MagicMock(week_start=date(2026, 3, 3), median_seconds=1800.0, p75_seconds=3600.0, sample_size=8)
+    mock_session.execute = AsyncMock(return_value=mock_result(rows=[m1]))
+
+    result = await get_pr_cycle_time_summary(TENANT_ID, repo, mock_session, 30)
+
+    assert len(result) == 1
+    assert result[0]["median_seconds"] == 1800.0
+
+
+@pytest.mark.asyncio
+async def test_get_pr_throughput_returns_weekly_counts(mock_session):
+    from app.services.metrics_service import get_pr_throughput
+
+    repo = make_repo(id=REPO_ID)
+    m1 = MagicMock(week_start=date(2026, 3, 3), pr_count=12)
+    mock_session.execute = AsyncMock(return_value=mock_result(rows=[m1]))
+
+    result = await get_pr_throughput(TENANT_ID, repo, mock_session, 30)
+
+    assert len(result) == 1
+    assert result[0]["week_start"] == date(2026, 3, 3)
+    assert result[0]["pr_count"] == 12

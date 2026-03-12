@@ -9,7 +9,7 @@ Single endpoint powering dashboard view.
 ## 🎯 Endpoint
 
 ```http
-GET /api/repos/{id}/dashboard?window=30d
+GET /api/metrics/unified?repo={id}&window=30d
 ```
 
 ---

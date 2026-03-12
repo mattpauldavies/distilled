@@ -32,6 +32,27 @@ GitHub webhook ──► FastAPI ──► PostgreSQL
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
 - **environment_service** — auto-detects production environments by name pattern
 
+### Metrics service delineation
+
+Metrics are split across three services by **computation pattern**, not data source:
+
+- **metrics_service** — scheduled batch recompute, results persisted to dedicated tables
+- **pull_request_service** — real-time queries against live data, no persistence
+- **data_quality_service** — monitoring/observability of the metrics pipeline itself
+
+| Metric               | Service      | Pattern             | Source Data       |
+| -------------------- | ------------ | ------------------- | ----------------- |
+| Deployment Frequency | metrics      | pre-computed daily  | deployments       |
+| Lead Time            | metrics      | pre-computed weekly | PRs + deployments |
+| PR Cycle Time        | metrics      | pre-computed weekly | PRs               |
+| PR Throughput        | metrics      | pre-computed weekly | PRs               |
+| Open PR Count        | pull_request | live query          | PRs               |
+| PR Ageing            | pull_request | live query          | PRs               |
+| Metrics Freshness    | data_quality | live query          | MetricsRefreshLog |
+| Attribution Coverage | data_quality | live query          | PRs + deployments |
+
+The **dashboard_service** acts as the composition layer, orchestrating all three into a unified response.
+
 ### Scheduled jobs
 
 - Scheduled jobs will be triggered via Railway Scheduled Jobs calling authenticated internal endpoints.

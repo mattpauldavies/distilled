@@ -64,6 +64,7 @@ database/          # Alembic migrations
 | GET    | `/api/pull-requests`                | List PRs (requires `repo_id`, filter: date range)               |
 | GET    | `/api/pull-requests/{id}`           | PR detail + linked deployment                                   |
 | POST   | `/api/metrics/recompute`            | Trigger per-repo metric recompute (Bearer auth)                 |
+| GET    | `/api/metrics/unified`              | All dashboard data (metrics, live PRs, data quality) in one request |
 | GET    | `/api/metrics/deployment-frequency` | Deployment frequency (daily counts, 30/60/90 day window)        |
 | GET    | `/api/metrics/lead-time`            | Lead time percentiles (weekly, coverage %, 30/60/90 day window) |
 | GET    | `/api/metrics/open-prs`             | Open PR counts (total, live, draft)                             |

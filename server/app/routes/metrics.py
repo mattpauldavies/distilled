@@ -1,12 +1,10 @@
 import uuid
-from datetime import date, datetime, timedelta, timezone
-from enum import IntEnum
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-import sqlalchemy as sa
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,16 +12,24 @@ from app.config import settings
 from app.db import get_session
 from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
-from app.models.deployment_attribution import DeploymentAttribution
-from app.models.metrics import DeploymentDailyMetric, LeadTimeWeeklyMetric, MetricsRefreshLog
-from app.models.pull_request import PullRequest
+from app.models.metrics import MetricsRefreshLog
 from app.models.repository import Repository
 from app.schemas.metrics import (
-    DailyCount, DeploymentFrequencyResponse, LeadTimeResponse, WeeklyLeadTime,
-    OpenPRsResponse, AgeBucket, PRAgeingResponse,
+    AgeBucket,
+    DailyCount,
+    DaysWindow,
+    DeploymentFrequencyResponse,
+    LeadTimeResponse,
+    OpenPRsResponse,
+    PRAgeingResponse,
+    UnifiedDashboardResponse,
+    WeeklyPercentiles,
 )
+from app.services import dashboard_service
+from app.services.data_quality_service import get_attribution_coverage
 from app.services.environment_service import has_production_environment
-from app.services.metrics_service import recompute_repo
+from app.services.metrics_service import get_deployment_frequency, get_lead_time_summary, recompute_repo
+from app.services.pull_request_service import get_open_pr_count, get_pr_ageing
 
 router = APIRouter(prefix="/metrics")
 
@@ -94,14 +100,8 @@ async def recompute_metrics(
     return {"status": result.status, "error_message": result.error_message}
 
 
-class DaysWindow(IntEnum):
-    THIRTY = 30
-    SIXTY = 60
-    NINETY = 90
-
-
 @router.get("/deployment-frequency")
-async def get_deployment_frequency(
+async def get_deployment_frequency_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
@@ -112,33 +112,17 @@ async def get_deployment_frequency(
             status="setup_required",
             message="no production environment configured",
         )
-
-    since = date.today() - timedelta(days=int(days))
-    result = await session.execute(
-        select(DeploymentDailyMetric).where(
-            DeploymentDailyMetric.tenant_id == tenant_id,
-            DeploymentDailyMetric.repo_id == repo.id,
-            DeploymentDailyMetric.date >= since,
-        ).order_by(DeploymentDailyMetric.date.desc())
-    )
-    metrics = result.scalars().all()
-
-    daily_counts = [
-        DailyCount(date=m.date, count=m.deployment_count)
-        for m in metrics
-    ]
-    total = sum(dc.count for dc in daily_counts)
-
+    result = await get_deployment_frequency(tenant_id, repo, session, int(days))
     return DeploymentFrequencyResponse(
         status="ok",
-        total=total,
+        total=result["total"],
         days=int(days),
-        daily_counts=daily_counts,
+        daily_counts=[DailyCount(**dc) for dc in result["daily_counts"]],
     )
 
 
 @router.get("/lead-time")
-async def get_lead_time(
+async def get_lead_time_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
@@ -149,125 +133,43 @@ async def get_lead_time(
             status="setup_required",
             message="no production environment configured",
         )
-
-    since = date.today() - timedelta(days=int(days))
-    result = await session.execute(
-        select(LeadTimeWeeklyMetric).where(
-            LeadTimeWeeklyMetric.tenant_id == tenant_id,
-            LeadTimeWeeklyMetric.repo_id == repo.id,
-            LeadTimeWeeklyMetric.week_start >= since,
-        ).order_by(LeadTimeWeeklyMetric.week_start.desc())
+    weekly = await get_lead_time_summary(tenant_id, repo, session, int(days))
+    coverage = await get_attribution_coverage(
+        tenant_id, repo.id, repo.default_branch, session, int(days),
     )
-    metrics = result.scalars().all()
-
-    weekly = [
-        WeeklyLeadTime(
-            week_start=m.week_start,
-            median_seconds=m.median_seconds,
-            p75_seconds=m.p75_seconds,
-            sample_size=m.sample_size,
-        )
-        for m in metrics
-    ]
-
-    # Coverage: attributed PRs / total merged PRs in window
-    since_dt = datetime.combine(since, datetime.min.time(), tzinfo=timezone.utc)
-
-    total_prs_result = await session.execute(
-        select(func.count()).select_from(
-            select(PullRequest.id).where(
-                PullRequest.tenant_id == tenant_id,
-                PullRequest.repo_id == repo.id,
-                PullRequest.base_ref == repo.default_branch,
-                PullRequest.merged_at >= since_dt,
-            ).subquery()
-        )
-    )
-    total_prs = total_prs_result.scalar_one()
-
-    attributed_result = await session.execute(
-        select(func.count()).select_from(
-            select(PullRequest.id).where(
-                PullRequest.tenant_id == tenant_id,
-                PullRequest.repo_id == repo.id,
-                PullRequest.base_ref == repo.default_branch,
-                PullRequest.merged_at >= since_dt,
-                PullRequest.id.in_(
-                    select(DeploymentAttribution.pr_id).where(
-                        DeploymentAttribution.tenant_id == tenant_id,
-                    )
-                ),
-            ).subquery()
-        )
-    )
-    attributed_prs = attributed_result.scalar_one()
-
-    coverage = round((attributed_prs / total_prs) * 100, 1) if total_prs > 0 else None
-
     return LeadTimeResponse(
         status="ok",
         days=int(days),
         coverage_percent=coverage,
-        weekly=weekly,
+        weekly=[WeeklyPercentiles(**w) for w in weekly],
     )
 
 
 @router.get("/open-prs")
-async def get_open_prs(
+async def get_open_prs_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
 ) -> OpenPRsResponse:
-    result = await session.execute(
-        select(
-            func.count().label("total"),
-            func.sum(func.cast(PullRequest.is_draft == False, sa.Integer)).label("live"),
-            func.sum(func.cast(PullRequest.is_draft == True, sa.Integer)).label("draft"),
-        ).where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo.id,
-            PullRequest.base_ref == repo.default_branch,
-            PullRequest.merged_at.is_(None),
-            PullRequest.closed_at.is_(None),
-        )
-    )
-    row = result.one()
-    return OpenPRsResponse(
-        total=row.total or 0,
-        live=row.live or 0,
-        draft=row.draft or 0,
-    )
+    result = await get_open_pr_count(tenant_id, repo, session)
+    return OpenPRsResponse(**result)
 
 
 @router.get("/pr-ageing")
-async def get_pr_ageing(
+async def get_pr_ageing_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
 ) -> PRAgeingResponse:
-    now = func.now()
-    age = now - PullRequest.opened_at
-    bucket_expr = sa.case(
-        (age < sa.text("interval '2 days'"), sa.literal("<2d")),
-        (age < sa.text("interval '7 days'"), sa.literal("2-7d")),
-        (age < sa.text("interval '14 days'"), sa.literal("7-14d")),
-        else_=sa.literal(">14d"),
-    ).label("bucket")
+    result = await get_pr_ageing(tenant_id, repo, session)
+    return PRAgeingResponse(buckets=[AgeBucket(**b) for b in result])
 
-    result = await session.execute(
-        select(
-            bucket_expr,
-            func.count().label("count"),
-        ).where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo.id,
-            PullRequest.base_ref == repo.default_branch,
-            PullRequest.merged_at.is_(None),
-            PullRequest.closed_at.is_(None),
-            PullRequest.is_draft.is_(False),
-        ).group_by(sa.text("bucket"))
-    )
-    rows = result.all()
-    return PRAgeingResponse(
-        buckets=[AgeBucket(bucket=row.bucket, count=row.count) for row in rows],
-    )
+
+@router.get("/unified")
+async def get_unified_dashboard_endpoint(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
+    session: AsyncSession = Depends(get_session),
+    window: DaysWindow = Query(DaysWindow.THIRTY),
+) -> UnifiedDashboardResponse:
+    return await dashboard_service.get_unified_dashboard(tenant_id, repo, session, int(window))
