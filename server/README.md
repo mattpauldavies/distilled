@@ -66,6 +66,8 @@ database/          # Alembic migrations
 | POST   | `/api/metrics/recompute`                | Trigger per-repo metric recompute (Bearer auth)                |
 | GET    | `/api/metrics/deployment-frequency`     | Deployment frequency (daily counts, 30/60/90 day window)       |
 | GET    | `/api/metrics/lead-time`                | Lead time percentiles (weekly, coverage %, 30/60/90 day window)|
+| GET    | `/api/metrics/open-prs`                 | Open PR counts (total, live, draft)                           |
+| GET    | `/api/metrics/pr-ageing`                | PR age distribution (<2d, 2-7d, 7-14d, >14d buckets)         |
 
 ## Local dev logging
 
@@ -75,11 +77,11 @@ The `logs/` directory is gitignored.
 
 ## Webhook events
 
-| Event                          | Trigger             | Action                                                 |
-| ------------------------------ | ------------------- | ------------------------------------------------------ |
-| `installation` (created)       | App installed       | Upsert installation, sync repos, discover environments |
-| `deployment_status` (success)  | Deployment succeeds | Create deployment event if production environment      |
-| `pull_request` (closed+merged) | PR merged           | Upsert PR record, trigger attribution                  |
+| Event                                          | Trigger                    | Action                                                 |
+| ---------------------------------------------- | -------------------------- | ------------------------------------------------------ |
+| `installation` (created)                       | App installed              | Upsert installation, sync repos, discover environments |
+| `deployment_status` (success)                  | Deployment succeeds        | Create deployment event if production environment      |
+| `pull_request` (opened, reopened, closed, ...) | PR lifecycle event         | Upsert PR record (capture draft, closed_at status)    |
 
 ## Testing
 

@@ -796,37 +796,11 @@ git commit -m "add PR ageing endpoint"
 
 ---
 
-### Task 8: Documentation
-
-**Files:**
-- Modify: `README.md`
-- Modify: `server/README.md`
-- Modify: `docs/rfcs/008-live-metrics.md` (add review section)
-
-- [ ] **Step 1: Update READMEs with new endpoints**
-
-Add the two new endpoints to any API endpoint listing in `README.md` and `server/README.md`.
-
-- [ ] **Step 2: Add review section to RFC**
-
-Append to `docs/rfcs/008-live-metrics.md`:
-
-```markdown
----
-
 ## Review
 
-- [ ] Migration applied and verified
-- [ ] Webhook handles all PR lifecycle actions
-- [ ] Existing tests still pass (backward compatibility)
-- [ ] open-prs endpoint returns correct counts
-- [ ] pr-ageing endpoint returns correct buckets
-- [ ] All tests pass
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add README.md server/README.md docs/rfcs/008-live-metrics.md
-git commit -m "update docs for live metrics endpoints"
-```
+- [x] Migration applied and verified
+- [x] Webhook handles all PR lifecycle actions
+- [x] Existing tests still pass (backward compatibility)
+- [x] open-prs endpoint returns correct counts
+- [x] pr-ageing endpoint returns correct buckets
+- [x] All 94 tests pass
