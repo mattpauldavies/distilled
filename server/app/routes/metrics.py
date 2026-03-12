@@ -5,6 +5,7 @@ from enum import IntEnum
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+import sqlalchemy as sa
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,10 @@ from app.models.environment import Environment
 from app.models.metrics import DeploymentDailyMetric, LeadTimeWeeklyMetric, MetricsRefreshLog
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
-from app.schemas.metrics import DailyCount, DeploymentFrequencyResponse, LeadTimeResponse, WeeklyLeadTime
+from app.schemas.metrics import (
+    DailyCount, DeploymentFrequencyResponse, LeadTimeResponse, WeeklyLeadTime,
+    OpenPRsResponse,
+)
 from app.services.metrics_service import recompute_repo
 
 router = APIRouter(prefix="/metrics")
@@ -221,4 +225,31 @@ async def get_lead_time(
         days=int(days),
         coverage_percent=coverage,
         weekly=weekly,
+    )
+
+
+@router.get("/open-prs")
+async def get_open_prs(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
+    session: AsyncSession = Depends(get_session),
+) -> OpenPRsResponse:
+    result = await session.execute(
+        select(
+            func.count().label("total"),
+            func.sum(func.cast(PullRequest.is_draft == False, sa.Integer)).label("live"),
+            func.sum(func.cast(PullRequest.is_draft == True, sa.Integer)).label("draft"),
+        ).where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo.id,
+            PullRequest.base_ref == repo.default_branch,
+            PullRequest.merged_at.is_(None),
+            PullRequest.closed_at.is_(None),
+        )
+    )
+    row = result.one()
+    return OpenPRsResponse(
+        total=row.total or 0,
+        live=row.live or 0,
+        draft=row.draft or 0,
     )

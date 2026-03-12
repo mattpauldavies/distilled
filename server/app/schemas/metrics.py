@@ -29,3 +29,9 @@ class LeadTimeResponse(BaseModel):
     days: int | None = None
     coverage_percent: float | None = None
     weekly: list[WeeklyLeadTime] | None = None
+
+
+class OpenPRsResponse(BaseModel):
+    total: int
+    live: int
+    draft: int
