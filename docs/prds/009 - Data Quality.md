@@ -2,7 +2,7 @@
 
 ## 💼 Summary
 
-Expose detection health and metrics freshness.
+Create detection health and freshness metrics.
 
 ---
 

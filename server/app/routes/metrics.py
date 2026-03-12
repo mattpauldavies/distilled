@@ -15,7 +15,6 @@ from app.db import get_session
 from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
 from app.models.deployment_attribution import DeploymentAttribution
-from app.models.environment import Environment
 from app.models.metrics import DeploymentDailyMetric, LeadTimeWeeklyMetric, MetricsRefreshLog
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
@@ -23,6 +22,7 @@ from app.schemas.metrics import (
     DailyCount, DeploymentFrequencyResponse, LeadTimeResponse, WeeklyLeadTime,
     OpenPRsResponse, AgeBucket, PRAgeingResponse,
 )
+from app.services.environment_service import has_production_environment
 from app.services.metrics_service import recompute_repo
 
 router = APIRouter(prefix="/metrics")
@@ -107,15 +107,7 @@ async def get_deployment_frequency(
     session: AsyncSession = Depends(get_session),
     days: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> DeploymentFrequencyResponse:
-    # Check for production environment
-    env_result = await session.execute(
-        select(Environment).where(
-            Environment.tenant_id == tenant_id,
-            Environment.repo_id == repo.id,
-            Environment.is_production.is_(True),
-        ).limit(1)
-    )
-    if not env_result.scalar_one_or_none():
+    if not await has_production_environment(tenant_id, repo.id, session):
         return DeploymentFrequencyResponse(
             status="setup_required",
             message="no production environment configured",
@@ -152,15 +144,7 @@ async def get_lead_time(
     session: AsyncSession = Depends(get_session),
     days: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> LeadTimeResponse:
-    # Check for production environment
-    env_result = await session.execute(
-        select(Environment).where(
-            Environment.tenant_id == tenant_id,
-            Environment.repo_id == repo.id,
-            Environment.is_production.is_(True),
-        ).limit(1)
-    )
-    if not env_result.scalar_one_or_none():
+    if not await has_production_environment(tenant_id, repo.id, session):
         return LeadTimeResponse(
             status="setup_required",
             message="no production environment configured",
