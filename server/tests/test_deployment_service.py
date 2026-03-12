@@ -27,19 +27,21 @@ def _deployment_status_payload(state="success", repo_github_id=111, env_name="pr
     }
 
 
-def _pull_request_payload(action="closed", merged=True, repo_github_id=111):
+def _pull_request_payload(action="closed", merged=True, repo_github_id=111, draft=False):
     return {
         "action": action,
         "pull_request": {
             "id": 99001,
             "merged": merged,
+            "draft": draft,
             "number": 7,
             "title": "My PR",
             "merge_commit_sha": "abc1230000",
             "body": "desc",
             "head": {"ref": "feature-branch", "sha": "def456"},
             "base": {"ref": "main"},
-            "merged_at": "2025-01-15T11:00:00Z",
+            "merged_at": "2025-01-15T11:00:00Z" if merged else None,
+            "created_at": "2025-01-10T09:00:00Z",
             "user": {"login": "dev"},
             "html_url": "https://github.com/org/repo/pull/7",
         },
@@ -113,17 +115,94 @@ async def test_processes_successful_deployment(mock_attribute, mock_session):
 
 
 @pytest.mark.asyncio
-async def test_skips_non_closed(mock_session):
-    payload = _pull_request_payload(action="opened")
+async def test_skips_unhandled_action(mock_session):
+    payload = _pull_request_payload(action="labeled")
     await handle_pull_request_event(payload, mock_session)
     mock_session.execute.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_skips_non_merged(mock_session):
-    payload = _pull_request_payload(action="closed", merged=False)
+async def test_opened_pr_inserts(mock_session):
+    repo = make_repo(github_id=111)
+    payload = _pull_request_payload(action="opened", merged=False)
+
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=repo),
+        mock_insert_result(1),
+    ]
+
     await handle_pull_request_event(payload, mock_session)
-    mock_session.execute.assert_not_called()
+    assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_opened_draft_pr_inserts(mock_session):
+    repo = make_repo(github_id=111)
+    payload = _pull_request_payload(action="opened", merged=False, draft=True)
+
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=repo),
+        mock_insert_result(1),
+    ]
+
+    await handle_pull_request_event(payload, mock_session)
+    assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_closed_without_merge_sets_closed_at(mock_session):
+    repo = make_repo(github_id=111)
+    payload = _pull_request_payload(action="closed", merged=False)
+
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=repo),
+        mock_insert_result(1),
+    ]
+
+    await handle_pull_request_event(payload, mock_session)
+    assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_converted_to_draft(mock_session):
+    repo = make_repo(github_id=111)
+    payload = _pull_request_payload(action="converted_to_draft", merged=False)
+
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=repo),
+        mock_insert_result(1),
+    ]
+
+    await handle_pull_request_event(payload, mock_session)
+    assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_ready_for_review(mock_session):
+    repo = make_repo(github_id=111)
+    payload = _pull_request_payload(action="ready_for_review", merged=False)
+
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=repo),
+        mock_insert_result(1),
+    ]
+
+    await handle_pull_request_event(payload, mock_session)
+    assert mock_session.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_reopened_pr(mock_session):
+    repo = make_repo(github_id=111)
+    payload = _pull_request_payload(action="reopened", merged=False)
+
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=repo),
+        mock_insert_result(1),
+    ]
+
+    await handle_pull_request_event(payload, mock_session)
+    assert mock_session.execute.call_count == 2
 
 
 @pytest.mark.asyncio
