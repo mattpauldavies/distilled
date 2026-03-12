@@ -183,8 +183,8 @@ Composite PK — a PR is attributed to a deployment exactly once.
 POST   /api/webhooks/github                    — webhook receiver
 
 GET    /api/repos                              — list repos for tenant
-GET    /api/repos/{id}/environments            — list environments for repo
-PATCH  /api/repos/{id}/environments/{id}       — toggle is_production
+GET    /api/environments                       — list environments (optional ?repo_id=)
+PATCH  /api/environments/{env_id}              — toggle is_production
 
 GET    /api/deployments                        — list deployments (filter: repo, date range)
 GET    /api/deployments/{id}                   — deployment detail + attributed PRs

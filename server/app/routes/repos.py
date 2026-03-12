@@ -1,15 +1,14 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select, update
+from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models.environment import Environment
 from app.models.repository import Repository
 from app.middleware.tenant import get_tenant_id
 from app.schemas.common import PaginatedResponse, PaginationParams
-from app.schemas.repos import EnvironmentResponse, RepoResponse, UpdateEnvironmentRequest
+from app.schemas.repos import RepoResponse
 
 router = APIRouter(prefix="/repos")
 
@@ -36,44 +35,3 @@ async def list_repos(
         offset=pagination.offset,
         limit=pagination.limit,
     )
-
-
-@router.get("/{repo_id}/environments")
-async def list_environments(
-    repo_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_tenant_id),
-    session: AsyncSession = Depends(get_session),
-) -> list[EnvironmentResponse]:
-    result = await session.execute(
-        select(Environment).where(
-            Environment.tenant_id == tenant_id,
-            Environment.repo_id == repo_id,
-        ).order_by(Environment.name)
-    )
-    envs = result.scalars().all()
-    return [EnvironmentResponse.model_validate(e) for e in envs]
-
-
-@router.patch("/{repo_id}/environments/{env_id}")
-async def update_environment(
-    repo_id: uuid.UUID,
-    env_id: uuid.UUID,
-    body: UpdateEnvironmentRequest,
-    tenant_id: uuid.UUID = Depends(get_tenant_id),
-    session: AsyncSession = Depends(get_session),
-) -> EnvironmentResponse:
-    result = await session.execute(
-        select(Environment).where(
-            Environment.id == env_id,
-            Environment.repo_id == repo_id,
-            Environment.tenant_id == tenant_id,
-        )
-    )
-    env = result.scalar_one_or_none()
-    if not env:
-        raise HTTPException(status_code=404, detail="Environment not found")
-
-    env.is_production = body.is_production
-    await session.commit()
-    await session.refresh(env)
-    return EnvironmentResponse.model_validate(env)

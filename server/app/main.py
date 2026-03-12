@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db import dispose_db, init_db
 from app.logging import configure_logging
-from app.routes import deployments, health, metrics, pull_requests, repos, webhooks
+from app.routes import deployments, environments, health, metrics, pull_requests, repos, webhooks
 
 # Import services to register webhook handlers
 import app.services.installation_service  # noqa: F401
@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api")
     app.include_router(webhooks.router, prefix="/api")
     app.include_router(repos.router, prefix="/api")
+    app.include_router(environments.router, prefix="/api")
     app.include_router(deployments.router, prefix="/api")
     app.include_router(pull_requests.router, prefix="/api")
     app.include_router(metrics.router, prefix="/api")
