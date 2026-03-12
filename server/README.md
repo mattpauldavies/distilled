@@ -65,6 +65,7 @@ database/          # Alembic migrations
 | GET    | `/api/pull-requests/{id}`               | PR detail + linked deployment                                  |
 | POST   | `/api/metrics/recompute`                | Trigger per-repo metric recompute (Bearer auth)                |
 | GET    | `/api/metrics/deployment-frequency`     | Deployment frequency (daily counts, 30/60/90 day window)       |
+| GET    | `/api/metrics/lead-time`                | Lead time percentiles (weekly, coverage %, 30/60/90 day window)|
 
 ## Local dev logging
 

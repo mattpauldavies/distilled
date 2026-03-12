@@ -1,12 +1,12 @@
-# Lead Time Aggregation
+# Lead Time Aggregation
 
-## 💼 Summary
+## Summary
 
-Compute lead time percentiles via scheduled job, surface attribution coverage transparently.
+Surface pre-computed lead time percentiles via a read endpoint, with inline attribution coverage.
 
 ---
 
-## 🎯 Scheduled Computation
+## Scheduled Computation (already implemented — RFC 005)
 
 For each repo:
 
@@ -20,28 +20,23 @@ Include only:
 - PRs with valid attribution
 - Positive durations
 
----
-
-## 📊 Aggregates
-
-- Weekly median
-- Weekly P75
-- Sample size
-- Rolling coverage %
+Weekly median, P75, and sample size already stored in `lead_time_weekly_metrics`.
 
 ---
 
-## 📈 Coverage Metrics (Scheduled)
+## Read Endpoint
 
-- % merged PRs attributed (rolling 30d)
-- Unattributed PR count
-- PRs per deployment distribution
+`GET /api/metrics/lead-time?repo_id=...&days=30`
 
-Stored in aggregate table or computed inside job and stored per repo snapshot.
+Returns:
+
+- Weekly buckets (median_seconds, p75_seconds, sample_size)
+- `coverage_percent` — attributed PRs / total merged PRs in the window, computed on-the-fly
+- Setup-aware response (like deployment-frequency)
 
 ---
 
-## ❌ No Inline Recompute
+## No Inline Recompute
 
 No lead time recomputation during:
 
@@ -50,8 +45,8 @@ No lead time recomputation during:
 
 ---
 
-## ✅ Acceptance Criteria
+## Acceptance Criteria
 
-- Lead time updates within 1 hour.
-- Coverage % visible in diagnostics endpoint.
-- Attribution method visible in PR detail.
+- Lead time endpoint returns weekly percentiles from pre-computed data
+- Coverage % included in lead-time response
+- Response handles setup_required state (no production environment)

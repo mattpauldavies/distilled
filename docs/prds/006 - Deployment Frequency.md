@@ -16,6 +16,8 @@ Expose deployment frequency derived from ProductionDeploymentEvent via scheduled
 
 ## 🔁 Update Frequency
 
+See [005-metrics-aggregation-engine.md](../rfcs/005-metrics-aggregation-engine.md) for details of aggregation
+
 - Recomputed hourly.
 - Not computed on dashboard request.
 
