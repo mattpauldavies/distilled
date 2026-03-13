@@ -2,29 +2,38 @@
 
 ## 💼 Summary
 
-Single-page multi-repo engineering health dashboard.
+Build the UI for our engineering health dashboard
+Build this by replacing the placeholder application in the `/client` folder
+Follow the patterns in the placeholder and utilise the existing tools (React and vite) and component library
 
 ---
 
 ## 🎯 Behaviour
 
-- Repo switcher in header.
-- Default window 30 days.
-- Window toggle: 7 / 30 / 90.
+- Display all available metrics in our [metrics taxonomy](../metrics.md)
+- Details on how to display below
+- Repo switcher as part of controls
+- Provide a date range selector as part of controls
+- Default window 30 days
+- Window toggle: 7 / 30 / 90
 
 ---
 
-## 🧭 Real-Time Feel
+## ❌ Explicitly Not Included
 
-- Open PR count updates immediately after merge/close.
-- Heavy metrics may lag up to 1 hour.
-- Freshness timestamp visible.
+These things will be tackled later:
+
+- Authentication
+- Settings incl. user control
+- Github connection setup
 
 ---
 
 ## 📊 Components
 
 Metric Cards:
+
+These should be big number cards that are easily grokable
 
 - Deployment Frequency
 - Lead Time
@@ -34,20 +43,29 @@ Metric Cards:
 
 Charts:
 
+These are beautiful interactive charts and graphs
+
 - Deployment daily
 - Lead time weekly
 - Cycle time weekly
 - PR ageing distribution
 
-Drill-down:
+Data Quality:
 
-- Deployment detail
-- PR detail (with attribution method)
+A panel that should be less prominent that displays our trust metrics
+
+- Attribution Coverage
+- Metrics Freshness
+- Setup Configuration
+
+Notes:
+
+- Metric widgets should have headings
+- A small caption under each widget that describes what the metric is
 
 ---
 
 ## ✅ Acceptance Criteria
 
 - Switching repo reloads metrics.
-- Live metrics update immediately.
-- Heavy metrics reflect changes within 1 hour.
+- All metrics load, cards and charts work as expected

@@ -81,7 +81,7 @@ async def test_deployment_frequency_zero_state(client, mock_session):
 
 @pytest.mark.asyncio
 async def test_deployment_frequency_custom_days(client, mock_session):
-    """Accepts days=60 query param."""
+    """Accepts days=90 query param."""
     env = make_environment(repo_id=REPO_ID, is_production=True)
     env_result = MagicMock()
     env_result.scalar_one_or_none.return_value = env
@@ -93,10 +93,10 @@ async def test_deployment_frequency_custom_days(client, mock_session):
 
     mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result])
 
-    resp = await client.get(f"/api/metrics/deployment-frequency?repo_id={REPO_ID}&days=60")
+    resp = await client.get(f"/api/metrics/deployment-frequency?repo_id={REPO_ID}&days=90")
 
     assert resp.status_code == 200
-    assert resp.json()["days"] == 60
+    assert resp.json()["days"] == 90
 
 
 @pytest.mark.asyncio

@@ -48,18 +48,20 @@ Makefile  # dev commands + database management
 
 ## Makefile targets
 
-| Target          | Description                                |
-| --------------- | ------------------------------------------ |
-| `dev`           | Run server + client concurrently           |
-| `dev-server`    | Server only (port 8000)                    |
-| `dev-client`    | Client only (port 5173)                    |
-| `db-up`         | Start Postgres                             |
-| `db-down`       | Stop Postgres                              |
-| `db-reset`      | Drop volume + restart Postgres             |
-| `migrate`       | Run Alembic migrations                     |
-| `makemigration` | Create new migration (`MSG="description"`) |
-| `test`          | Run all server tests                       |
-| `test-coverage` | Run tests with coverage report             |
+| Target             | Description                                |
+| ------------------ | ------------------------------------------ |
+| `dev`              | Run server + client concurrently           |
+| `dev-server`       | Server only (port 8000)                    |
+| `dev-client`       | Client only (port 5173)                    |
+| `db-up`            | Start Postgres                             |
+| `db-down`          | Stop Postgres                              |
+| `db-reset`         | Drop volume + restart Postgres             |
+| `migrate`          | Run Alembic migrations                     |
+| `create-migration` | Create new migration (`MSG="description"`) |
+| `test`             | Run all server + client tests              |
+| `test-server`      | Server tests only                          |
+| `test-client`      | Client tests only                          |
+| `test-coverage`    | Server + client tests with coverage        |
 
 ## Documentation
 
@@ -67,5 +69,8 @@ Find all documentation in `/docs` key highlights are:
 
 - [Architecture](docs/architecture.md)
 - [Local Testing Runbook](docs/runbooks/local-testing.md) — full setup guide including GitHub integration
-- [RFC 001: Deployment Detection](docs/rfcs/001-deployment-detection.md) — technical spec for the deployment detection system
+- [RFC 001: Deployment Detection](docs/rfcs/001-deployment-detection.md) — deployment detection system
+- [RFC 003: Better Python Tests](docs/rfcs/003-better-python-tests.md) — server test infrastructure + 60 tests
+- [RFC 004: Client Testing](docs/rfcs/004-client-testing.md) — client test infrastructure + 27 tests
 - [RFC 005: Metrics Aggregation Engine](docs/rfcs/005-metrics-aggregation-engine.md) — scheduled per-repo metric recompute
+- [RFC 011: Dashboard UI](docs/rfcs/011-dashboard-ui.md) — engineering health dashboard design + implementation plan

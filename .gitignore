@@ -5,3 +5,4 @@ server/*.pem
 *.pyc
 __pycache__/
 logs/
+.superpowers/
