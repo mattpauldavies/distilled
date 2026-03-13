@@ -160,7 +160,7 @@ docs/
 If your change requires a schema migration:
 
 ```bash
-make makemigration MSG="add widget table"
+make create-migration MSG="add widget table"
 make migrate
 ```
 

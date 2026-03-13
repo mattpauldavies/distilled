@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-client db-up db-down db-reset migrate makemigration test test-coverage
+.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-coverage
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -24,7 +24,7 @@ db-reset:
 migrate:
 	cd server && poetry run alembic upgrade head
 
-makemigration:
+create-migration:
 	cd server && poetry run alembic revision --autogenerate -m "$(MSG)"
 
 test:

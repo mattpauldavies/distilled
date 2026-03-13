@@ -48,18 +48,18 @@ Makefile  # dev commands + database management
 
 ## Makefile targets
 
-| Target          | Description                                |
-| --------------- | ------------------------------------------ |
-| `dev`           | Run server + client concurrently           |
-| `dev-server`    | Server only (port 8000)                    |
-| `dev-client`    | Client only (port 5173)                    |
-| `db-up`         | Start Postgres                             |
-| `db-down`       | Stop Postgres                              |
-| `db-reset`      | Drop volume + restart Postgres             |
-| `migrate`       | Run Alembic migrations                     |
-| `makemigration` | Create new migration (`MSG="description"`) |
-| `test`          | Run all server tests                       |
-| `test-coverage` | Run tests with coverage report             |
+| Target             | Description                                |
+| ------------------ | ------------------------------------------ |
+| `dev`              | Run server + client concurrently           |
+| `dev-server`       | Server only (port 8000)                    |
+| `dev-client`       | Client only (port 5173)                    |
+| `db-up`            | Start Postgres                             |
+| `db-down`          | Stop Postgres                              |
+| `db-reset`         | Drop volume + restart Postgres             |
+| `migrate`          | Run Alembic migrations                     |
+| `create-migration` | Create new migration (`MSG="description"`) |
+| `test`             | Run all server tests                       |
+| `test-coverage`    | Run tests with coverage report             |
 
 ## Documentation
 
