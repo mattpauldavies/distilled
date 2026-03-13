@@ -8,9 +8,9 @@ describe("DataQualityPanel", () => {
     expect(screen.getByText("92.3%")).toBeInTheDocument();
   });
 
-  it("shows N/A when coverage is null", () => {
+  it("shows fallback text when coverage is null", () => {
     render(<DataQualityPanel data={makeDataQuality({ attribution_coverage_percent: null })} />);
-    expect(screen.getByText("N/A")).toBeInTheDocument();
+    expect(screen.getByText(/We're not sure what percentage/)).toBeInTheDocument();
   });
 
   it("renders freshness status", () => {
@@ -35,6 +35,6 @@ describe("DataQualityPanel", () => {
         })}
       />
     );
-    expect(screen.getByText("Not configured")).toBeInTheDocument();
+    expect(screen.getByText(/Deployments are not being tracked/)).toBeInTheDocument();
   });
 });
