@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRepos } from "@/hooks/useRepos";
 import { useDashboard } from "@/hooks/useDashboard";
 import { DashboardControls } from "@/components/DashboardControls";
@@ -19,15 +19,12 @@ function formatDuration(seconds: number): string {
 
 export function Dashboard() {
   const { repos, loading: reposLoading, error: reposError } = useRepos();
-  const [selectedRepoId, setSelectedRepoId] = useState<string | null>(null);
+  const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null);
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(30);
-  const { data, loading, error, retry } = useDashboard(selectedRepoId, daysWindow);
 
-  useEffect(() => {
-    if (!selectedRepoId && repos.length > 0) {
-      setSelectedRepoId(repos[0].id);
-    }
-  }, [repos, selectedRepoId]);
+  // Auto-select first repo if user hasn't picked one
+  const selectedRepoId = userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
+  const { data, loading, error, retry } = useDashboard(selectedRepoId, daysWindow);
 
   if (!reposLoading && !reposError && repos.length === 0) {
     return (
@@ -60,7 +57,7 @@ export function Dashboard() {
         <DashboardControls
           repos={repos}
           selectedRepoId={selectedRepoId}
-          onRepoChange={setSelectedRepoId}
+          onRepoChange={setUserSelectedRepoId}
           daysWindow={daysWindow}
           onDaysWindowChange={setDaysWindow}
         />
