@@ -1,3 +1,4 @@
+import "@/lib/chartSetup";
 import { Dashboard } from "@/components/Dashboard";
 
 export default function App() {

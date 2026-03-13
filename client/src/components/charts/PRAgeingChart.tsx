@@ -1,14 +1,5 @@
 import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-} from "chart.js";
 import type { AgeBucket } from "@/types/dashboard";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 const BUCKET_COLORS = [
   "hsl(142, 71%, 45%)",

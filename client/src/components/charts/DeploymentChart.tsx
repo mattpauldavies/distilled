@@ -1,14 +1,5 @@
 import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-} from "chart.js";
 import type { DailyCount } from "@/types/dashboard";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 interface Props {
   dailyCounts: DailyCount[];

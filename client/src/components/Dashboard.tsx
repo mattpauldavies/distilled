@@ -63,6 +63,12 @@ export function Dashboard() {
         />
       </div>
 
+      {reposError && (
+        <div className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <span>{reposError}</span>
+        </div>
+      )}
+
       {error && (
         <div className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           <span>{error}</span>
@@ -72,7 +78,7 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard
           title="Deployment Frequency"
           value={depFreq?.total != null ? String(depFreq.total) : "—"}
@@ -109,7 +115,7 @@ export function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartPanel
           title="Deployments"
           caption="Daily deployment count"
