@@ -21,6 +21,9 @@ export function DeploymentChart({ dailyCounts }: Props) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "bottom" as const },
+    },
     scales: {
       y: { beginAtZero: true, ticks: { precision: 0 } },
       x: { ticks: { maxTicksLimit: 7 } },
