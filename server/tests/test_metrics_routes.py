@@ -115,3 +115,34 @@ async def test_unified_endpoint_returns_full_dashboard(client, mock_session):
     assert data["deployment_frequency"]["status"] == "ok"
     assert data["open_prs"]["total"] == 3
     assert data["data_quality"]["attribution_coverage_percent"] == 87.5
+
+
+@pytest.mark.asyncio
+async def test_unified_endpoint_accepts_7_day_window(client, mock_session):
+    mock_response = UnifiedDashboardResponse(
+        deployment_frequency=DeploymentFrequencySection(status="ok", total=2, days=7, daily_counts=[]),
+        lead_time=LeadTimeSection(status="ok", weekly=[]),
+        pr_cycle_time=PRCycleTimeSection(status="ok", weekly=[]),
+        throughput=ThroughputSection(weekly=[]),
+        open_prs=OpenPRsSection(total=0, live=0, draft=0),
+        pr_ageing=PRAgeingSection(buckets=[]),
+        data_quality=DataQuality(
+            attribution_coverage_percent=None,
+            freshness=FreshnessInfo(status="no_data", last_refresh_at=None),
+            setup=SetupInfo(has_production_environment=True, production_environments=["production"]),
+        ),
+    )
+
+    with patch("app.routes.metrics.dashboard_service.get_unified_dashboard", new_callable=AsyncMock) as mock_unified:
+        mock_unified.return_value = mock_response
+        resp = await client.get("/api/metrics/unified?window=7")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["deployment_frequency"]["days"] == 7
+
+
+@pytest.mark.asyncio
+async def test_unified_endpoint_rejects_60_day_window(client, mock_session):
+    resp = await client.get("/api/metrics/unified?window=60")
+    assert resp.status_code == 422

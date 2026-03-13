@@ -5,8 +5,8 @@ from pydantic import BaseModel
 
 
 class DaysWindow(IntEnum):
+    SEVEN = 7
     THIRTY = 30
-    SIXTY = 60
     NINETY = 90
 
 
