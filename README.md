@@ -1,5 +1,3 @@
-![Distilled Logo](logo-small.png)
-
 # Distilled
 
 Distilled is a lightweight, self-serve engineering intelligence product built for leaders who need clarity, not clutter. It turns the messy stream of day-to-day software delivery into a small set of signals that actually matter. Instead of drowning you in every metric under the sun, Distilled focuses on the measures that reflect real organisational health and presents them in a way that’s immediately understandable and easy to trust.
