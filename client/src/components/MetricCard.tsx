@@ -21,20 +21,20 @@ export function MetricCard({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="text-center text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="text-center">
         {loading ? (
-          <Skeleton className="h-8 w-20" />
+          <Skeleton className="mx-auto h-10 w-20" />
         ) : setupRequired ? (
           <p className="text-sm text-muted-foreground">
             Configure a production environment to see this metric
           </p>
         ) : (
           <>
-            <p className="text-3xl font-bold">{value}</p>
+            <p className="text-4xl font-bold">{value}</p>
             {subLabel && (
               <p className="text-sm text-muted-foreground">{subLabel}</p>
             )}

@@ -34,6 +34,9 @@ export function LeadTimeChart({ weekly }: Props) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "bottom" as const },
+    },
     scales: {
       y: { beginAtZero: true, title: { display: true, text: "Hours" } },
     },
