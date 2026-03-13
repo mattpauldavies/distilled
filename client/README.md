@@ -32,6 +32,16 @@ npx shadcn@latest add button
 npx shadcn@latest add card
 ```
 
+## Test
+
+```sh
+npm test              # run all tests
+npm run test:watch    # watch mode
+npm run test:coverage # with coverage report
+```
+
+27 integration tests (Vitest + Testing Library + MSW) covering hooks, components, and end-to-end dashboard flows. Test infrastructure: MSW mocks HTTP, factory functions generate test data, custom render helper provides context.
+
 ## Lint
 
 ```sh
