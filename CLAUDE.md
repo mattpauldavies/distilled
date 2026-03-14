@@ -1,6 +1,21 @@
 # CLAUDE.md
 
-## Workflow Orchestration
+## Workflow
+
+For most tasks, our default work process is:
+
+1. Read a PRD or create a lightweight PRD in `/docs/prds`
+2. Read relevant documentation in `/docs` for context
+3. Read relevant code in either `/server` or `/client` for context
+4. Create a technical design and create an RFC in `/docs/rfcs`
+5. Allow user to review and approve the technical design
+6. Once approved, create an implementation plan and append this to the same RFC document
+7. When the plan is agreed, begin implementation following red/green test driven development
+8. Note any architectural decisions or technical decisions outside of the RFC in ADR documents in `/docs/adrs`
+
+Note you may be asked for ad-hoc tasks, such as UI design changes, that fall outside of this workflow.
+
+## Rules
 
 ### 1. Plan Mode Default
 
@@ -18,7 +33,7 @@
 
 ### 3. Self-Improvement Loop
 
-- After ANY correction from the user: update `docs/tasks/lessons.md` with the pattern
+- After ANY correction from the user: update `/docs/lessons.md` with the pattern
 - Write rules for yourself that prevent the same mistake
 - Ruthlessly iterate on these lessons until mistake rate drops
 - Review lessons at session start for relevant project
@@ -51,15 +66,6 @@
 - There are three README files to keep up to date: `/README.md`, `/server/README.md`, and `/client/README.md`
 - Try to avoid other README files preferring to add files in `/docs`
 - If we make adjustments that change the way people would contribute to the project make sure to update `/CONTRIBUTING.md`
-
-## Task Management
-
-- **Plan First**; Write plans to `docs/rfcs/\*.md` as responses to requests and PRDs
-- **Verify Plan**: Check in before starting implementation
-- **Track Progress**: Mark items complete as you go
-- **Explain Changes**: High-level summary at each step
-- **Document Results**: Add review section to `docs/rfcs/\*.md`
-- **Capture Lessons**: Update `docs/lessons.md` after corrections
 
 ## Core Principles
 
