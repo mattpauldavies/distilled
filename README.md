@@ -19,7 +19,8 @@ cd server && poetry install && cd ..
 cd client && nvm use && npm install && cd ..
 
 # configure
-cd server && cp .env.example .env && cd ..  # edit with your GitHub App credentials
+cd server && cp .env.example .env && cd ..
+# read more at docs/runbooks/local-setup.md
 
 # database
 make db-up        # start Postgres via Docker
@@ -33,7 +34,7 @@ make dev
 - Server: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
-For full setup including GitHub App integration, see the [local testing runbook](docs/runbooks/local-testing.md).
+For full setup including GitHub App integration, see the [local setup runbook](docs/runbooks/local-setup.md).
 
 ## Structure
 

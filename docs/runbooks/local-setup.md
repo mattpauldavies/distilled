@@ -35,27 +35,55 @@ make migrate      # re-apply migrations
 
 ---
 
-## 2. Create a GitHub App
+## 2. (Optional) Seed Demo Data
+
+If you want to explore the product without setting up a real GitHub App, you can seed the database with 6 months of realistic demo data for a fictional org (`acme-corp`):
+
+```sh
+make seed-demo
+```
+
+This creates two repositories (`acme-corp/web` and `acme-corp/api`) with realistic PR and deployment history. `acme-corp/api` includes a rough-patch story arc (healthy → deteriorates → recovers) to demonstrate the full range of metrics.
+
+To remove the demo data:
+
+```sh
+make seed-reset
+```
+
+To refresh with a clean set (e.g. after time has passed and dates look stale):
+
+```sh
+make seed-reset && make seed-demo
+```
+
+> **Note:** Demo data is isolated from any real GitHub data you connect later. Connecting a real GitHub App will add your real repos alongside the demo repos — run `make seed-reset` first if you want a clean install.
+
+---
+
+## 3. Create a GitHub App
 
 Go to **GitHub Settings > Developer settings > GitHub Apps > New GitHub App**.
 
 ### App settings
 
-| Field | Value |
-|-------|-------|
-| App name | `distilled-dev` (or anything unique) |
-| Homepage URL | `http://localhost:8000` |
-| Webhook URL | Your smee/ngrok URL (see step 3) |
+| Field          | Value                                |
+| -------------- | ------------------------------------ |
+| App name       | `distilled-dev` (or anything unique) |
+| Homepage URL   | `http://localhost:8000`              |
+| Webhook URL    | Your smee/ngrok URL (see step 3)     |
 | Webhook secret | Generate one: `openssl rand -hex 20` |
+
+Note: the webhook secret is used to authenticate the webhook, it is separate from the app client secret key.
 
 ### Permissions
 
-| Permission | Access |
-|------------|--------|
-| Deployments | Read-only |
-| Pull requests | Read-only |
-| Metadata | Read-only (auto-granted) |
-| Environments | Read-only |
+| Permission    | Access                   |
+| ------------- | ------------------------ |
+| Deployments   | Read-only                |
+| Pull requests | Read-only                |
+| Metadata      | Read-only (auto-granted) |
+| Environments  | Read-only                |
 
 ### Events to subscribe to
 
@@ -72,7 +100,7 @@ Go to **GitHub Settings > Developer settings > GitHub Apps > New GitHub App**.
 
 ---
 
-## 3. Set Up Webhook Forwarding
+## 4. Set Up Webhook Forwarding
 
 GitHub needs to reach your local machine. Two options:
 
@@ -100,7 +128,7 @@ Keep the forwarding process running in a separate terminal.
 
 ---
 
-## 4. Configure Environment Variables
+## 5. Configure Environment Variables
 
 ```sh
 cd server
@@ -120,7 +148,7 @@ SEED_TENANT_NAME=dev
 
 ---
 
-## 5. Start the Server
+## 6. Start the Server
 
 ```sh
 make dev          # starts both server (8000) and client (5173)
@@ -139,7 +167,7 @@ API docs available at http://localhost:8000/docs
 
 ---
 
-## 6. Install the GitHub App
+## 7. Install the GitHub App
 
 1. Go to your GitHub App settings page
 2. Click **Install App** in the sidebar
@@ -162,7 +190,7 @@ You should see your installed repos listed.
 
 ---
 
-## 7. Test Deployment Detection
+## 8. Test Deployment Detection
 
 ### Trigger a test deployment
 
@@ -200,7 +228,7 @@ curl http://localhost:8000/api/deployments/{id} | python3 -m json.tool
 
 ---
 
-## 8. Test PR Attribution
+## 9. Test PR Attribution
 
 1. Create a branch on your test repo
 2. Open a PR targeting `main`
@@ -220,7 +248,7 @@ curl http://localhost:8000/api/pull-requests/{id} | python3 -m json.tool
 
 ---
 
-## 9. Test Environment Configuration
+## 10. Test Environment Configuration
 
 By default, environments matching `production|prod|live` (case-insensitive) are auto-detected as production.
 
