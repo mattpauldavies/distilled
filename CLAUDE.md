@@ -15,7 +15,16 @@ For most tasks, our default work process is:
 
 Note you may be asked for ad-hoc tasks, such as UI design changes, that fall outside of this workflow.
 
-## Rules
+I might say to you something like "tackle <file path>" with the file being a Product Requirements Document. What I mean is "Read the PRD @<file path> and build a solution that meets the requirements laid out in the document"
+
+## Core Principles
+
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+- **No Promo:** Don't include any references to yourself (Claude Code) when writing commit messages or PR descriptions.
+
+## Engineering Context
 
 ### 1. Plan Mode Default
 
@@ -67,13 +76,33 @@ Note you may be asked for ad-hoc tasks, such as UI design changes, that fall out
 - Try to avoid other README files preferring to add files in `/docs`
 - If we make adjustments that change the way people would contribute to the project make sure to update `/CONTRIBUTING.md`
 
-## Core Principles
+## Design Context
 
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
-- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+### Users
 
-## Tips
+Engineering leaders (CTOs, VPs, engineering managers) who need fast, trustworthy visibility into software delivery health. They open Distilled to get answers — not to explore dashboards. Their context: high cognitive load, little patience for noise, high trust requirements. The job to be done: "Tell me what's actually happening in my team's delivery, without me having to dig."
 
-- I might say to you something like "tackle <file path>" with the file being a Product Requirements Document. What I mean is "Read the PRD @<file path> and build a solution that meets the requirements laid out in the document"
-- Don't include any references to yourself (Claude Code) when writing commit messages or PR descriptions.
+### Brand Personality
+
+**Bold, direct, powerful.** Distilled doesn't hedge. It presents data with confidence and gets out of the way. The product should feel like a precision instrument — authoritative without being cold, intelligent without being showy.
+
+### Emotional Goal
+
+**Quiet control.** Users should feel "I'm on top of it" — a calm reassurance that delivery is being watched and understood. Not anxiety-inducing, not over-exciting. The calm confidence of a well-maintained system.
+
+### Aesthetic Direction
+
+- **References:** Linear (dark, sharp, premium dev-tool feel) and Raycast (fast, focused, beautiful power-user tool)
+- **Theme:** Dark by default — dark surfaces as the primary experience
+- **Anti-references:** Avoid anything that feels like a generic SaaS dashboard, BI tool, or colorful chart-fest
+- **Palette:** Deep neutral backgrounds (near-black), high-contrast foreground text, restrained accent usage, semantic color only for data status
+- **Typography:** Tight, precise, no decorative fonts — system or geometric sans-serif
+- **Motion:** Minimal. If animated, purposeful and fast (no bouncy transitions)
+
+### Design Principles
+
+1. **Signal over noise** — Every pixel must earn its place. Remove anything that doesn't help the user understand their delivery.
+2. **Data is the hero** — Charts and metrics take center stage; chrome, borders, and decoration recede.
+3. **Dark, precise, premium** — The interface should feel like a tool built for serious people. Dark surfaces, tight spacing, confident typography.
+4. **Semantic color only** — Color is reserved for status communication (healthy/warning/critical). Never decorative.
+5. **Immediate comprehension** — Layouts, labels, and hierarchy must allow the user to understand the key story within 3 seconds of opening the page.
