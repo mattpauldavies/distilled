@@ -18,6 +18,7 @@ function PopoverContent({
   className,
   align = "end",
   sideOffset = 6,
+  forceMount,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
