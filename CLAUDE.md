@@ -9,13 +9,21 @@ For most tasks, our default work process is:
 3. Read relevant code in either `/server` or `/client` for context
 4. Create a technical design and create an RFC in `/docs/rfcs`
 5. Allow user to review and approve the technical design
-6. Once approved, create an implementation plan and append this to the same RFC document
+6. Once approved, create an implementation plan and append this to the same RFC document. **Never save plans to `docs/superpowers/plans/` — always append to the RFC.**
 7. When the plan is agreed, begin implementation following red/green test driven development
 8. Note any architectural decisions or technical decisions outside of the RFC in ADR documents in `/docs/adrs`
 
 Note you may be asked for ad-hoc tasks, such as UI design changes, that fall outside of this workflow.
 
 I might say to you something like "tackle <file path>" with the file being a Product Requirements Document. What I mean is "Read the PRD @<file path> and build a solution that meets the requirements laid out in the document"
+
+## Superpowers Skill Overrides
+
+These project conventions override superpowers skill defaults:
+
+- **Spec location** (`brainstorming` skill default: `docs/superpowers/specs/`): Save specs as the next numbered RFC in `docs/rfcs/NNN-topic.md` and match the existing RFC format.
+- **Plan location** (`writing-plans` skill default: `docs/superpowers/plans/`): Append the implementation plan to the **bottom of the same RFC file**. Never create a separate plan file.
+- **Commit messages**: No `Co-Authored-By: Claude` lines — see "No Promo" below.
 
 ## Core Principles
 
