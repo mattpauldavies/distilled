@@ -41,21 +41,23 @@ Go to **GitHub Settings > Developer settings > GitHub Apps > New GitHub App**.
 
 ### App settings
 
-| Field | Value |
-|-------|-------|
-| App name | `distilled-dev` (or anything unique) |
-| Homepage URL | `http://localhost:8000` |
-| Webhook URL | Your smee/ngrok URL (see step 3) |
+| Field          | Value                                |
+| -------------- | ------------------------------------ |
+| App name       | `distilled-dev` (or anything unique) |
+| Homepage URL   | `http://localhost:8000`              |
+| Webhook URL    | Your smee/ngrok URL (see step 3)     |
 | Webhook secret | Generate one: `openssl rand -hex 20` |
+
+Note: the webhook secret is used to authenticate the webhook, it is separate from the app client secret key.
 
 ### Permissions
 
-| Permission | Access |
-|------------|--------|
-| Deployments | Read-only |
-| Pull requests | Read-only |
-| Metadata | Read-only (auto-granted) |
-| Environments | Read-only |
+| Permission    | Access                   |
+| ------------- | ------------------------ |
+| Deployments   | Read-only                |
+| Pull requests | Read-only                |
+| Metadata      | Read-only (auto-granted) |
+| Environments  | Read-only                |
 
 ### Events to subscribe to
 
