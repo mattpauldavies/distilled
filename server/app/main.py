@@ -1,16 +1,20 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.db import dispose_db, init_db
 from app.logging import configure_logging
 from app.routes import deployments, environments, health, metrics, pull_requests, repos, webhooks
 
+logger = logging.getLogger(__name__)
+
 # Import services to register webhook handlers
-import app.services.installation_service  # noqa: F401
-import app.services.deployment_service  # noqa: F401
+import app.services.installation_service
+import app.services.deployment_service
 
 
 @asynccontextmanager
@@ -23,6 +27,12 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(lifespan=lifespan)
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.exception("Unhandled exception for %s %s", request.method, request.url)
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
