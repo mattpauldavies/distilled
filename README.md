@@ -4,6 +4,8 @@ Distilled is a lightweight, self-serve engineering intelligence product built fo
 
 Distilled is designed to be effortless to adopt. Connect GitHub, and it automatically translates your production delivery into clear, auditable insights with every chart grounded in real pull requests and deployments, not manual reporting or questionable guesswork. Optionally, Distilled can expand from delivery into reliability through incident-backed integrations, creating a single, credible view of how quickly your teams ship, how long change takes to reach customers, and where friction or instability is quietly accumulating.
 
+![Distilled Screenshot](website/images/distilled-screenshot.png)
+
 ## Prerequisites
 
 - Python 3.12+ with [Poetry](https://python-poetry.org/)
