@@ -1,22 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #0a0a0a;
-  --color-card: #ffffff;
-  --color-card-foreground: #0a0a0a;
-  --color-primary: #171717;
-  --color-primary-foreground: #fafafa;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #737373;
-  --color-border: #e5e5e5;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
+  --color-background: #0c0c10;
+  --color-foreground: #f0f0f4;
+  --color-card: #131318;
+  --color-card-foreground: #f0f0f4;
+  --color-primary: #d4a853;
+  --color-primary-foreground: #0c0c10;
+  --color-secondary: #1e1e26;
+  --color-secondary-foreground: #f0f0f4;
+  --color-muted: #1a1a20;
+  --color-muted-foreground: #8e8ea0;
+  --color-border: #1e1e26;
+  --color-separator: #5a5a72;
+  --color-input: #1e1e26;
+  --color-ring: #d4a853;
+  --color-accent: #1e1e26;
+  --color-accent-foreground: #f0f0f4;
+  --color-popover: #131318;
+  --color-popover-foreground: #f0f0f4;
+  --color-success: #34d399;
+  --color-error: #f87171;
+  --color-error-surface: #1c0909;
+  --color-error-border: #4a1212;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

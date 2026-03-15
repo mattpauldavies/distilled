@@ -65,7 +65,6 @@ src/
     DashboardControls.tsx         # Repo selector + 7/30/90 day window toggle
     MetricCard.tsx                # Single metric card (loading/empty/value states)
     ChartPanel.tsx                # Chart wrapper (loading/empty/chart states)
-    DataQualityPanel.tsx          # Data freshness + sync status footer
     charts/
       DeploymentChart.tsx         # Daily deployment bar chart
       LeadTimeChart.tsx           # Weekly lead time line chart (median + p75)

@@ -4,7 +4,6 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { DashboardControls } from "@/components/DashboardControls";
 import { MetricCard } from "@/components/MetricCard";
 import { ChartPanel } from "@/components/ChartPanel";
-import { DataQualityPanel } from "@/components/DataQualityPanel";
 import { DeploymentChart } from "@/components/charts/DeploymentChart";
 import { LeadTimeChart } from "@/components/charts/LeadTimeChart";
 import { CycleTimeChart } from "@/components/charts/CycleTimeChart";
@@ -17,20 +16,37 @@ function formatDuration(seconds: number): string {
   return `${Math.round((seconds / 3600) * 10) / 10}h`;
 }
 
+function timeAgo(isoString: string | null): string {
+  if (!isoString) return "never";
+  const diff = Date.now() - new Date(isoString).getTime();
+  if (diff < 0) return "just now";
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export function Dashboard() {
   const { repos, loading: reposLoading, error: reposError } = useRepos();
-  const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null);
+  const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(
+    null,
+  );
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(30);
 
-  // Auto-select first repo if user hasn't picked one
-  const selectedRepoId = userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
-  const { data, loading, error, retry } = useDashboard(selectedRepoId, daysWindow);
+  const selectedRepoId =
+    userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
+  const selectedRepo = repos.find((r) => r.id === selectedRepoId);
+  const { data, loading, error, retry } = useDashboard(
+    selectedRepoId,
+    daysWindow,
+  );
 
   if (!reposLoading && !reposError && repos.length === 0) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <main className="flex min-h-[60vh] items-center justify-center">
         <p className="text-muted-foreground">No repositories found</p>
-      </div>
+      </main>
     );
   }
 
@@ -39,6 +55,7 @@ export function Dashboard() {
   const cycleTime = data?.pr_cycle_time;
   const throughput = data?.throughput;
   const openPrs = data?.open_prs;
+  const freshness = data?.data_quality?.freshness;
 
   const lastLeadTime = leadTime?.weekly?.length
     ? leadTime.weekly[leadTime.weekly.length - 1]
@@ -51,9 +68,27 @@ export function Dashboard() {
     : null;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+    <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1 pr-6">
+          <h1 className="truncate text-2xl font-bold tracking-tight">
+            {selectedRepo?.full_name ?? "Dashboard"}
+          </h1>
+          {freshness && (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className={`size-1.5 rounded-full ${
+                  freshness.status === "ok" ? "bg-success" : "bg-error"
+                }`}
+              />
+              <span className="text-xs text-muted-foreground">
+                {freshness.status === "ok" ? "Data current" : "Data stale"} ·
+                updated {timeAgo(freshness.last_refresh_at)}
+              </span>
+            </div>
+          )}
+        </div>
         <DashboardControls
           repos={repos}
           selectedRepoId={selectedRepoId}
@@ -64,19 +99,32 @@ export function Dashboard() {
       </div>
 
       {reposError && (
-        <div className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div
+          role="alert"
+          className="flex items-center gap-3 rounded-md border border-error-border bg-error-surface p-4 text-sm text-error"
+        >
           <span>{reposError}</span>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div
+          role="alert"
+          className="flex items-center gap-3 rounded-md border border-error-border bg-error-surface p-4 text-sm text-error"
+        >
           <span>{error}</span>
           <Button variant="outline" size="sm" onClick={retry}>
             Retry
           </Button>
         </div>
       )}
+
+      <div className="flex items-center gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-primary">
+          Key Metrics
+        </h2>
+        <div className="h-px flex-1 bg-separator" />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard
@@ -88,15 +136,19 @@ export function Dashboard() {
         />
         <MetricCard
           title="Lead Time"
-          value={lastLeadTime ? formatDuration(lastLeadTime.median_seconds) : "—"}
-          caption="Median time from merge to production"
+          value={
+            lastLeadTime ? formatDuration(lastLeadTime.median_seconds) : "—"
+          }
+          caption="Median: merge to production"
           loading={loading}
           setupRequired={leadTime?.status === "setup_required"}
         />
         <MetricCard
           title="PR Cycle Time"
-          value={lastCycleTime ? formatDuration(lastCycleTime.median_seconds) : "—"}
-          caption="Median time from PR open to merge"
+          value={
+            lastCycleTime ? formatDuration(lastCycleTime.median_seconds) : "—"
+          }
+          caption="Median: PR open to merge"
           loading={loading}
           setupRequired={cycleTime?.status === "setup_required"}
         />
@@ -105,41 +157,74 @@ export function Dashboard() {
           value={lastThroughput ? String(lastThroughput.pr_count) : "—"}
           caption="PRs merged this week"
           loading={loading}
+          muted
         />
         <MetricCard
           title="Open PRs"
           value={openPrs ? String(openPrs.total) : "—"}
-          caption="Currently open pull requests"
-          subLabel={openPrs ? `${openPrs.live} live · ${openPrs.draft} draft` : undefined}
+          caption={
+            openPrs
+              ? `${openPrs.live} live · ${openPrs.draft} draft`
+              : "Open pull requests"
+          }
           loading={loading}
+          muted
         />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-primary">
+          Trends
+        </h2>
+        <div className="h-px flex-1 bg-separator" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartPanel
           title="Deployments"
-          caption="Daily deployment count"
+          caption="Deployments per day"
           loading={loading}
-          empty={depFreq?.status === "setup_required" || !depFreq?.daily_counts?.length}
-          emptyMessage={depFreq?.status === "setup_required" ? "No data — production environment required" : "No deployment data"}
+          empty={
+            depFreq?.status === "setup_required" ||
+            !depFreq?.daily_counts?.length
+          }
+          emptyMessage={
+            depFreq?.status === "setup_required"
+              ? "Connect a production environment to track deployments"
+              : "No deployments in this period"
+          }
         >
-          {depFreq?.daily_counts && <DeploymentChart dailyCounts={depFreq.daily_counts} />}
+          {depFreq?.daily_counts && (
+            <DeploymentChart dailyCounts={depFreq.daily_counts} />
+          )}
         </ChartPanel>
         <ChartPanel
           title="Lead Time"
-          caption="Weekly median and p75 (hours)"
+          caption="Median and 75th percentile by week (hours)"
           loading={loading}
-          empty={leadTime?.status === "setup_required" || !leadTime?.weekly?.length}
-          emptyMessage={leadTime?.status === "setup_required" ? "No data — production environment required" : "No lead time data"}
+          empty={
+            leadTime?.status === "setup_required" || !leadTime?.weekly?.length
+          }
+          emptyMessage={
+            leadTime?.status === "setup_required"
+              ? "Connect a production environment to track lead time"
+              : "No lead time data for this period"
+          }
         >
           {leadTime?.weekly && <LeadTimeChart weekly={leadTime.weekly} />}
         </ChartPanel>
         <ChartPanel
           title="PR Cycle Time"
-          caption="Weekly median and p75 (hours)"
+          caption="Median and 75th percentile by week (hours)"
           loading={loading}
-          empty={cycleTime?.status === "setup_required" || !cycleTime?.weekly?.length}
-          emptyMessage={cycleTime?.status === "setup_required" ? "No data — production environment required" : "No cycle time data"}
+          empty={
+            cycleTime?.status === "setup_required" || !cycleTime?.weekly?.length
+          }
+          emptyMessage={
+            cycleTime?.status === "setup_required"
+              ? "Connect a production environment to track cycle time"
+              : "No cycle time data for this period"
+          }
         >
           {cycleTime?.weekly && <CycleTimeChart weekly={cycleTime.weekly} />}
         </ChartPanel>
@@ -148,13 +233,13 @@ export function Dashboard() {
           caption="Age distribution of open PRs"
           loading={loading}
           empty={!data?.pr_ageing?.buckets?.length}
-          emptyMessage="No open PRs"
+          emptyMessage="No open pull requests"
         >
-          {data?.pr_ageing && <PRAgeingChart buckets={data.pr_ageing.buckets} />}
+          {data?.pr_ageing && (
+            <PRAgeingChart buckets={data.pr_ageing.buckets} />
+          )}
         </ChartPanel>
       </div>
-
-      {data?.data_quality && <DataQualityPanel data={data.data_quality} />}
-    </div>
+    </main>
   );
 }
