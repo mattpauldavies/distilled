@@ -93,6 +93,50 @@ API_TITLES_ROUGH = [
 ]
 API_AUTHORS = ["marcus-webb", "aisha-johnson", "dev-lin"]
 
+# ── Open / draft PR specs for ageing demo ─────────────────────────────────────
+# Each entry: title, author, days_ago (float), is_draft
+
+WEB_OPEN_SPECS = [
+    # <2d bucket — live
+    dict(title="feat: add user notifications", author="sarah-chen", days_ago=1.0, is_draft=False),
+    dict(title="fix: improve dashboard loading performance", author="priya-patel", days_ago=0.75, is_draft=False),
+    # <2d bucket — draft
+    dict(title="WIP: real-time activity feed", author="james-okafor", days_ago=1.2, is_draft=True),
+    # 2-7d bucket — live
+    dict(title="feat: new analytics overview page", author="tom-harris", days_ago=4.0, is_draft=False),
+    dict(title="chore: update ESLint config", author="sarah-chen", days_ago=5.5, is_draft=False),
+    # 7-14d bucket — live
+    dict(title="feat: team management settings", author="james-okafor", days_ago=10.0, is_draft=False),
+    dict(title="fix: edge case in date range picker", author="priya-patel", days_ago=12.0, is_draft=False),
+    # 7-14d bucket — draft
+    dict(title="WIP: notification preferences modal", author="tom-harris", days_ago=9.0, is_draft=True),
+    # >14d bucket — live
+    dict(title="feat: redesign account settings page", author="sarah-chen", days_ago=20.0, is_draft=False),
+    dict(title="fix: stale data on page refresh", author="james-okafor", days_ago=22.0, is_draft=False),
+    dict(title="feat: add export to PDF", author="tom-harris", days_ago=30.0, is_draft=False),
+    # >14d bucket — draft
+    dict(title="WIP: data export pipeline", author="priya-patel", days_ago=21.0, is_draft=True),
+]
+
+API_OPEN_SPECS = [
+    # <2d bucket — live
+    dict(title="feat: add GraphQL subscriptions", author="marcus-webb", days_ago=1.0, is_draft=False),
+    # 2-7d bucket — live
+    dict(title="fix: rate limiter edge case under burst", author="aisha-johnson", days_ago=4.0, is_draft=False),
+    dict(title="feat: bulk operations API", author="dev-lin", days_ago=5.5, is_draft=False),
+    # 2-7d bucket — draft
+    dict(title="WIP: streaming response support", author="marcus-webb", days_ago=4.5, is_draft=True),
+    # 7-14d bucket — live
+    dict(title="chore: migrate to async job runner", author="aisha-johnson", days_ago=10.0, is_draft=False),
+    dict(title="feat: audit log endpoint", author="dev-lin", days_ago=11.0, is_draft=False),
+    # >14d bucket — live
+    dict(title="fix: connection timeout under load", author="marcus-webb", days_ago=20.0, is_draft=False),
+    dict(title="feat: add multi-tenant isolation layer", author="aisha-johnson", days_ago=22.0, is_draft=False),
+    dict(title="chore: upgrade PostgreSQL driver", author="marcus-webb", days_ago=32.0, is_draft=False),
+    # >14d bucket — draft
+    dict(title="WIP: new authentication provider", author="dev-lin", days_ago=21.0, is_draft=True),
+]
+
 # ── Phase parameters ──────────────────────────────────────────────────────────
 
 
@@ -227,6 +271,45 @@ def _generate_week_deployments(
             )
         )
     return deployments
+
+
+def _generate_open_prs(
+    repo_id: UUID,
+    repo_full_name: str,
+    tenant_id: UUID,
+    pr_counter: list[int],
+    pr_github_id_counter: list[int],
+    now: datetime,
+    specs: list[dict],
+) -> list[PullRequest]:
+    """Generate open (unmerged, unclosed) PRs at fixed ages relative to now."""
+    prs = []
+    for spec in specs:
+        number = pr_counter[0]
+        pr_counter[0] += 1
+        github_id = pr_github_id_counter[0]
+        pr_github_id_counter[0] += 1
+        opened_at = now - timedelta(days=spec["days_ago"])
+        prs.append(
+            PullRequest(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                repo_id=repo_id,
+                github_id=github_id,
+                number=number,
+                title=spec["title"],
+                base_ref="main",
+                opened_at=opened_at,
+                merged_at=None,
+                merge_commit_sha=None,
+                head_sha=make_sha(f"{repo_full_name}:open:{number}"),
+                author_login=spec["author"],
+                html_url=f"https://github.com/{repo_full_name}/pull/{number}",
+                is_draft=spec["is_draft"],
+                closed_at=None,
+            )
+        )
+    return prs
 
 
 def _build_attributions(
@@ -484,8 +567,28 @@ async def main() -> None:
                 )
             )
 
+        # ── Open / draft PRs for ageing demo ─────────────────────────────────
+        web_open_prs = _generate_open_prs(
+            repo_id=WEB_REPO_ID,
+            repo_full_name="acme-corp/web",
+            tenant_id=TENANT_ID,
+            pr_counter=web_pr_counter,
+            pr_github_id_counter=web_pr_github_id_counter,
+            now=now,
+            specs=WEB_OPEN_SPECS,
+        )
+        api_open_prs = _generate_open_prs(
+            repo_id=API_REPO_ID,
+            repo_full_name="acme-corp/api",
+            tenant_id=TENANT_ID,
+            pr_counter=api_pr_counter,
+            pr_github_id_counter=api_pr_github_id_counter,
+            now=now,
+            specs=API_OPEN_SPECS,
+        )
+
         # ── Persist PRs and deployments ───────────────────────────────────────
-        for pr in web_prs + api_prs:
+        for pr in web_prs + api_prs + web_open_prs + api_open_prs:
             session.add(pr)
         for deploy in web_deployments + api_deployments:
             session.add(deploy)
@@ -510,9 +613,11 @@ async def main() -> None:
             session.add(metric)
 
         await session.commit()
+        open_pr_count = len(web_open_prs + api_open_prs)
         print(
             f"✓ Demo data seeded: "
-            f"{len(web_prs + api_prs)} PRs, "
+            f"{len(web_prs + api_prs)} merged PRs, "
+            f"{open_pr_count} open/draft PRs, "
             f"{len(web_deployments + api_deployments)} deployments"
         )
 
