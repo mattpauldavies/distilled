@@ -43,6 +43,8 @@ API_REPO_ID = UUID("00000000-0000-0000-0000-000000000011")
 GITHUB_INSTALLATION_ID = 99_000_001
 GITHUB_ID_WEB = 9_000_001
 GITHUB_ID_API = 9_000_002
+GITHUB_PR_ID_WEB_START = 9_100_000
+GITHUB_PR_ID_API_START = 9_200_000
 
 # ── Content ───────────────────────────────────────────────────────────────────
 
@@ -122,7 +124,7 @@ WEB_PARAMS = dict(deploys=(4, 5), cycle_hours=(4, 8), prs=(8, 12))
 
 def make_sha(seed: str) -> str:
     """Deterministic 40-char hex SHA from a seed string."""
-    return hashlib.sha1(seed.encode()).hexdigest()
+    return hashlib.sha1(seed.encode(), usedforsecurity=False).hexdigest()
 
 
 def week_monday(dt: datetime) -> date:
@@ -139,6 +141,7 @@ def _generate_week_prs(
     authors: list[str],
     params: dict,
     pr_counter: list[int],
+    pr_github_id_counter: list[int],
     week_end: datetime,
 ) -> list[PullRequest]:
     """Generate PRs whose merged_at falls within the week ending at week_end."""
@@ -154,6 +157,9 @@ def _generate_week_prs(
         number = pr_counter[0]
         pr_counter[0] += 1
 
+        github_id = pr_github_id_counter[0]
+        pr_github_id_counter[0] += 1
+
         # merged_at: random time within the week
         merged_ts = rng.randint(week_start_ts, week_end_ts)
         merged_at = datetime.fromtimestamp(merged_ts, tz=timezone.utc)
@@ -167,7 +173,7 @@ def _generate_week_prs(
                 id=uuid.uuid4(),
                 tenant_id=tenant_id,
                 repo_id=repo_id,
-                github_id=9_000_000 + number,
+                github_id=github_id,
                 number=number,
                 title=rng.choice(titles),
                 base_ref="main",
@@ -411,6 +417,8 @@ async def main() -> None:
 
         web_pr_counter = [1]
         api_pr_counter = [1]
+        web_pr_github_id_counter = [GITHUB_PR_ID_WEB_START]
+        api_pr_github_id_counter = [GITHUB_PR_ID_API_START]
         deploy_counter = [9_000_000]
 
         for weeks_ago in range(25, -1, -1):
@@ -427,6 +435,7 @@ async def main() -> None:
                     authors=WEB_AUTHORS,
                     params=WEB_PARAMS,
                     pr_counter=web_pr_counter,
+                    pr_github_id_counter=web_pr_github_id_counter,
                     week_end=week_end,
                 )
             )
@@ -459,6 +468,7 @@ async def main() -> None:
                     authors=API_AUTHORS,
                     params=api_params,
                     pr_counter=api_pr_counter,
+                    pr_github_id_counter=api_pr_github_id_counter,
                     week_end=week_end,
                 )
             )
