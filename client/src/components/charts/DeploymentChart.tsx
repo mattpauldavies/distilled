@@ -1,5 +1,6 @@
 import { Bar } from "react-chartjs-2";
 import type { DailyCount } from "@/types/dashboard";
+import { chartTheme } from "@/lib/chartTheme";
 
 interface Props {
   dailyCounts: DailyCount[];
@@ -12,8 +13,8 @@ export function DeploymentChart({ dailyCounts }: Props) {
       {
         label: "Deployments",
         data: dailyCounts.map((d) => d.count),
-        backgroundColor: "rgba(23, 23, 23, 0.7)",
-        borderRadius: 4,
+        backgroundColor: chartTheme.primary.bar,
+        borderRadius: 3,
       },
     ],
   };
@@ -25,13 +26,20 @@ export function DeploymentChart({ dailyCounts }: Props) {
       legend: { position: "bottom" as const },
     },
     scales: {
-      y: { beginAtZero: true, ticks: { precision: 0 } },
-      x: { ticks: { maxTicksLimit: 7 } },
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0 },
+        grid: { color: chartTheme.grid },
+      },
+      x: {
+        ticks: { maxTicksLimit: 7 },
+        grid: { display: false },
+      },
     },
   };
 
   return (
-    <div className="h-[200px]">
+    <div role="img" aria-label="Bar chart showing daily deployment counts" className="h-[220px]">
       <Bar data={data} options={options} />
     </div>
   );

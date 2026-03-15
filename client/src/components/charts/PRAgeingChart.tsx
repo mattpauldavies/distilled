@@ -1,12 +1,6 @@
 import { Bar } from "react-chartjs-2";
 import type { AgeBucket } from "@/types/dashboard";
-
-const BUCKET_COLORS = [
-  "hsl(142, 71%, 45%)",
-  "hsl(48, 96%, 53%)",
-  "hsl(25, 95%, 53%)",
-  "hsl(0, 84%, 60%)",
-];
+import { chartTheme } from "@/lib/chartTheme";
 
 interface Props {
   buckets: AgeBucket[];
@@ -19,8 +13,8 @@ export function PRAgeingChart({ buckets }: Props) {
       {
         label: "PRs",
         data: buckets.map((b) => b.count),
-        backgroundColor: buckets.map((_, i) => BUCKET_COLORS[i] ?? BUCKET_COLORS[0]),
-        borderRadius: 4,
+        backgroundColor: buckets.map((_, i) => chartTheme.prAgeing[i] ?? chartTheme.prAgeing[0]),
+        borderRadius: 3,
       },
     ],
   };
@@ -32,12 +26,19 @@ export function PRAgeingChart({ buckets }: Props) {
       legend: { position: "bottom" as const },
     },
     scales: {
-      y: { beginAtZero: true, ticks: { precision: 0 } },
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0 },
+        grid: { color: chartTheme.grid },
+      },
+      x: {
+        grid: { display: false },
+      },
     },
   };
 
   return (
-    <div className="h-[200px]">
+    <div role="img" aria-label="Bar chart showing age distribution of open pull requests" className="h-[220px]">
       <Bar data={data} options={options} />
     </div>
   );

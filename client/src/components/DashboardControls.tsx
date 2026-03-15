@@ -40,12 +40,13 @@ export function DashboardControls({
         </SelectContent>
       </Select>
 
-      <div className="flex rounded-md border border-border">
+      <div role="group" aria-label="Time window" className="flex rounded-md border border-border">
         {WINDOWS.map((w) => (
           <Button
             key={w}
             variant={w === daysWindow ? "default" : "ghost"}
             size="sm"
+            aria-pressed={w === daysWindow}
             onClick={() => onDaysWindowChange(w)}
             className="rounded-none first:rounded-l-md last:rounded-r-md"
           >

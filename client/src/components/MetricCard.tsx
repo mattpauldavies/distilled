@@ -1,44 +1,47 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   title: string;
   value: string;
   caption: string;
-  subLabel?: string;
   loading?: boolean;
   setupRequired?: boolean;
+  muted?: boolean;
 }
 
 export function MetricCard({
   title,
   value,
   caption,
-  subLabel,
   loading,
   setupRequired,
+  muted,
 }: Props) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-center text-sm font-medium text-muted-foreground">
+    <Card className="gap-0 py-0">
+      <CardContent className="p-5">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="text-center">
+        </p>
         {loading ? (
-          <Skeleton className="mx-auto h-10 w-20" />
+          <Skeleton className="h-12 w-24" />
         ) : setupRequired ? (
           <p className="text-sm text-muted-foreground">
-            Configure a production environment to see this metric
+            Requires a connected production environment
           </p>
         ) : (
           <>
-            <p className="text-4xl font-bold">{value}</p>
-            {subLabel && (
-              <p className="text-sm text-muted-foreground">{subLabel}</p>
-            )}
-            <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
+            <p
+              className={
+                muted
+                  ? "text-5xl font-extrabold leading-none tracking-tight text-muted-foreground"
+                  : "text-5xl font-extrabold leading-none tracking-tight"
+              }
+            >
+              {value}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">{caption}</p>
           </>
         )}
       </CardContent>

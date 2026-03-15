@@ -1,5 +1,6 @@
 import { Line } from "react-chartjs-2";
 import type { WeeklyPercentiles } from "@/types/dashboard";
+import { chartTheme } from "@/lib/chartTheme";
 
 interface Props {
   weekly: WeeklyPercentiles[];
@@ -16,17 +17,23 @@ export function CycleTimeChart({ weekly }: Props) {
       {
         label: "Median",
         data: weekly.map((w) => toHours(w.median_seconds)),
-        borderColor: "#171717",
-        backgroundColor: "rgba(23, 23, 23, 0.1)",
+        borderColor: chartTheme.primary.line,
+        backgroundColor: chartTheme.primary.fill,
         tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: chartTheme.primary.point,
       },
       {
-        label: "p75",
+        label: "P75",
         data: weekly.map((w) => toHours(w.p75_seconds)),
-        borderColor: "#737373",
-        backgroundColor: "rgba(115, 115, 115, 0.1)",
+        borderColor: chartTheme.secondary.line,
+        backgroundColor: chartTheme.secondary.fill,
         borderDash: [5, 5],
         tension: 0.3,
+        borderWidth: 1.5,
+        pointRadius: 2,
+        pointBackgroundColor: chartTheme.secondary.point,
       },
     ],
   };
@@ -38,12 +45,19 @@ export function CycleTimeChart({ weekly }: Props) {
       legend: { position: "bottom" as const },
     },
     scales: {
-      y: { beginAtZero: true, title: { display: true, text: "Hours" } },
+      y: {
+        beginAtZero: true,
+        title: { display: true, text: "Hours" },
+        grid: { color: chartTheme.grid },
+      },
+      x: {
+        grid: { display: false },
+      },
     },
   };
 
   return (
-    <div className="h-[200px]">
+    <div role="img" aria-label="Line chart showing weekly PR cycle time: median and 75th percentile in hours" className="h-[220px]">
       <Line data={data} options={options} />
     </div>
   );
