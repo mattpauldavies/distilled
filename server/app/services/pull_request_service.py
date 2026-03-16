@@ -66,5 +66,6 @@ async def get_pr_ageing(
             PullRequest.is_draft.is_(False),
         ).group_by(sa.text("bucket"))
     )
-    rows = result.all()
+    _order = {"<2d": 0, "2-7d": 1, "7-14d": 2, ">14d": 3}
+    rows = sorted(result.all(), key=lambda r: _order.get(r.bucket, 99))
     return [{"bucket": row.bucket, "count": row.count} for row in rows]
