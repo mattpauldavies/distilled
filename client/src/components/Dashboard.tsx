@@ -183,6 +183,7 @@ export function Dashboard() {
         <ChartPanel
           title="Deployments"
           caption="Deployments per day"
+          info="The number of deployments to production per day. A core DORA metric — higher frequency means smaller, safer changes shipped more often."
           loading={loading}
           empty={
             depFreq?.status === "setup_required" ||
@@ -201,6 +202,7 @@ export function Dashboard() {
         <ChartPanel
           title="Lead Time"
           caption="Median and 75th percentile by week (hours)"
+          info="Time from first commit to production deploy, shown as median and 75th percentile (P75). Lower lead time means faster delivery and shorter feedback loops."
           loading={loading}
           empty={
             leadTime?.status === "setup_required" || !leadTime?.weekly?.length
@@ -216,6 +218,7 @@ export function Dashboard() {
         <ChartPanel
           title="PR Cycle Time"
           caption="Median and 75th percentile by week (hours)"
+          info="Time from PR opened to merged, shown as median and 75th percentile (P75). High cycle time often indicates bottlenecks in the review process."
           loading={loading}
           empty={
             cycleTime?.status === "setup_required" || !cycleTime?.weekly?.length
@@ -231,6 +234,7 @@ export function Dashboard() {
         <ChartPanel
           title="PR Ageing"
           caption="Age distribution of open PRs"
+          info="Age distribution of currently open PRs. A healthy team keeps most PRs in the green bucket — older PRs signal review delays or blocked work."
           loading={loading}
           empty={!data?.pr_ageing?.buckets?.length}
           emptyMessage="No open pull requests"
