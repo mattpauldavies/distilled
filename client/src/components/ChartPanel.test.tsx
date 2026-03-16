@@ -31,4 +31,23 @@ describe("ChartPanel", () => {
     expect(screen.getByText("Nothing here")).toBeInTheDocument();
     expect(screen.queryByText("chart")).not.toBeInTheDocument();
   });
+
+  it("renders InfoButton when info prop is provided", () => {
+    render(
+      <ChartPanel title="Deployments" caption="Daily count" info="Some info">
+        <div>chart</div>
+      </ChartPanel>
+    );
+    // aria-label="More information" on the InfoButton trigger — use regex for case-insensitive match
+    expect(screen.getByRole("button", { name: /more information/i })).toBeInTheDocument();
+  });
+
+  it("does not render InfoButton when info prop is absent", () => {
+    render(
+      <ChartPanel title="Deployments" caption="Daily count">
+        <div>chart</div>
+      </ChartPanel>
+    );
+    expect(screen.queryByRole("button", { name: /more information/i })).not.toBeInTheDocument();
+  });
 });
