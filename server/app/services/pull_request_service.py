@@ -67,5 +67,8 @@ async def get_pr_ageing(
         ).group_by(sa.text("bucket"))
     )
     _order = {"<2d": 0, "2-7d": 1, "7-14d": 2, ">14d": 3}
-    rows = sorted(result.all(), key=lambda r: _order.get(r.bucket, 99))
-    return [{"bucket": row.bucket, "count": row.count} for row in rows]
+    counts = {row.bucket: row.count for row in result.all()}
+    return [
+        {"bucket": bucket, "count": counts.get(bucket, 0)}
+        for bucket in sorted(_order, key=_order.__getitem__)
+    ]
