@@ -1,6 +1,6 @@
 import { Line } from "react-chartjs-2";
 import type { WeeklyPercentiles } from "@/types/dashboard";
-import { chartTheme } from "@/lib/chartTheme";
+import { chartTheme, formatChartDate } from "@/lib/chartTheme";
 
 interface Props {
   weekly: WeeklyPercentiles[];
@@ -12,7 +12,7 @@ function toHours(seconds: number): number {
 
 export function LeadTimeChart({ weekly }: Props) {
   const data = {
-    labels: weekly.map((w) => w.week_start),
+    labels: weekly.map((w) => formatChartDate(w.week_start)),
     datasets: [
       {
         label: "Median",
