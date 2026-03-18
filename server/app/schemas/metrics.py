@@ -71,6 +71,7 @@ class DeploymentFrequencySection(BaseModel):
     total: int | None = None
     days: int | None = None
     daily_counts: list[DailyCount] | None = None
+    deploys_per_week: float | None = None
 
 
 class LeadTimeSection(BaseModel):
@@ -85,6 +86,9 @@ class PRCycleTimeSection(BaseModel):
 
 class ThroughputSection(BaseModel):
     weekly: list[WeeklyThroughput] | None = None
+    total_prs: int | None = None
+    unique_authors: int | None = None
+    prs_per_engineer_per_month: float | None = None
 
 
 class OpenPRsSection(BaseModel):

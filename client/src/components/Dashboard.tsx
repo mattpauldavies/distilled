@@ -63,9 +63,6 @@ export function Dashboard() {
   const lastCycleTime = cycleTime?.weekly?.length
     ? cycleTime.weekly[cycleTime.weekly.length - 1]
     : null;
-  const lastThroughput = throughput?.weekly?.length
-    ? throughput.weekly[throughput.weekly.length - 1]
-    : null;
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
@@ -129,8 +126,8 @@ export function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard
           title="Deployment Frequency"
-          value={depFreq?.total != null ? String(depFreq.total) : "—"}
-          caption={daysWindow === 180 ? "Deployments in the last 6 months" : `Deployments in the last ${daysWindow} days`}
+          value={depFreq?.deploys_per_week != null ? depFreq.deploys_per_week.toFixed(1) : "—"}
+          caption="deploys / week"
           loading={loading}
           setupRequired={depFreq?.status === "setup_required"}
         />
@@ -154,10 +151,9 @@ export function Dashboard() {
         />
         <MetricCard
           title="Throughput"
-          value={lastThroughput ? String(lastThroughput.pr_count) : "—"}
-          caption="PRs merged this week"
+          value={throughput?.prs_per_engineer_per_month != null ? throughput.prs_per_engineer_per_month.toFixed(1) : "—"}
+          caption="PRs / engineer / month"
           loading={loading}
-          muted
         />
         <MetricCard
           title="Open PRs"
@@ -168,7 +164,6 @@ export function Dashboard() {
               : "Open pull requests"
           }
           loading={loading}
-          muted
         />
       </div>
 

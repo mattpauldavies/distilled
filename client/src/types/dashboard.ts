@@ -25,6 +25,7 @@ export interface DeploymentFrequencySection {
   total: number | null;
   days: number | null;
   daily_counts: DailyCount[] | null;
+  deploys_per_week: number | null;
 }
 
 export interface LeadTimeSection {
@@ -39,6 +40,9 @@ export interface PRCycleTimeSection {
 
 export interface ThroughputSection {
   weekly: WeeklyThroughput[] | null;
+  total_prs: number | null;
+  unique_authors: number | null;
+  prs_per_engineer_per_month: number | null;
 }
 
 export interface OpenPRsSection {

@@ -26,6 +26,7 @@ from app.services.metrics_service import (
     get_lead_time_summary,
     get_pr_cycle_time_summary,
     get_pr_throughput,
+    get_pr_throughput_summary,
 )
 from app.services.pull_request_service import get_open_pr_count, get_pr_ageing
 
@@ -47,6 +48,7 @@ async def get_unified_dashboard(
         dep_freq = lead_time = cycle_time = None
 
     throughput = await get_pr_throughput(tenant_id, repo, session, days)
+    throughput_summary = await get_pr_throughput_summary(tenant_id, repo, session, days)
     open_prs = await get_open_pr_count(tenant_id, repo, session)
     ageing = await get_pr_ageing(tenant_id, repo, session)
     freshness = await get_metrics_freshness(tenant_id, repo.id, session)
@@ -60,6 +62,7 @@ async def get_unified_dashboard(
             total=dep_freq["total"] if dep_freq else None,
             days=days if dep_freq else None,
             daily_counts=[DailyCount(**dc) for dc in dep_freq["daily_counts"]] if dep_freq else None,
+            deploys_per_week=dep_freq["deploys_per_week"] if dep_freq else None,
         ),
         lead_time=LeadTimeSection(
             status="ok" if has_prod else "setup_required",
@@ -71,6 +74,9 @@ async def get_unified_dashboard(
         ),
         throughput=ThroughputSection(
             weekly=[WeeklyThroughput(**w) for w in throughput],
+            total_prs=throughput_summary["total_prs"],
+            unique_authors=throughput_summary["unique_authors"],
+            prs_per_engineer_per_month=throughput_summary["prs_per_engineer_per_month"],
         ),
         open_prs=OpenPRsSection(**open_prs),
         pr_ageing=PRAgeingSection(
