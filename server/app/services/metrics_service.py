@@ -312,6 +312,65 @@ async def get_pr_throughput(
     return [{"week_start": m.week_start, "pr_count": m.pr_count} for m in result.scalars().all()]
 
 
+async def get_lead_time_aggregate(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    result = await session.execute(
+        select(
+            PullRequest.merged_at,
+            ProductionDeploymentEvent.deployed_at,
+        )
+        .join(DeploymentAttribution, DeploymentAttribution.pr_id == PullRequest.id)
+        .join(ProductionDeploymentEvent, ProductionDeploymentEvent.id == DeploymentAttribution.deployment_id)
+        .where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo.id,
+            PullRequest.base_ref == repo.default_branch,
+            ProductionDeploymentEvent.deployed_at >= since,
+        )
+    )
+    durations = [
+        (row.deployed_at - row.merged_at).total_seconds()
+        for row in result.all()
+        if (row.deployed_at - row.merged_at).total_seconds() > 0
+    ]
+    return {
+        "median_seconds": statistics.median(durations) if durations else None,
+        "sample_size": len(durations),
+    }
+
+
+async def get_pr_cycle_time_aggregate(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    result = await session.execute(
+        select(PullRequest).where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo.id,
+            PullRequest.base_ref == repo.default_branch,
+            PullRequest.merged_at >= since,
+            PullRequest.merged_at.is_not(None),
+        )
+    )
+    durations = [
+        (pr.merged_at - pr.opened_at).total_seconds()
+        for pr in result.scalars().all()
+        if (pr.merged_at - pr.opened_at).total_seconds() > 0
+    ]
+    return {
+        "median_seconds": statistics.median(durations) if durations else None,
+        "sample_size": len(durations),
+    }
+
+
 async def get_pr_throughput_summary(
     tenant_id: uuid.UUID,
     repo: Repository,

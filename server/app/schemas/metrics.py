@@ -77,11 +77,13 @@ class DeploymentFrequencySection(BaseModel):
 class LeadTimeSection(BaseModel):
     status: str
     weekly: list[WeeklyPercentiles] | None = None
+    median_seconds: float | None = None
 
 
 class PRCycleTimeSection(BaseModel):
     status: str
     weekly: list[WeeklyPercentiles] | None = None
+    median_seconds: float | None = None
 
 
 class ThroughputSection(BaseModel):

@@ -31,11 +31,13 @@ export interface DeploymentFrequencySection {
 export interface LeadTimeSection {
   status: string;
   weekly: WeeklyPercentiles[] | null;
+  median_seconds: number | null;
 }
 
 export interface PRCycleTimeSection {
   status: string;
   weekly: WeeklyPercentiles[] | null;
+  median_seconds: number | null;
 }
 
 export interface ThroughputSection {

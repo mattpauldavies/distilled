@@ -57,12 +57,6 @@ export function Dashboard() {
   const openPrs = data?.open_prs;
   const freshness = data?.data_quality?.freshness;
 
-  const lastLeadTime = leadTime?.weekly?.length
-    ? leadTime.weekly[leadTime.weekly.length - 1]
-    : null;
-  const lastCycleTime = cycleTime?.weekly?.length
-    ? cycleTime.weekly[cycleTime.weekly.length - 1]
-    : null;
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
@@ -133,18 +127,14 @@ export function Dashboard() {
         />
         <MetricCard
           title="Lead Time"
-          value={
-            lastLeadTime ? formatDuration(lastLeadTime.median_seconds) : "—"
-          }
+          value={leadTime?.median_seconds != null ? formatDuration(leadTime.median_seconds) : "—"}
           caption="Median: merge to production"
           loading={loading}
           setupRequired={leadTime?.status === "setup_required"}
         />
         <MetricCard
           title="PR Cycle Time"
-          value={
-            lastCycleTime ? formatDuration(lastCycleTime.median_seconds) : "—"
-          }
+          value={cycleTime?.median_seconds != null ? formatDuration(cycleTime.median_seconds) : "—"}
           caption="Median: PR open to merge"
           loading={loading}
           setupRequired={cycleTime?.status === "setup_required"}

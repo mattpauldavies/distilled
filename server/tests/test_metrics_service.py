@@ -324,3 +324,87 @@ async def test_get_pr_throughput_summary_no_authors_returns_none_rate(mock_sessi
     result = await get_pr_throughput_summary(TENANT_ID, repo, mock_session, 30)
 
     assert result["prs_per_engineer_per_month"] is None
+
+
+@pytest.mark.asyncio
+async def test_get_lead_time_aggregate_computes_median(mock_session):
+    from app.services.metrics_service import get_lead_time_aggregate
+    from datetime import timezone
+
+    repo = make_repo(id=REPO_ID)
+    now = datetime(2026, 3, 18, 12, 0, tzinfo=timezone.utc)
+    # Lead times: 1h, 2h, 3h — median = 2h = 7200s
+    rows = [
+        MagicMock(merged_at=now - timedelta(hours=h + 1), deployed_at=now - timedelta(hours=1))
+        for h in [1, 2, 3]
+    ]
+    result_mock = MagicMock()
+    result_mock.all.return_value = rows
+    mock_session.execute = AsyncMock(return_value=result_mock)
+
+    result = await get_lead_time_aggregate(TENANT_ID, repo, mock_session, 30)
+
+    assert result["median_seconds"] == 7200.0
+    assert result["sample_size"] == 3
+
+
+@pytest.mark.asyncio
+async def test_get_lead_time_aggregate_empty_returns_none(mock_session):
+    from app.services.metrics_service import get_lead_time_aggregate
+
+    repo = make_repo(id=REPO_ID)
+    result_mock = MagicMock()
+    result_mock.all.return_value = []
+    mock_session.execute = AsyncMock(return_value=result_mock)
+
+    result = await get_lead_time_aggregate(TENANT_ID, repo, mock_session, 30)
+
+    assert result["median_seconds"] is None
+    assert result["sample_size"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_pr_cycle_time_aggregate_computes_median(mock_session):
+    from app.services.metrics_service import get_pr_cycle_time_aggregate
+    from datetime import timezone
+
+    repo = make_repo(id=REPO_ID)
+    now = datetime(2026, 3, 18, 12, 0, tzinfo=timezone.utc)
+    # Cycle times: 24h, 48h, 72h — median = 48h = 172800s
+    prs = [
+        make_pr(
+            repo_id=REPO_ID,
+            base_ref="main",
+            number=i,
+            opened_at=now - timedelta(hours=(i + 1) * 24),
+            merged_at=now,
+        )
+        for i in [1, 2, 3]
+    ]
+    result_mock = MagicMock()
+    scalars_mock = MagicMock()
+    scalars_mock.all.return_value = prs
+    result_mock.scalars.return_value = scalars_mock
+    mock_session.execute = AsyncMock(return_value=result_mock)
+
+    result = await get_pr_cycle_time_aggregate(TENANT_ID, repo, mock_session, 30)
+
+    assert result["median_seconds"] == 172800.0
+    assert result["sample_size"] == 3
+
+
+@pytest.mark.asyncio
+async def test_get_pr_cycle_time_aggregate_empty_returns_none(mock_session):
+    from app.services.metrics_service import get_pr_cycle_time_aggregate
+
+    repo = make_repo(id=REPO_ID)
+    result_mock = MagicMock()
+    scalars_mock = MagicMock()
+    scalars_mock.all.return_value = []
+    result_mock.scalars.return_value = scalars_mock
+    mock_session.execute = AsyncMock(return_value=result_mock)
+
+    result = await get_pr_cycle_time_aggregate(TENANT_ID, repo, mock_session, 30)
+
+    assert result["median_seconds"] is None
+    assert result["sample_size"] == 0
