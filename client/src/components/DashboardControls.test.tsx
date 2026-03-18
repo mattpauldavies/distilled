@@ -12,13 +12,13 @@ describe("DashboardControls", () => {
         repos={repos}
         selectedRepoId="repo-1"
         onRepoChange={() => {}}
-        daysWindow={30}
+        daysWindow={90}
         onDaysWindowChange={() => {}}
       />
     );
-    expect(screen.getByText("7d")).toBeInTheDocument();
     expect(screen.getByText("30d")).toBeInTheDocument();
     expect(screen.getByText("90d")).toBeInTheDocument();
+    expect(screen.getByText("6m")).toBeInTheDocument();
   });
 
   it("calls onDaysWindowChange when clicking a window button", async () => {
@@ -30,13 +30,13 @@ describe("DashboardControls", () => {
         repos={repos}
         selectedRepoId="repo-1"
         onRepoChange={() => {}}
-        daysWindow={30}
+        daysWindow={90}
         onDaysWindowChange={onDaysWindowChange}
       />
     );
 
-    await user.click(screen.getByText("7d"));
-    expect(onDaysWindowChange).toHaveBeenCalledWith(7);
+    await user.click(screen.getByText("6m"));
+    expect(onDaysWindowChange).toHaveBeenCalledWith(180);
   });
 
   it("renders repo names in the select", () => {

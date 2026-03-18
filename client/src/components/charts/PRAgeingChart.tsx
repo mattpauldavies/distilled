@@ -23,7 +23,7 @@ export function PRAgeingChart({ buckets }: Props) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: "bottom" as const },
+      legend: { display: false },
     },
     scales: {
       y: {

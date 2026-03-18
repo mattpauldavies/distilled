@@ -32,7 +32,7 @@ export function Dashboard() {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(
     null,
   );
-  const [daysWindow, setDaysWindow] = useState<DaysWindow>(30);
+  const [daysWindow, setDaysWindow] = useState<DaysWindow>(90);
 
   const selectedRepoId =
     userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
@@ -130,7 +130,7 @@ export function Dashboard() {
         <MetricCard
           title="Deployment Frequency"
           value={depFreq?.total != null ? String(depFreq.total) : "—"}
-          caption={`Deployments in the last ${daysWindow} days`}
+          caption={daysWindow === 180 ? "Deployments in the last 6 months" : `Deployments in the last ${daysWindow} days`}
           loading={loading}
           setupRequired={depFreq?.status === "setup_required"}
         />

@@ -92,4 +92,4 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-export type DaysWindow = 7 | 30 | 90;
+export type DaysWindow = 30 | 90 | 180;

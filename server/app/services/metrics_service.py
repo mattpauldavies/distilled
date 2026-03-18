@@ -22,7 +22,7 @@ from app.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-RECOMPUTE_DAYS = 90
+RECOMPUTE_DAYS = 180
 ALGORITHM_VERSION = 1
 
 
@@ -244,7 +244,7 @@ async def get_deployment_frequency(
             DeploymentDailyMetric.tenant_id == tenant_id,
             DeploymentDailyMetric.repo_id == repo.id,
             DeploymentDailyMetric.date >= since,
-        ).order_by(DeploymentDailyMetric.date.desc())
+        ).order_by(DeploymentDailyMetric.date.asc())
     )
     metrics = result.scalars().all()
     daily_counts = [{"date": m.date, "count": m.deployment_count} for m in metrics]
@@ -263,7 +263,7 @@ async def get_lead_time_summary(
             LeadTimeWeeklyMetric.tenant_id == tenant_id,
             LeadTimeWeeklyMetric.repo_id == repo.id,
             LeadTimeWeeklyMetric.week_start >= since,
-        ).order_by(LeadTimeWeeklyMetric.week_start.desc())
+        ).order_by(LeadTimeWeeklyMetric.week_start.asc())
     )
     return [
         {"week_start": m.week_start, "median_seconds": m.median_seconds,
@@ -284,7 +284,7 @@ async def get_pr_cycle_time_summary(
             PRCycleTimeWeeklyMetric.tenant_id == tenant_id,
             PRCycleTimeWeeklyMetric.repo_id == repo.id,
             PRCycleTimeWeeklyMetric.week_start >= since,
-        ).order_by(PRCycleTimeWeeklyMetric.week_start.desc())
+        ).order_by(PRCycleTimeWeeklyMetric.week_start.asc())
     )
     return [
         {"week_start": m.week_start, "median_seconds": m.median_seconds,
@@ -305,7 +305,7 @@ async def get_pr_throughput(
             PRThroughputWeeklyMetric.tenant_id == tenant_id,
             PRThroughputWeeklyMetric.repo_id == repo.id,
             PRThroughputWeeklyMetric.week_start >= since,
-        ).order_by(PRThroughputWeeklyMetric.week_start.desc())
+        ).order_by(PRThroughputWeeklyMetric.week_start.asc())
     )
     return [{"week_start": m.week_start, "pr_count": m.pr_count} for m in result.scalars().all()]
 
