@@ -269,8 +269,8 @@ async def get_deployment_frequency(
         .order_by(DeploymentDailyMetric.date.asc())
     )
     metrics = result.scalars().all()
-    daily_counts = [{"date": m.date, "count": m.deployment_count} for m in metrics]
-    total = sum(dc["count"] for dc in daily_counts)
+    daily_counts: list[dict[str, object]] = [{"date": m.date, "count": m.deployment_count} for m in metrics]
+    total = sum(m.deployment_count for m in metrics)
     deploys_per_week = round(total / (days / 7), 1) if days > 0 else 0.0
     return {"total": total, "daily_counts": daily_counts, "deploys_per_week": deploys_per_week}
 
@@ -399,7 +399,9 @@ async def get_pr_cycle_time_aggregate(
     durations = [
         (pr.merged_at - pr.opened_at).total_seconds()
         for pr in result.scalars().all()
-        if (pr.merged_at - pr.opened_at).total_seconds() > 0
+        if pr.merged_at is not None
+        and pr.opened_at is not None
+        and (pr.merged_at - pr.opened_at).total_seconds() > 0
     ]
     return {
         "median_seconds": statistics.median(durations) if durations else None,
