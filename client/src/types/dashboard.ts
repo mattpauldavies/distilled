@@ -25,20 +25,26 @@ export interface DeploymentFrequencySection {
   total: number | null;
   days: number | null;
   daily_counts: DailyCount[] | null;
+  deploys_per_week: number | null;
 }
 
 export interface LeadTimeSection {
   status: string;
   weekly: WeeklyPercentiles[] | null;
+  median_seconds: number | null;
 }
 
 export interface PRCycleTimeSection {
   status: string;
   weekly: WeeklyPercentiles[] | null;
+  median_seconds: number | null;
 }
 
 export interface ThroughputSection {
   weekly: WeeklyThroughput[] | null;
+  total_prs: number | null;
+  unique_authors: number | null;
+  prs_per_engineer_per_month: number | null;
 }
 
 export interface OpenPRsSection {
@@ -92,4 +98,4 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-export type DaysWindow = 7 | 30 | 90;
+export type DaysWindow = 30 | 90 | 180;

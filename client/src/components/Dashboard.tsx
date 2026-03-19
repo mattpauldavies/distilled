@@ -32,7 +32,7 @@ export function Dashboard() {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(
     null,
   );
-  const [daysWindow, setDaysWindow] = useState<DaysWindow>(30);
+  const [daysWindow, setDaysWindow] = useState<DaysWindow>(90);
 
   const selectedRepoId =
     userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
@@ -57,15 +57,6 @@ export function Dashboard() {
   const openPrs = data?.open_prs;
   const freshness = data?.data_quality?.freshness;
 
-  const lastLeadTime = leadTime?.weekly?.length
-    ? leadTime.weekly[leadTime.weekly.length - 1]
-    : null;
-  const lastCycleTime = cycleTime?.weekly?.length
-    ? cycleTime.weekly[cycleTime.weekly.length - 1]
-    : null;
-  const lastThroughput = throughput?.weekly?.length
-    ? throughput.weekly[throughput.weekly.length - 1]
-    : null;
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
@@ -129,35 +120,30 @@ export function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard
           title="Deployment Frequency"
-          value={depFreq?.total != null ? String(depFreq.total) : "—"}
-          caption={`Deployments in the last ${daysWindow} days`}
+          value={depFreq?.deploys_per_week != null ? depFreq.deploys_per_week.toFixed(1) : "—"}
+          caption="deploys / week"
           loading={loading}
           setupRequired={depFreq?.status === "setup_required"}
         />
         <MetricCard
           title="Lead Time"
-          value={
-            lastLeadTime ? formatDuration(lastLeadTime.median_seconds) : "—"
-          }
+          value={leadTime?.median_seconds != null ? formatDuration(leadTime.median_seconds) : "—"}
           caption="Median: merge to production"
           loading={loading}
           setupRequired={leadTime?.status === "setup_required"}
         />
         <MetricCard
           title="PR Cycle Time"
-          value={
-            lastCycleTime ? formatDuration(lastCycleTime.median_seconds) : "—"
-          }
+          value={cycleTime?.median_seconds != null ? formatDuration(cycleTime.median_seconds) : "—"}
           caption="Median: PR open to merge"
           loading={loading}
           setupRequired={cycleTime?.status === "setup_required"}
         />
         <MetricCard
           title="Throughput"
-          value={lastThroughput ? String(lastThroughput.pr_count) : "—"}
-          caption="PRs merged this week"
+          value={throughput?.prs_per_engineer_per_month != null ? throughput.prs_per_engineer_per_month.toFixed(1) : "—"}
+          caption="PRs / engineer / month"
           loading={loading}
-          muted
         />
         <MetricCard
           title="Open PRs"
@@ -168,7 +154,6 @@ export function Dashboard() {
               : "Open pull requests"
           }
           loading={loading}
-          muted
         />
       </div>
 

@@ -5,9 +5,9 @@ from pydantic import BaseModel
 
 
 class DaysWindow(IntEnum):
-    SEVEN = 7
     THIRTY = 30
     NINETY = 90
+    SIX_MONTHS = 180
 
 
 class DailyCount(BaseModel):
@@ -71,20 +71,26 @@ class DeploymentFrequencySection(BaseModel):
     total: int | None = None
     days: int | None = None
     daily_counts: list[DailyCount] | None = None
+    deploys_per_week: float | None = None
 
 
 class LeadTimeSection(BaseModel):
     status: str
     weekly: list[WeeklyPercentiles] | None = None
+    median_seconds: float | None = None
 
 
 class PRCycleTimeSection(BaseModel):
     status: str
     weekly: list[WeeklyPercentiles] | None = None
+    median_seconds: float | None = None
 
 
 class ThroughputSection(BaseModel):
     weekly: list[WeeklyThroughput] | None = None
+    total_prs: int | None = None
+    unique_authors: int | None = None
+    prs_per_engineer_per_month: float | None = None
 
 
 class OpenPRsSection(BaseModel):

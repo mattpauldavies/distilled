@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +22,7 @@ from app.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-RECOMPUTE_DAYS = 90
+RECOMPUTE_DAYS = 180
 ALGORITHM_VERSION = 1
 
 
@@ -244,11 +244,13 @@ async def get_deployment_frequency(
             DeploymentDailyMetric.tenant_id == tenant_id,
             DeploymentDailyMetric.repo_id == repo.id,
             DeploymentDailyMetric.date >= since,
-        ).order_by(DeploymentDailyMetric.date.desc())
+        ).order_by(DeploymentDailyMetric.date.asc())
     )
     metrics = result.scalars().all()
     daily_counts = [{"date": m.date, "count": m.deployment_count} for m in metrics]
-    return {"total": sum(dc["count"] for dc in daily_counts), "daily_counts": daily_counts}
+    total = sum(dc["count"] for dc in daily_counts)
+    deploys_per_week = round(total / (days / 7), 1) if days > 0 else 0.0
+    return {"total": total, "daily_counts": daily_counts, "deploys_per_week": deploys_per_week}
 
 
 async def get_lead_time_summary(
@@ -263,7 +265,7 @@ async def get_lead_time_summary(
             LeadTimeWeeklyMetric.tenant_id == tenant_id,
             LeadTimeWeeklyMetric.repo_id == repo.id,
             LeadTimeWeeklyMetric.week_start >= since,
-        ).order_by(LeadTimeWeeklyMetric.week_start.desc())
+        ).order_by(LeadTimeWeeklyMetric.week_start.asc())
     )
     return [
         {"week_start": m.week_start, "median_seconds": m.median_seconds,
@@ -284,7 +286,7 @@ async def get_pr_cycle_time_summary(
             PRCycleTimeWeeklyMetric.tenant_id == tenant_id,
             PRCycleTimeWeeklyMetric.repo_id == repo.id,
             PRCycleTimeWeeklyMetric.week_start >= since,
-        ).order_by(PRCycleTimeWeeklyMetric.week_start.desc())
+        ).order_by(PRCycleTimeWeeklyMetric.week_start.asc())
     )
     return [
         {"week_start": m.week_start, "median_seconds": m.median_seconds,
@@ -305,9 +307,101 @@ async def get_pr_throughput(
             PRThroughputWeeklyMetric.tenant_id == tenant_id,
             PRThroughputWeeklyMetric.repo_id == repo.id,
             PRThroughputWeeklyMetric.week_start >= since,
-        ).order_by(PRThroughputWeeklyMetric.week_start.desc())
+        ).order_by(PRThroughputWeeklyMetric.week_start.asc())
     )
     return [{"week_start": m.week_start, "pr_count": m.pr_count} for m in result.scalars().all()]
+
+
+async def get_lead_time_aggregate(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    result = await session.execute(
+        select(
+            PullRequest.merged_at,
+            ProductionDeploymentEvent.deployed_at,
+        )
+        .join(DeploymentAttribution, DeploymentAttribution.pr_id == PullRequest.id)
+        .join(ProductionDeploymentEvent, ProductionDeploymentEvent.id == DeploymentAttribution.deployment_id)
+        .where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo.id,
+            PullRequest.base_ref == repo.default_branch,
+            ProductionDeploymentEvent.deployed_at >= since,
+        )
+    )
+    durations = [
+        (row.deployed_at - row.merged_at).total_seconds()
+        for row in result.all()
+        if (row.deployed_at - row.merged_at).total_seconds() > 0
+    ]
+    return {
+        "median_seconds": statistics.median(durations) if durations else None,
+        "sample_size": len(durations),
+    }
+
+
+async def get_pr_cycle_time_aggregate(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    result = await session.execute(
+        select(PullRequest).where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo.id,
+            PullRequest.base_ref == repo.default_branch,
+            PullRequest.merged_at >= since,
+            PullRequest.merged_at.is_not(None),
+        )
+    )
+    durations = [
+        (pr.merged_at - pr.opened_at).total_seconds()
+        for pr in result.scalars().all()
+        if (pr.merged_at - pr.opened_at).total_seconds() > 0
+    ]
+    return {
+        "median_seconds": statistics.median(durations) if durations else None,
+        "sample_size": len(durations),
+    }
+
+
+async def get_pr_throughput_summary(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    since = date.today() - timedelta(days=days)
+    result = await session.execute(
+        select(
+            func.count(PullRequest.id).label("total_prs"),
+            func.count(distinct(PullRequest.author_login)).label("unique_authors"),
+        ).where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo.id,
+            PullRequest.base_ref == repo.default_branch,
+            PullRequest.merged_at >= since,
+            PullRequest.merged_at.is_not(None),
+        )
+    )
+    row = result.one()
+    total_prs = row.total_prs
+    unique_authors = row.unique_authors
+    if unique_authors > 0 and days > 0:
+        prs_per_engineer_per_month = round(total_prs / unique_authors / (days / 30), 1)
+    else:
+        prs_per_engineer_per_month = None
+    return {
+        "total_prs": total_prs,
+        "unique_authors": unique_authors,
+        "prs_per_engineer_per_month": prs_per_engineer_per_month,
+    }
 
 
 @dataclass

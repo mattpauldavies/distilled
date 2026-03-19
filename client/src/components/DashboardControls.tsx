@@ -8,7 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Repo, DaysWindow } from "@/types/dashboard";
 
-const WINDOWS: DaysWindow[] = [7, 30, 90];
+const WINDOWS: DaysWindow[] = [30, 90, 180];
+
+const WINDOW_LABELS: Record<DaysWindow, string> = {
+  30: "30d",
+  90: "90d",
+  180: "6m",
+};
 
 interface Props {
   repos: Repo[];
@@ -50,7 +56,7 @@ export function DashboardControls({
             onClick={() => onDaysWindowChange(w)}
             className="rounded-none first:rounded-l-md last:rounded-r-md"
           >
-            {w}d
+            {WINDOW_LABELS[w]}
           </Button>
         ))}
       </div>

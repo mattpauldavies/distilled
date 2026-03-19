@@ -1,8 +1,21 @@
 /**
- * Central chart colour definitions.
+ * Central chart colour definitions and shared utilities.
  * All chart components and chartSetup.ts import from here.
  * Update this file when the design system palette changes.
  */
+
+/**
+ * Format a YYYY-MM-DD date string as "Mar 15".
+ * Parses date parts directly to avoid UTC-offset rendering issues.
+ */
+export function formatChartDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export const chartTheme = {
   primary: {
     bar: "rgba(212, 168, 83, 0.8)",

@@ -38,7 +38,7 @@ async def test_get_open_pr_count_handles_nulls(mock_session):
 
 
 @pytest.mark.asyncio
-async def test_get_pr_ageing_returns_buckets(mock_session):
+async def test_get_pr_ageing_returns_all_buckets_with_counts(mock_session):
     from app.services.pull_request_service import get_pr_ageing
 
     repo = make_repo(id=REPO_ID)
@@ -49,13 +49,15 @@ async def test_get_pr_ageing_returns_buckets(mock_session):
 
     result = await get_pr_ageing(TENANT_ID, repo, mock_session)
 
-    assert len(result) == 2
+    assert len(result) == 4
     assert result[0] == {"bucket": "<2d", "count": 2}
     assert result[1] == {"bucket": "2-7d", "count": 1}
+    assert result[2] == {"bucket": "7-14d", "count": 0}
+    assert result[3] == {"bucket": ">14d", "count": 0}
 
 
 @pytest.mark.asyncio
-async def test_get_pr_ageing_empty(mock_session):
+async def test_get_pr_ageing_empty_returns_all_buckets_zeroed(mock_session):
     from app.services.pull_request_service import get_pr_ageing
 
     repo = make_repo(id=REPO_ID)
@@ -65,4 +67,6 @@ async def test_get_pr_ageing_empty(mock_session):
 
     result = await get_pr_ageing(TENANT_ID, repo, mock_session)
 
-    assert result == []
+    assert len(result) == 4
+    assert all(r["count"] == 0 for r in result)
+    assert [r["bucket"] for r in result] == ["<2d", "2-7d", "7-14d", ">14d"]
