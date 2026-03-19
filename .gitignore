@@ -6,3 +6,4 @@ server/*.pem
 __pycache__/
 logs/
 .superpowers/
+docs/security/*
