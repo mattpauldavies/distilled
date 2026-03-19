@@ -48,7 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(environments.router, prefix="/api", dependencies=[Depends(require_api_key)])
     app.include_router(deployments.router, prefix="/api", dependencies=[Depends(require_api_key)])
     app.include_router(pull_requests.router, prefix="/api", dependencies=[Depends(require_api_key)])
-    app.include_router(metrics.router, prefix="/api", dependencies=[Depends(require_api_key)])
+    app.include_router(metrics.router, prefix="/api")  # no router-level auth — per-route in metrics.py
     return app
 
 

@@ -27,9 +27,12 @@ async def test_missing_auth_header_returns_403():
 
 @pytest.mark.asyncio
 async def test_wrong_api_key_returns_401():
+    from unittest.mock import patch
     app = make_secured_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/protected", headers={"Authorization": "Bearer wrong"})
+    with patch("app.auth.settings") as mock_settings:
+        mock_settings.api_key = "correct-key"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/protected", headers={"Authorization": "Bearer wrong-key"})
     assert resp.status_code == 401
 
 
