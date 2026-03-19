@@ -4,24 +4,24 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import type { Repo, DaysWindow } from "@/types/dashboard";
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import type { Repo, DaysWindow } from '@/types/dashboard'
 
-const WINDOWS: DaysWindow[] = [30, 90, 180];
+const WINDOWS: DaysWindow[] = [30, 90, 180]
 
 const WINDOW_LABELS: Record<DaysWindow, string> = {
-  30: "30d",
-  90: "90d",
-  180: "6m",
-};
+  30: '30d',
+  90: '90d',
+  180: '6m',
+}
 
 interface Props {
-  repos: Repo[];
-  selectedRepoId: string | null;
-  onRepoChange: (repoId: string) => void;
-  daysWindow: DaysWindow;
-  onDaysWindowChange: (daysWindow: DaysWindow) => void;
+  repos: Repo[]
+  selectedRepoId: string | null
+  onRepoChange: (repoId: string) => void
+  daysWindow: DaysWindow
+  onDaysWindowChange: (daysWindow: DaysWindow) => void
 }
 
 export function DashboardControls({
@@ -33,7 +33,7 @@ export function DashboardControls({
 }: Props) {
   return (
     <div className="flex items-center gap-4">
-      <Select value={selectedRepoId ?? ""} onValueChange={onRepoChange}>
+      <Select value={selectedRepoId ?? ''} onValueChange={onRepoChange}>
         <SelectTrigger className="w-[280px]">
           <SelectValue placeholder="Select a repository" />
         </SelectTrigger>
@@ -50,7 +50,7 @@ export function DashboardControls({
         {WINDOWS.map((w) => (
           <Button
             key={w}
-            variant={w === daysWindow ? "default" : "ghost"}
+            variant={w === daysWindow ? 'default' : 'ghost'}
             size="sm"
             aria-pressed={w === daysWindow}
             onClick={() => onDaysWindowChange(w)}
@@ -61,5 +61,5 @@ export function DashboardControls({
         ))}
       </div>
     </div>
-  );
+  )
 }

@@ -1,16 +1,16 @@
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { InfoButton } from "@/components/InfoButton";
-import type { ReactNode } from "react";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { InfoButton } from '@/components/InfoButton'
+import type { ReactNode } from 'react'
 
 interface Props {
-  title: string;
-  caption: string;
-  loading?: boolean;
-  empty?: boolean;
-  emptyMessage?: string;
-  info?: string;
-  children: ReactNode;
+  title: string
+  caption: string
+  loading?: boolean
+  empty?: boolean
+  emptyMessage?: string
+  info?: string
+  children: ReactNode
 }
 
 export function ChartPanel({
@@ -18,7 +18,7 @@ export function ChartPanel({
   caption,
   loading,
   empty,
-  emptyMessage = "No data available",
+  emptyMessage = 'No data available',
   info,
   children,
 }: Props) {
@@ -45,5 +45,5 @@ export function ChartPanel({
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

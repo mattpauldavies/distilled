@@ -1,13 +1,13 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Props {
-  title: string;
-  value: string;
-  caption: string;
-  loading?: boolean;
-  setupRequired?: boolean;
-  muted?: boolean;
+  title: string
+  value: string
+  caption: string
+  loading?: boolean
+  setupRequired?: boolean
+  muted?: boolean
 }
 
 export function MetricCard({ title, value, caption, loading, setupRequired, muted }: Props) {
@@ -28,8 +28,8 @@ export function MetricCard({ title, value, caption, loading, setupRequired, mute
             <p
               className={
                 muted
-                  ? "text-5xl font-extrabold leading-none tracking-tight text-muted-foreground"
-                  : "text-5xl font-extrabold leading-none tracking-tight"
+                  ? 'text-5xl font-extrabold leading-none tracking-tight text-muted-foreground'
+                  : 'text-5xl font-extrabold leading-none tracking-tight'
               }
             >
               {value}
@@ -39,5 +39,5 @@ export function MetricCard({ title, value, caption, loading, setupRequired, mute
         )}
       </CardContent>
     </Card>
-  );
+  )
 }
