@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap");
+@import "tailwindcss";
 
 @theme {
   --color-background: #0c0c10;
@@ -32,7 +32,7 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: 'Outfit', system-ui, sans-serif;
+  font-family: "Outfit", system-ui, sans-serif;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
-import { Bar } from 'react-chartjs-2'
-import type { DailyCount } from '@/types/dashboard'
-import { chartTheme, formatChartDate } from '@/lib/chartTheme'
+import { Bar } from "react-chartjs-2"
+import type { DailyCount } from "@/types/dashboard"
+import { chartTheme, formatChartDate } from "@/lib/chartTheme"
 
 interface Props {
   dailyCounts: DailyCount[]
@@ -11,7 +11,7 @@ export function DeploymentChart({ dailyCounts }: Props) {
     labels: dailyCounts.map((d) => formatChartDate(d.date)),
     datasets: [
       {
-        label: 'Deployments',
+        label: "Deployments",
         data: dailyCounts.map((d) => d.count),
         backgroundColor: chartTheme.primary.bar,
         borderRadius: 3,
@@ -23,7 +23,7 @@ export function DeploymentChart({ dailyCounts }: Props) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom' as const },
+      legend: { position: "bottom" as const },
     },
     scales: {
       y: {

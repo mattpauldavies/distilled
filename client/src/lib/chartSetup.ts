@@ -7,8 +7,8 @@ import {
   LineElement,
   Tooltip,
   Legend,
-} from 'chart.js'
-import { chartTheme } from '@/lib/chartTheme'
+} from "chart.js"
+import { chartTheme } from "@/lib/chartTheme"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend)
 

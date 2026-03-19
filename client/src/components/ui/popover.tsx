@@ -1,6 +1,6 @@
-import * as React from 'react'
-import { Popover as PopoverPrimitive } from 'radix-ui'
-import { cn } from '@/lib/utils'
+import * as React from "react"
+import { Popover as PopoverPrimitive } from "radix-ui"
+import { cn } from "@/lib/utils"
 
 function Popover({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />
@@ -12,7 +12,7 @@ function PopoverTrigger({ ...props }: React.ComponentProps<typeof PopoverPrimiti
 
 function PopoverContent({
   className,
-  align = 'end',
+  align = "end",
   sideOffset = 6,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
@@ -23,7 +23,7 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'z-50 max-w-xs rounded-md border bg-popover p-3 text-sm text-popover-foreground shadow-lg outline-none',
+          "z-50 max-w-xs rounded-md border bg-popover p-3 text-sm text-popover-foreground shadow-lg outline-none",
           className
         )}
         {...props}

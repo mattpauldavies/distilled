@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { UnifiedDashboardResponse, DaysWindow } from '@/types/dashboard'
+import { useCallback, useEffect, useState } from "react"
+import type { UnifiedDashboardResponse, DaysWindow } from "@/types/dashboard"
 
 export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
   const [data, setData] = useState<UnifiedDashboardResponse | null>(null)
@@ -31,7 +31,7 @@ export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Unknown error')
+          setError(err instanceof Error ? err.message : "Unknown error")
           setData(null)
         }
       } finally {

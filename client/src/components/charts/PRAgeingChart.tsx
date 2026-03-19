@@ -1,6 +1,6 @@
-import { Bar } from 'react-chartjs-2'
-import type { AgeBucket } from '@/types/dashboard'
-import { chartTheme } from '@/lib/chartTheme'
+import { Bar } from "react-chartjs-2"
+import type { AgeBucket } from "@/types/dashboard"
+import { chartTheme } from "@/lib/chartTheme"
 
 interface Props {
   buckets: AgeBucket[]
@@ -11,7 +11,7 @@ export function PRAgeingChart({ buckets }: Props) {
     labels: buckets.map((b) => b.bucket),
     datasets: [
       {
-        label: 'PRs',
+        label: "PRs",
         data: buckets.map((b) => b.count),
         backgroundColor: buckets.map((_, i) => chartTheme.prAgeing[i] ?? chartTheme.prAgeing[0]),
         borderRadius: 3,

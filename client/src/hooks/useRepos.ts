@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import type { Repo, PaginatedResponse } from '@/types/dashboard'
+import { useEffect, useState } from "react"
+import type { Repo, PaginatedResponse } from "@/types/dashboard"
 
 export function useRepos() {
   const [repos, setRepos] = useState<Repo[]>([])
@@ -11,7 +11,7 @@ export function useRepos() {
 
     async function fetchRepos() {
       try {
-        const res = await fetch('/api/repos?limit=100')
+        const res = await fetch("/api/repos?limit=100")
         if (!res.ok) throw new Error(`Failed to fetch repos: ${res.status}`)
         const data: PaginatedResponse<Repo> = await res.json()
         if (!cancelled) {
@@ -20,7 +20,7 @@ export function useRepos() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Unknown error')
+          setError(err instanceof Error ? err.message : "Unknown error")
         }
       } finally {
         if (!cancelled) setLoading(false)
