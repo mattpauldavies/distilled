@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset lint lint-server lint-client format format-server format-client
+.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset lint lint-server lint-client format format-server format-client smoke-install smoke-test
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -60,3 +60,9 @@ format-server:
 
 format-client:
 	cd client && npm run format
+
+smoke-install:  ## Install Playwright and download Chromium browser
+	cd e2e && npm install && npx playwright install --with-deps chromium
+
+smoke-test:  ## Run Playwright smoke tests against the running app (default: http://localhost:5173)
+	cd e2e && npx playwright test $(ARGS)

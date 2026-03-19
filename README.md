@@ -43,32 +43,35 @@ For full setup including GitHub App integration, see the [local setup runbook](d
 ```
 server/   # FastAPI + Poetry
 client/   # React + Vite + TypeScript + Tailwind
+e2e/      # Playwright browser smoke tests
 docs/     # Architecture, RFCs, runbooks
 Makefile  # dev commands + database management
 ```
 
 ## Makefile targets
 
-| Target             | Description                                |
-| ------------------ | ------------------------------------------ |
-| `dev`              | Run server + client concurrently           |
-| `dev-server`       | Server only (port 8000)                    |
-| `dev-client`       | Client only (port 5173)                    |
-| `db-up`            | Start Postgres                             |
-| `db-down`          | Stop Postgres                              |
-| `db-reset`         | Drop volume + restart Postgres             |
-| `migrate`          | Run Alembic migrations                     |
-| `create-migration` | Create new migration (`MSG="description"`) |
-| `test`             | Run all server + client tests              |
-| `test-server`      | Server tests only                          |
-| `test-client`      | Client tests only                          |
-| `test-coverage`    | Server + client tests with coverage        |
-| `lint`             | Lint server (ruff + mypy) + client (eslint + prettier) |
-| `lint-server`      | Server lint only                           |
-| `lint-client`      | Client lint only                           |
-| `format`           | Auto-format server (ruff) + client (prettier) |
-| `format-server`    | Server format only                         |
-| `format-client`    | Client format only                         |
+| Target             | Description                                               |
+| ------------------ | --------------------------------------------------------- |
+| `dev`              | Run server + client concurrently                          |
+| `dev-server`       | Server only (port 8000)                                   |
+| `dev-client`       | Client only (port 5173)                                   |
+| `db-up`            | Start Postgres                                            |
+| `db-down`          | Stop Postgres                                             |
+| `db-reset`         | Drop volume + restart Postgres                            |
+| `migrate`          | Run Alembic migrations                                    |
+| `create-migration` | Create new migration (`MSG="description"`)                |
+| `test`             | Run all server + client tests                             |
+| `test-server`      | Server tests only                                         |
+| `test-client`      | Client tests only                                         |
+| `test-coverage`    | Server + client tests with coverage                       |
+| `lint`             | Lint server (ruff + mypy) + client (eslint + prettier)    |
+| `lint-server`      | Server lint only                                          |
+| `lint-client`      | Client lint only                                          |
+| `format`           | Auto-format server (ruff) + client (prettier)             |
+| `format-server`    | Server format only                                        |
+| `format-client`    | Client format only                                        |
+| `smoke-install`    | Install Playwright and download Chromium (first-time)     |
+| `smoke-test`       | Run browser smoke tests against the running app           |
 
 ## Documentation
 
@@ -76,4 +79,4 @@ Find all documentation in `/docs` key highlights are:
 
 - [Architecture](docs/architecture.md)
 - [Metrics](docs/metrics.md)
-- [Local Testing Runbook](docs/runbooks/local-testing.md) — full setup guide including GitHub integration
+- [Local Setup Runbook](docs/runbooks/local-setup.md) — full setup guide including GitHub integration

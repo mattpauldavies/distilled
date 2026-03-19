@@ -45,7 +45,7 @@ make dev
 - **Server:** http://localhost:8000
 - **API docs:** http://localhost:8000/docs
 
-See [docs/runbooks/local-testing.md](docs/runbooks/local-testing.md) for detailed setup instructions.
+See [docs/runbooks/local-setup.md](docs/runbooks/local-setup.md) for detailed setup instructions.
 
 ## How to Contribute
 
@@ -103,7 +103,7 @@ update docs for live metrics endpoints
 ## Running Tests
 
 ```bash
-make test              # Run all tests
+make test              # Run all tests (server + client unit tests)
 make test-coverage     # Run with coverage report
 ```
 
@@ -115,6 +115,29 @@ Tests live in `server/tests/` and use pytest with async support. The test suite 
 - Use the existing fixtures in `conftest.py` (tenant, repo, environment, etc.)
 - Tests are async by default (`asyncio_mode = "auto"`)
 - `github_client.py` is excluded from coverage (external API)
+
+### Browser Smoke Tests (Playwright)
+
+End-to-end smoke tests drive a real browser against the running application and verify that metrics match the expected demo seed values.
+
+```bash
+# First-time setup (downloads Chromium)
+make smoke-install
+
+# Run against local dev (requires make dev + seeded demo data)
+make smoke-test
+
+# Run against a deployed environment
+SMOKE_BASE_URL=https://app.example.com make smoke-test
+```
+
+Tests live in `e2e/smoke.spec.ts` (19 tests). Key assertions:
+
+- Both demo repos appear in the selector (`acme-corp/api`, `acme-corp/web`)
+- Open PR counts and live/draft splits match exact seed values
+- All metric cards show real data (no setup-required or empty states)
+- All 4 chart panels render with data
+- Time window toggle and repo switching work correctly
 
 ## Code Style
 
@@ -149,6 +172,10 @@ client/           # React frontend
   src/
     components/   # UI components
     lib/          # Utilities
+
+e2e/              # Playwright browser smoke tests
+  smoke.spec.ts   # 19 end-to-end tests
+  playwright.config.ts
 
 docs/
   rfcs/           # Design documents
