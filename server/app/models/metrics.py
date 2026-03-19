@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Float, String, UniqueConstraint
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -9,9 +9,7 @@ from app.models.base import Base
 
 class DeploymentDailyMetric(Base):
     __tablename__ = "deployment_daily_metrics"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "repo_id", "date"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "repo_id", "date"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
@@ -23,9 +21,7 @@ class DeploymentDailyMetric(Base):
 
 class LeadTimeWeeklyMetric(Base):
     __tablename__ = "lead_time_weekly_metrics"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "repo_id", "week_start"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "repo_id", "week_start"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
@@ -39,9 +35,7 @@ class LeadTimeWeeklyMetric(Base):
 
 class PRCycleTimeWeeklyMetric(Base):
     __tablename__ = "pr_cycle_time_weekly_metrics"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "repo_id", "week_start"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "repo_id", "week_start"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
@@ -55,9 +49,7 @@ class PRCycleTimeWeeklyMetric(Base):
 
 class PRThroughputWeeklyMetric(Base):
     __tablename__ = "pr_throughput_weekly_metrics"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "repo_id", "week_start"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "repo_id", "week_start"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
@@ -69,9 +61,7 @@ class PRThroughputWeeklyMetric(Base):
 
 class MetricsRefreshLog(Base):
     __tablename__ = "metrics_refresh_log"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "repo_id", "hour"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "repo_id", "hour"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))

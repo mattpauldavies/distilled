@@ -42,14 +42,18 @@ async def get_unified_dashboard(
     prod_envs = await get_production_environments(tenant_id, repo.id, session)
     has_prod = len(prod_envs) > 0
 
+    dep_freq: dict | None = None
+    lead_time: list[dict] | None = None
+    lead_time_agg: dict | None = None
+    cycle_time: list[dict] | None = None
+    cycle_time_agg: dict | None = None
+
     if has_prod:
         dep_freq = await get_deployment_frequency(tenant_id, repo, session, days)
         lead_time = await get_lead_time_summary(tenant_id, repo, session, days)
         lead_time_agg = await get_lead_time_aggregate(tenant_id, repo, session, days)
         cycle_time = await get_pr_cycle_time_summary(tenant_id, repo, session, days)
         cycle_time_agg = await get_pr_cycle_time_aggregate(tenant_id, repo, session, days)
-    else:
-        dep_freq = lead_time = lead_time_agg = cycle_time = cycle_time_agg = None
 
     throughput = await get_pr_throughput(tenant_id, repo, session, days)
     throughput_summary = await get_pr_throughput_summary(tenant_id, repo, session, days)
@@ -57,7 +61,11 @@ async def get_unified_dashboard(
     ageing = await get_pr_ageing(tenant_id, repo, session)
     freshness = await get_metrics_freshness(tenant_id, repo.id, session)
     coverage = await get_attribution_coverage(
-        tenant_id, repo.id, repo.default_branch, session, days,
+        tenant_id,
+        repo.id,
+        repo.default_branch,
+        session,
+        days,
     )
 
     return UnifiedDashboardResponse(

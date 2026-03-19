@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -9,7 +9,6 @@ from app.db import get_session
 from app.main import create_app
 from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
-from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.environment import Environment
 from app.models.github_installation import GitHubInstallation
@@ -19,7 +18,7 @@ from app.models.tenant import Tenant
 
 TENANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 REPO_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
-NOW = datetime(2025, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
+NOW = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -85,6 +84,7 @@ def client(mock_session, tenant_id):
 
 
 # --- Model factories ---
+
 
 def make_tenant(**overrides):
     defaults = dict(

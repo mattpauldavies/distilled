@@ -1,9 +1,9 @@
-import { Bar } from "react-chartjs-2";
-import type { AgeBucket } from "@/types/dashboard";
-import { chartTheme } from "@/lib/chartTheme";
+import { Bar } from "react-chartjs-2"
+import type { AgeBucket } from "@/types/dashboard"
+import { chartTheme } from "@/lib/chartTheme"
 
 interface Props {
-  buckets: AgeBucket[];
+  buckets: AgeBucket[]
 }
 
 export function PRAgeingChart({ buckets }: Props) {
@@ -17,7 +17,7 @@ export function PRAgeingChart({ buckets }: Props) {
         borderRadius: 3,
       },
     ],
-  };
+  }
 
   const options = {
     responsive: true,
@@ -35,11 +35,15 @@ export function PRAgeingChart({ buckets }: Props) {
         grid: { display: false },
       },
     },
-  };
+  }
 
   return (
-    <div role="img" aria-label="Bar chart showing age distribution of open pull requests" className="h-[220px]">
+    <div
+      role="img"
+      aria-label="Bar chart showing age distribution of open pull requests"
+      className="h-[220px]"
+    >
       <Bar data={data} options={options} />
     </div>
-  );
+  )
 }

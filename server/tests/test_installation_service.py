@@ -1,8 +1,15 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from tests.conftest import mock_result, mock_insert_result, make_repo, make_installation, TENANT_ID, NOW
+import pytest
+
 from app.services.installation_service import handle_installation_event, sync_repos
+from tests.conftest import (
+    TENANT_ID,
+    make_installation,
+    make_repo,
+    mock_insert_result,
+    mock_result,
+)
 
 
 def _installation_payload(action="created"):
@@ -45,11 +52,11 @@ async def test_handle_created(mock_github_cls, mock_discover, mock_session):
 
     mock_session.flush = AsyncMock()
     mock_session.execute.side_effect = [
-        mock_insert_result(1),                      # upsert installation
-        mock_result(scalar=installation),           # get installation
-        mock_insert_result(1),                      # sync repo 1
-        mock_insert_result(1),                      # sync repo 2
-        mock_result(rows=[repo1, repo2]),            # get repos after flush
+        mock_insert_result(1),  # upsert installation
+        mock_result(scalar=installation),  # get installation
+        mock_insert_result(1),  # sync repo 1
+        mock_insert_result(1),  # sync repo 2
+        mock_result(rows=[repo1, repo2]),  # get repos after flush
     ]
 
     payload = _installation_payload(action="created")

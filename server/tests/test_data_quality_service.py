@@ -1,17 +1,15 @@
-import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 import pytest
 
 from tests.conftest import (
-    TENANT_ID,
     REPO_ID,
+    TENANT_ID,
     make_environment,
-    mock_result,
     mock_count_result,
+    mock_result,
 )
-
 
 # --- get_metrics_freshness ---
 
@@ -20,9 +18,7 @@ from tests.conftest import (
 async def test_freshness_returns_no_data_when_no_records(mock_session):
     from app.services.data_quality_service import get_metrics_freshness
 
-    mock_session.execute = AsyncMock(
-        return_value=mock_result(scalar_or_none=None)
-    )
+    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
 
     result = await get_metrics_freshness(TENANT_ID, REPO_ID, mock_session)
 
@@ -34,10 +30,8 @@ async def test_freshness_returns_no_data_when_no_records(mock_session):
 async def test_freshness_returns_ok_when_recent(mock_session):
     from app.services.data_quality_service import get_metrics_freshness
 
-    recent = datetime.now(timezone.utc) - timedelta(minutes=30)
-    mock_session.execute = AsyncMock(
-        return_value=mock_result(scalar_or_none=recent)
-    )
+    recent = datetime.now(UTC) - timedelta(minutes=30)
+    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=recent))
 
     result = await get_metrics_freshness(TENANT_ID, REPO_ID, mock_session)
 
@@ -49,10 +43,8 @@ async def test_freshness_returns_ok_when_recent(mock_session):
 async def test_freshness_returns_stale_when_old(mock_session):
     from app.services.data_quality_service import get_metrics_freshness
 
-    old = datetime.now(timezone.utc) - timedelta(hours=3)
-    mock_session.execute = AsyncMock(
-        return_value=mock_result(scalar_or_none=old)
-    )
+    old = datetime.now(UTC) - timedelta(hours=3)
+    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=old))
 
     result = await get_metrics_freshness(TENANT_ID, REPO_ID, mock_session)
 
@@ -64,11 +56,9 @@ async def test_freshness_returns_stale_when_old(mock_session):
 async def test_freshness_boundary_exactly_2h_is_ok(mock_session):
     from app.services.data_quality_service import get_metrics_freshness
 
-    now = datetime(2025, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+    now = datetime(2025, 1, 15, 14, 0, 0, tzinfo=UTC)
     boundary = now - timedelta(hours=2)
-    mock_session.execute = AsyncMock(
-        return_value=mock_result(scalar_or_none=boundary)
-    )
+    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=boundary))
 
     result = await get_metrics_freshness(TENANT_ID, REPO_ID, mock_session, now=now)
 
@@ -118,9 +108,7 @@ async def test_attribution_coverage_computes_percentage(mock_session):
         ]
     )
 
-    result = await get_attribution_coverage(
-        TENANT_ID, REPO_ID, "main", mock_session
-    )
+    result = await get_attribution_coverage(TENANT_ID, REPO_ID, "main", mock_session)
 
     assert result == 30.0
 
@@ -136,9 +124,7 @@ async def test_attribution_coverage_returns_none_when_no_prs(mock_session):
         ]
     )
 
-    result = await get_attribution_coverage(
-        TENANT_ID, REPO_ID, "main", mock_session
-    )
+    result = await get_attribution_coverage(TENANT_ID, REPO_ID, "main", mock_session)
 
     assert result is None
 
@@ -154,8 +140,6 @@ async def test_attribution_coverage_100_percent(mock_session):
         ]
     )
 
-    result = await get_attribution_coverage(
-        TENANT_ID, REPO_ID, "main", mock_session
-    )
+    result = await get_attribution_coverage(TENANT_ID, REPO_ID, "main", mock_session)
 
     assert result == 100.0

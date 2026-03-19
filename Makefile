@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset
+.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset lint lint-server lint-client format format-server format-client
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -44,3 +44,19 @@ seed-demo:  ## Seed the database with realistic demo data
 
 seed-reset:  ## Remove all demo data from the database
 	cd server && PYTHONPATH=. poetry run python scripts/reset_demo.py
+
+lint: lint-server lint-client
+
+lint-server:
+	cd server && poetry run ruff check . && poetry run mypy app
+
+lint-client:
+	cd client && npm run lint
+
+format: format-server format-client
+
+format-server:
+	cd server && poetry run ruff format .
+
+format-client:
+	cd client && npm run format

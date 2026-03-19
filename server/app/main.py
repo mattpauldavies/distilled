@@ -1,4 +1,5 @@
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -13,12 +14,12 @@ from app.routes import deployments, environments, health, metrics, pull_requests
 logger = logging.getLogger(__name__)
 
 # Import services to register webhook handlers
-import app.services.installation_service
 import app.services.deployment_service
+import app.services.installation_service
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging(settings)
     await init_db()
     yield
@@ -49,4 +50,4 @@ def create_app() -> FastAPI:
     return app
 
 
-app = create_app()
+app: FastAPI = create_app()  # type: ignore[no-redef]

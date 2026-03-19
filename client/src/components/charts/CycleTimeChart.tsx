@@ -1,13 +1,13 @@
-import { Line } from "react-chartjs-2";
-import type { WeeklyPercentiles } from "@/types/dashboard";
-import { chartTheme, formatChartDate } from "@/lib/chartTheme";
+import { Line } from "react-chartjs-2"
+import type { WeeklyPercentiles } from "@/types/dashboard"
+import { chartTheme, formatChartDate } from "@/lib/chartTheme"
 
 interface Props {
-  weekly: WeeklyPercentiles[];
+  weekly: WeeklyPercentiles[]
 }
 
 function toHours(seconds: number): number {
-  return Math.round((seconds / 3600) * 10) / 10;
+  return Math.round((seconds / 3600) * 10) / 10
 }
 
 export function CycleTimeChart({ weekly }: Props) {
@@ -36,7 +36,7 @@ export function CycleTimeChart({ weekly }: Props) {
         pointBackgroundColor: chartTheme.secondary.point,
       },
     ],
-  };
+  }
 
   const options = {
     responsive: true,
@@ -54,11 +54,15 @@ export function CycleTimeChart({ weekly }: Props) {
         grid: { display: false },
       },
     },
-  };
+  }
 
   return (
-    <div role="img" aria-label="Line chart showing weekly PR cycle time: median and 75th percentile in hours" className="h-[220px]">
+    <div
+      role="img"
+      aria-label="Line chart showing weekly PR cycle time: median and 75th percentile in hours"
+      className="h-[220px]"
+    >
       <Line data={data} options={options} />
     </div>
-  );
+  )
 }

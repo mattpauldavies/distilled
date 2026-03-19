@@ -1,9 +1,9 @@
-import { Bar } from "react-chartjs-2";
-import type { DailyCount } from "@/types/dashboard";
-import { chartTheme, formatChartDate } from "@/lib/chartTheme";
+import { Bar } from "react-chartjs-2"
+import type { DailyCount } from "@/types/dashboard"
+import { chartTheme, formatChartDate } from "@/lib/chartTheme"
 
 interface Props {
-  dailyCounts: DailyCount[];
+  dailyCounts: DailyCount[]
 }
 
 export function DeploymentChart({ dailyCounts }: Props) {
@@ -17,7 +17,7 @@ export function DeploymentChart({ dailyCounts }: Props) {
         borderRadius: 3,
       },
     ],
-  };
+  }
 
   const options = {
     responsive: true,
@@ -36,11 +36,11 @@ export function DeploymentChart({ dailyCounts }: Props) {
         grid: { display: false },
       },
     },
-  };
+  }
 
   return (
     <div role="img" aria-label="Bar chart showing daily deployment counts" className="h-[220px]">
       <Bar data={data} options={options} />
     </div>
-  );
+  )
 }

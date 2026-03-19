@@ -1,7 +1,8 @@
 import uuid
 
 import pytest
-from tests.conftest import mock_result, make_repo, make_environment
+
+from tests.conftest import make_environment, make_repo, mock_result
 
 
 @pytest.mark.asyncio

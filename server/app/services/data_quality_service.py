@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.metrics import MetricsRefreshLog
 from app.models.pull_request import PullRequest
-from app.services.environment_service import get_production_environments
 
 STALE_THRESHOLD = timedelta(hours=2)
 
@@ -38,7 +37,7 @@ async def get_metrics_freshness(
     if last is None:
         return MetricsFreshness(status="no_data", last_refresh_at=None)
 
-    age = (now or datetime.now(timezone.utc)) - last
+    age = (now or datetime.now(UTC)) - last
     status = "stale" if age > STALE_THRESHOLD else "ok"
     return MetricsFreshness(status=status, last_refresh_at=last)
 
@@ -50,16 +49,18 @@ async def get_attribution_coverage(
     session: AsyncSession,
     days: int = 30,
 ) -> float | None:
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     total_result = await session.execute(
         select(func.count()).select_from(
-            select(PullRequest.id).where(
+            select(PullRequest.id)
+            .where(
                 PullRequest.tenant_id == tenant_id,
                 PullRequest.repo_id == repo_id,
                 PullRequest.base_ref == default_branch,
                 PullRequest.merged_at >= since,
-            ).subquery()
+            )
+            .subquery()
         )
     )
     total = total_result.scalar_one()
@@ -69,7 +70,8 @@ async def get_attribution_coverage(
 
     attributed_result = await session.execute(
         select(func.count()).select_from(
-            select(PullRequest.id).where(
+            select(PullRequest.id)
+            .where(
                 PullRequest.tenant_id == tenant_id,
                 PullRequest.repo_id == repo_id,
                 PullRequest.base_ref == default_branch,
@@ -79,7 +81,8 @@ async def get_attribution_coverage(
                         DeploymentAttribution.tenant_id == tenant_id,
                     )
                 ),
-            ).subquery()
+            )
+            .subquery()
         )
     )
     attributed = attributed_result.scalar_one()

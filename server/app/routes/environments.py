@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models.environment import Environment
 from app.middleware.tenant import get_tenant_id
+from app.models.environment import Environment
 from app.schemas.environments import EnvironmentResponse, UpdateEnvironmentRequest
 
 router = APIRouter(prefix="/environments")

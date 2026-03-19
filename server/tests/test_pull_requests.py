@@ -1,6 +1,8 @@
-import pytest
-from tests.conftest import mock_result, mock_count_result, make_pr, make_deployment, REPO_ID
 import uuid
+
+import pytest
+
+from tests.conftest import REPO_ID, make_deployment, make_pr, mock_count_result, mock_result
 
 
 @pytest.mark.asyncio

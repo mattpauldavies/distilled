@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -60,35 +60,39 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
 
     # Insert deployment event
     dep_id = uuid.uuid4()
-    stmt = insert(ProductionDeploymentEvent).values(
-        id=dep_id,
-        tenant_id=tenant_id,
-        repo_id=repo.id,
-        environment_name=env_name,
-        deployment_id=deployment["id"],
-        commit_sha=deployment.get("sha", ""),
-        ref=deployment.get("ref", ""),
-        started_at=started_at,
-        completed_at=completed_at,
-        deployed_at=deployed_at,
-        html_url=deployment_status.get("target_url", ""),
-    ).on_conflict_do_nothing(
-        index_elements=["tenant_id", "deployment_id"],
+    stmt = (
+        insert(ProductionDeploymentEvent)
+        .values(
+            id=dep_id,
+            tenant_id=tenant_id,
+            repo_id=repo.id,
+            environment_name=env_name,
+            deployment_id=deployment["id"],
+            commit_sha=deployment.get("sha", ""),
+            ref=deployment.get("ref", ""),
+            started_at=started_at,
+            completed_at=completed_at,
+            deployed_at=deployed_at,
+            html_url=deployment_status.get("target_url", ""),
+        )
+        .on_conflict_do_nothing(
+            index_elements=["tenant_id", "deployment_id"],
+        )
     )
-    result = await session.execute(stmt)
+    insert_result = await session.execute(stmt)
     await session.flush()
 
-    if result.rowcount == 0:
+    if insert_result.rowcount == 0:  # type: ignore[attr-defined]
         logger.info("duplicate deployment_id=%s, skipping", deployment["id"])
         return
 
     # Get the inserted event for attribution
-    result = await session.execute(
+    dep_result = await session.execute(
         select(ProductionDeploymentEvent).where(
             ProductionDeploymentEvent.id == dep_id,
         )
     )
-    dep_event = result.scalar_one()
+    dep_event = dep_result.scalar_one()
     await attribute_prs_to_deployment(dep_event, repo, session)
 
 
@@ -126,9 +130,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
     # Determine closed_at
     closed_at = None
     if action == "closed" and not is_merged:
-        closed_at = _parse_dt_optional(pr_data.get("closed_at")) or datetime.now(
-            tz=timezone.utc
-        )
+        closed_at = _parse_dt_optional(pr_data.get("closed_at")) or datetime.now(tz=UTC)
 
     # Determine field overrides based on action
     if action == "converted_to_draft":
@@ -141,32 +143,36 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
 
     merge_commit_sha = pr_data.get("merge_commit_sha") or None
 
-    stmt = insert(PullRequest).values(
-        id=uuid.uuid4(),
-        tenant_id=tenant_id,
-        repo_id=repo.id,
-        github_id=pr_data["id"],
-        number=pr_data["number"],
-        title=pr_data.get("title", ""),
-        base_ref=pr_data.get("base", {}).get("ref", ""),
-        merged_at=merged_at,
-        merge_commit_sha=merge_commit_sha,
-        head_sha=pr_data.get("head", {}).get("sha", ""),
-        author_login=pr_data.get("user", {}).get("login", ""),
-        html_url=pr_data.get("html_url", ""),
-        opened_at=opened_at,
-        is_draft=is_draft,
-        closed_at=closed_at,
-    ).on_conflict_do_update(
-        index_elements=["tenant_id", "repo_id", "number"],
-        set_={
-            "title": pr_data.get("title", ""),
-            "merged_at": merged_at,
-            "merge_commit_sha": merge_commit_sha,
-            "opened_at": opened_at,
-            "is_draft": is_draft,
-            "closed_at": closed_at,
-        },
+    stmt = (
+        insert(PullRequest)
+        .values(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            repo_id=repo.id,
+            github_id=pr_data["id"],
+            number=pr_data["number"],
+            title=pr_data.get("title", ""),
+            base_ref=pr_data.get("base", {}).get("ref", ""),
+            merged_at=merged_at,
+            merge_commit_sha=merge_commit_sha,
+            head_sha=pr_data.get("head", {}).get("sha", ""),
+            author_login=pr_data.get("user", {}).get("login", ""),
+            html_url=pr_data.get("html_url", ""),
+            opened_at=opened_at,
+            is_draft=is_draft,
+            closed_at=closed_at,
+        )
+        .on_conflict_do_update(
+            index_elements=["tenant_id", "repo_id", "number"],
+            set_={
+                "title": pr_data.get("title", ""),
+                "merged_at": merged_at,
+                "merge_commit_sha": merge_commit_sha,
+                "opened_at": opened_at,
+                "is_draft": is_draft,
+                "closed_at": closed_at,
+            },
+        )
     )
     await session.execute(stmt)
 

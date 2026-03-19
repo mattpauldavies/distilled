@@ -1,9 +1,16 @@
-import pytest
-from unittest.mock import AsyncMock, patch, call
 from datetime import timedelta
 
-from tests.conftest import mock_result, mock_insert_result, make_repo, make_pr, make_deployment, TENANT_ID, NOW
+import pytest
+
 from app.services.attribution_service import attribute_prs_to_deployment
+from tests.conftest import (
+    NOW,
+    make_deployment,
+    make_pr,
+    make_repo,
+    mock_insert_result,
+    mock_result,
+)
 
 
 @pytest.mark.asyncio

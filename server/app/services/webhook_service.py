@@ -1,17 +1,21 @@
 import hashlib
 import hmac
 import logging
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 EVENT_HANDLERS: dict[str, list] = {}
 
 
-def register_handler(event_type: str):
+def register_handler(event_type: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to register a webhook event handler."""
-    def decorator(func):
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         EVENT_HANDLERS.setdefault(event_type, []).append(func)
         return func
+
     return decorator
 
 

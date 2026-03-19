@@ -4,24 +4,24 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import type { Repo, DaysWindow } from "@/types/dashboard";
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import type { Repo, DaysWindow } from "@/types/dashboard"
 
-const WINDOWS: DaysWindow[] = [30, 90, 180];
+const WINDOWS: DaysWindow[] = [30, 90, 180]
 
 const WINDOW_LABELS: Record<DaysWindow, string> = {
   30: "30d",
   90: "90d",
   180: "6m",
-};
+}
 
 interface Props {
-  repos: Repo[];
-  selectedRepoId: string | null;
-  onRepoChange: (repoId: string) => void;
-  daysWindow: DaysWindow;
-  onDaysWindowChange: (daysWindow: DaysWindow) => void;
+  repos: Repo[]
+  selectedRepoId: string | null
+  onRepoChange: (repoId: string) => void
+  daysWindow: DaysWindow
+  onDaysWindowChange: (daysWindow: DaysWindow) => void
 }
 
 export function DashboardControls({
@@ -61,5 +61,5 @@ export function DashboardControls({
         ))}
       </div>
     </div>
-  );
+  )
 }

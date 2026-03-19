@@ -42,11 +42,14 @@ npm run test:coverage # with coverage report
 
 27 integration tests (Vitest + Testing Library + MSW) covering hooks, components, and end-to-end dashboard flows. Test infrastructure: MSW mocks HTTP, factory functions generate test data, custom render helper provides context.
 
-## Lint
+## Lint and format
 
 ```sh
-npm run lint
+npm run lint    # ESLint + Prettier check
+npm run format  # Prettier auto-fix
 ```
+
+ESLint enforces TypeScript + React Hooks rules. Prettier handles code style (double quotes, semicolons, 100-char print width). `eslint-config-prettier` disables any ESLint rules that would conflict with Prettier.
 
 ## Structure
 

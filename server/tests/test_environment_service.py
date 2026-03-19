@@ -1,10 +1,20 @@
-import uuid
 from unittest.mock import AsyncMock
 
 import pytest
 
-from app.services.environment_service import detect_production, discover_environments, has_production_environment
-from tests.conftest import make_repo, make_environment, mock_insert_result, mock_result, TENANT_ID, REPO_ID
+from app.services.environment_service import (
+    detect_production,
+    discover_environments,
+    has_production_environment,
+)
+from tests.conftest import (
+    REPO_ID,
+    TENANT_ID,
+    make_environment,
+    make_repo,
+    mock_insert_result,
+    mock_result,
+)
 
 
 @pytest.mark.parametrize(

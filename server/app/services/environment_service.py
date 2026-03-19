@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.environment import Environment
 from app.models.repository import Repository
-from app.services.github_client import GitHubClient
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +24,13 @@ async def has_production_environment(
     session: AsyncSession,
 ) -> bool:
     result = await session.execute(
-        select(Environment).where(
+        select(Environment)
+        .where(
             Environment.tenant_id == tenant_id,
             Environment.repo_id == repo_id,
             Environment.is_production.is_(True),
-        ).limit(1)
+        )
+        .limit(1)
     )
     return result.scalar_one_or_none() is not None
 
@@ -60,13 +61,17 @@ async def discover_environments(
         name = env_data["name"]
         is_prod = detect_production(name)
 
-        stmt = insert(Environment).values(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            repo_id=repo.id,
-            name=name,
-            is_production=is_prod,
-        ).on_conflict_do_nothing(
-            index_elements=["tenant_id", "repo_id", "name"],
+        stmt = (
+            insert(Environment)
+            .values(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                repo_id=repo.id,
+                name=name,
+                is_production=is_prod,
+            )
+            .on_conflict_do_nothing(
+                index_elements=["tenant_id", "repo_id", "name"],
+            )
         )
         await session.execute(stmt)

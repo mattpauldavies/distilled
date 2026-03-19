@@ -1,23 +1,16 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Props {
-  title: string;
-  value: string;
-  caption: string;
-  loading?: boolean;
-  setupRequired?: boolean;
-  muted?: boolean;
+  title: string
+  value: string
+  caption: string
+  loading?: boolean
+  setupRequired?: boolean
+  muted?: boolean
 }
 
-export function MetricCard({
-  title,
-  value,
-  caption,
-  loading,
-  setupRequired,
-  muted,
-}: Props) {
+export function MetricCard({ title, value, caption, loading, setupRequired, muted }: Props) {
   return (
     <Card className="gap-0 py-0">
       <CardContent className="p-5">
@@ -46,5 +39,5 @@ export function MetricCard({
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -28,7 +28,11 @@ from app.schemas.metrics import (
 from app.services import dashboard_service
 from app.services.data_quality_service import get_attribution_coverage
 from app.services.environment_service import has_production_environment
-from app.services.metrics_service import get_deployment_frequency, get_lead_time_summary, recompute_repo
+from app.services.metrics_service import (
+    get_deployment_frequency,
+    get_lead_time_summary,
+    recompute_repo,
+)
 from app.services.pull_request_service import get_open_pr_count, get_pr_ageing
 
 router = APIRouter(prefix="/metrics")
@@ -68,31 +72,38 @@ async def recompute_metrics(
     if not repo:
         raise HTTPException(status_code=404, detail="repo not found")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     hour = now.replace(minute=0, second=0, microsecond=0)
 
     result = await recompute_repo(
-        body.tenant_id, body.repo_id, repo.default_branch, session,
+        body.tenant_id,
+        body.repo_id,
+        repo.default_branch,
+        session,
     )
 
     # UPSERT refresh log (dedup per hour)
-    stmt = insert(MetricsRefreshLog).values(
-        id=uuid.uuid4(),
-        tenant_id=body.tenant_id,
-        repo_id=body.repo_id,
-        hour=hour,
-        started_at=now,
-        completed_at=datetime.now(timezone.utc),
-        status=result.status,
-        error_message=result.error_message,
-    ).on_conflict_do_update(
-        index_elements=["tenant_id", "repo_id", "hour"],
-        set_={
-            "started_at": now,
-            "completed_at": datetime.now(timezone.utc),
-            "status": result.status,
-            "error_message": result.error_message,
-        },
+    stmt = (
+        insert(MetricsRefreshLog)
+        .values(
+            id=uuid.uuid4(),
+            tenant_id=body.tenant_id,
+            repo_id=body.repo_id,
+            hour=hour,
+            started_at=now,
+            completed_at=datetime.now(UTC),
+            status=result.status,
+            error_message=result.error_message,
+        )
+        .on_conflict_do_update(
+            index_elements=["tenant_id", "repo_id", "hour"],
+            set_={
+                "started_at": now,
+                "completed_at": datetime.now(UTC),
+                "status": result.status,
+                "error_message": result.error_message,
+            },
+        )
     )
     await session.execute(stmt)
     await session.commit()
@@ -135,7 +146,11 @@ async def get_lead_time_endpoint(
         )
     weekly = await get_lead_time_summary(tenant_id, repo, session, int(days))
     coverage = await get_attribution_coverage(
-        tenant_id, repo.id, repo.default_branch, session, int(days),
+        tenant_id,
+        repo.id,
+        repo.default_branch,
+        session,
+        int(days),
     )
     return LeadTimeResponse(
         status="ok",

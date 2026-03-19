@@ -8,7 +8,7 @@ import type {
   ThroughputSection,
   OpenPRsSection,
   PRAgeingSection,
-} from "@/types/dashboard";
+} from "@/types/dashboard"
 
 export function makeRepo(overrides?: Partial<Repo>): Repo {
   return {
@@ -18,7 +18,7 @@ export function makeRepo(overrides?: Partial<Repo>): Repo {
     default_branch: "main",
     created_at: "2025-01-01T00:00:00Z",
     ...overrides,
-  };
+  }
 }
 
 export function makeDeploymentFrequency(
@@ -33,7 +33,7 @@ export function makeDeploymentFrequency(
       { date: "2025-06-02", count: 5 },
     ],
     ...overrides,
-  };
+  }
 }
 
 export function makeLeadTime(overrides?: Partial<LeadTimeSection>): LeadTimeSection {
@@ -43,24 +43,22 @@ export function makeLeadTime(overrides?: Partial<LeadTimeSection>): LeadTimeSect
       { week_start: "2025-05-26", median_seconds: 7200, p75_seconds: 10800, sample_size: 10 },
     ],
     ...overrides,
-  };
+  }
 }
 
 export function makeCycleTime(overrides?: Partial<PRCycleTimeSection>): PRCycleTimeSection {
   return {
     status: "ok",
-    weekly: [
-      { week_start: "2025-05-26", median_seconds: 3600, p75_seconds: 5400, sample_size: 8 },
-    ],
+    weekly: [{ week_start: "2025-05-26", median_seconds: 3600, p75_seconds: 5400, sample_size: 8 }],
     ...overrides,
-  };
+  }
 }
 
 export function makeThroughput(overrides?: Partial<ThroughputSection>): ThroughputSection {
   return {
     weekly: [{ week_start: "2025-05-26", pr_count: 15 }],
     ...overrides,
-  };
+  }
 }
 
 export function makeOpenPRs(overrides?: Partial<OpenPRsSection>): OpenPRsSection {
@@ -69,7 +67,7 @@ export function makeOpenPRs(overrides?: Partial<OpenPRsSection>): OpenPRsSection
     live: 5,
     draft: 2,
     ...overrides,
-  };
+  }
 }
 
 export function makePRAgeing(overrides?: Partial<PRAgeingSection>): PRAgeingSection {
@@ -81,7 +79,7 @@ export function makePRAgeing(overrides?: Partial<PRAgeingSection>): PRAgeingSect
       { bucket: ">30d", count: 1 },
     ],
     ...overrides,
-  };
+  }
 }
 
 export function makeDataQuality(overrides?: Partial<DataQuality>): DataQuality {
@@ -90,7 +88,7 @@ export function makeDataQuality(overrides?: Partial<DataQuality>): DataQuality {
     freshness: { status: "ok", last_refresh_at: new Date().toISOString() },
     setup: { has_production_environment: true, production_environments: ["production"] },
     ...overrides,
-  };
+  }
 }
 
 export function makeDashboardResponse(
@@ -105,5 +103,5 @@ export function makeDashboardResponse(
     pr_ageing: makePRAgeing(),
     data_quality: makeDataQuality(),
     ...overrides,
-  };
+  }
 }

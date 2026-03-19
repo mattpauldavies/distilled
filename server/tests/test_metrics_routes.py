@@ -1,5 +1,3 @@
-import uuid
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -7,12 +5,19 @@ from httpx import ASGITransport, AsyncClient
 
 from app.db import get_session
 from app.main import create_app
-from tests.conftest import TENANT_ID, REPO_ID, make_repo
 from app.schemas.metrics import (
-    UnifiedDashboardResponse, DataQuality,
-    DeploymentFrequencySection, LeadTimeSection, PRCycleTimeSection, ThroughputSection,
-    OpenPRsSection, PRAgeingSection, FreshnessInfo, SetupInfo,
+    DataQuality,
+    DeploymentFrequencySection,
+    FreshnessInfo,
+    LeadTimeSection,
+    OpenPRsSection,
+    PRAgeingSection,
+    PRCycleTimeSection,
+    SetupInfo,
+    ThroughputSection,
+    UnifiedDashboardResponse,
 )
+from tests.conftest import REPO_ID, TENANT_ID, make_repo
 
 
 @pytest.fixture
@@ -57,8 +62,10 @@ async def test_recompute_success(metrics_client, mock_session):
     # First call returns repo, subsequent calls return default mock
     mock_session.execute = AsyncMock(side_effect=[repo_result, MagicMock(), MagicMock()])
 
-    with patch("app.routes.metrics.settings") as mock_settings, \
-         patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute:
+    with (
+        patch("app.routes.metrics.settings") as mock_settings,
+        patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute,
+    ):
         mock_settings.internal_cron_secret = "test-secret"
         mock_recompute.return_value = RecomputeResult(status="success")
 

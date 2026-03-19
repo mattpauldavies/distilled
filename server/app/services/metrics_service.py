@@ -3,7 +3,7 @@ import statistics
 import uuid
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import distinct, func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -27,7 +27,7 @@ ALGORITHM_VERSION = 1
 
 
 def _cutoff(now: datetime | None = None) -> datetime:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     return now - timedelta(days=RECOMPUTE_DAYS)
 
 
@@ -66,19 +66,23 @@ async def compute_deployment_frequency(
         counts[dep.deployed_at.date()] += 1
 
     for day, count in counts.items():
-        stmt = insert(DeploymentDailyMetric).values(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            repo_id=repo_id,
-            date=day,
-            deployment_count=count,
-            algorithm_version=ALGORITHM_VERSION,
-        ).on_conflict_do_update(
-            index_elements=["tenant_id", "repo_id", "date"],
-            set_={
-                "deployment_count": count,
-                "algorithm_version": ALGORITHM_VERSION,
-            },
+        stmt = (
+            insert(DeploymentDailyMetric)
+            .values(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                repo_id=repo_id,
+                date=day,
+                deployment_count=count,
+                algorithm_version=ALGORITHM_VERSION,
+            )
+            .on_conflict_do_update(
+                index_elements=["tenant_id", "repo_id", "date"],
+                set_={
+                    "deployment_count": count,
+                    "algorithm_version": ALGORITHM_VERSION,
+                },
+            )
         )
         await session.execute(stmt)
 
@@ -123,23 +127,27 @@ async def compute_lead_time(
 
     for week, durations in weekly.items():
         durations.sort()
-        stmt = insert(LeadTimeWeeklyMetric).values(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            repo_id=repo_id,
-            week_start=week,
-            median_seconds=statistics.median(durations),
-            p75_seconds=_percentile_75(durations),
-            sample_size=len(durations),
-            algorithm_version=ALGORITHM_VERSION,
-        ).on_conflict_do_update(
-            index_elements=["tenant_id", "repo_id", "week_start"],
-            set_={
-                "median_seconds": statistics.median(durations),
-                "p75_seconds": _percentile_75(durations),
-                "sample_size": len(durations),
-                "algorithm_version": ALGORITHM_VERSION,
-            },
+        stmt = (
+            insert(LeadTimeWeeklyMetric)
+            .values(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                repo_id=repo_id,
+                week_start=week,
+                median_seconds=statistics.median(durations),
+                p75_seconds=_percentile_75(durations),
+                sample_size=len(durations),
+                algorithm_version=ALGORITHM_VERSION,
+            )
+            .on_conflict_do_update(
+                index_elements=["tenant_id", "repo_id", "week_start"],
+                set_={
+                    "median_seconds": statistics.median(durations),
+                    "p75_seconds": _percentile_75(durations),
+                    "sample_size": len(durations),
+                    "algorithm_version": ALGORITHM_VERSION,
+                },
+            )
         )
         await session.execute(stmt)
 
@@ -163,6 +171,8 @@ async def compute_pr_cycle_time(
 
     weekly: defaultdict[date, list[float]] = defaultdict(list)
     for pr in prs:
+        if pr.merged_at is None or pr.opened_at is None:
+            continue
         cycle_seconds = (pr.merged_at - pr.opened_at).total_seconds()
         if cycle_seconds <= 0:
             continue
@@ -171,23 +181,27 @@ async def compute_pr_cycle_time(
 
     for week, durations in weekly.items():
         durations.sort()
-        stmt = insert(PRCycleTimeWeeklyMetric).values(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            repo_id=repo_id,
-            week_start=week,
-            median_seconds=statistics.median(durations),
-            p75_seconds=_percentile_75(durations),
-            sample_size=len(durations),
-            algorithm_version=ALGORITHM_VERSION,
-        ).on_conflict_do_update(
-            index_elements=["tenant_id", "repo_id", "week_start"],
-            set_={
-                "median_seconds": statistics.median(durations),
-                "p75_seconds": _percentile_75(durations),
-                "sample_size": len(durations),
-                "algorithm_version": ALGORITHM_VERSION,
-            },
+        stmt = (
+            insert(PRCycleTimeWeeklyMetric)
+            .values(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                repo_id=repo_id,
+                week_start=week,
+                median_seconds=statistics.median(durations),
+                p75_seconds=_percentile_75(durations),
+                sample_size=len(durations),
+                algorithm_version=ALGORITHM_VERSION,
+            )
+            .on_conflict_do_update(
+                index_elements=["tenant_id", "repo_id", "week_start"],
+                set_={
+                    "median_seconds": statistics.median(durations),
+                    "p75_seconds": _percentile_75(durations),
+                    "sample_size": len(durations),
+                    "algorithm_version": ALGORITHM_VERSION,
+                },
+            )
         )
         await session.execute(stmt)
 
@@ -211,23 +225,29 @@ async def compute_pr_throughput(
 
     weekly: Counter = Counter()
     for pr in prs:
+        if pr.merged_at is None:
+            continue
         week = _week_start(pr.merged_at)
         weekly[week] += 1
 
     for week, count in weekly.items():
-        stmt = insert(PRThroughputWeeklyMetric).values(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            repo_id=repo_id,
-            week_start=week,
-            pr_count=count,
-            algorithm_version=ALGORITHM_VERSION,
-        ).on_conflict_do_update(
-            index_elements=["tenant_id", "repo_id", "week_start"],
-            set_={
-                "pr_count": count,
-                "algorithm_version": ALGORITHM_VERSION,
-            },
+        stmt = (
+            insert(PRThroughputWeeklyMetric)
+            .values(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                repo_id=repo_id,
+                week_start=week,
+                pr_count=count,
+                algorithm_version=ALGORITHM_VERSION,
+            )
+            .on_conflict_do_update(
+                index_elements=["tenant_id", "repo_id", "week_start"],
+                set_={
+                    "pr_count": count,
+                    "algorithm_version": ALGORITHM_VERSION,
+                },
+            )
         )
         await session.execute(stmt)
 
@@ -240,15 +260,17 @@ async def get_deployment_frequency(
 ) -> dict:
     since = date.today() - timedelta(days=days)
     result = await session.execute(
-        select(DeploymentDailyMetric).where(
+        select(DeploymentDailyMetric)
+        .where(
             DeploymentDailyMetric.tenant_id == tenant_id,
             DeploymentDailyMetric.repo_id == repo.id,
             DeploymentDailyMetric.date >= since,
-        ).order_by(DeploymentDailyMetric.date.asc())
+        )
+        .order_by(DeploymentDailyMetric.date.asc())
     )
     metrics = result.scalars().all()
-    daily_counts = [{"date": m.date, "count": m.deployment_count} for m in metrics]
-    total = sum(dc["count"] for dc in daily_counts)
+    daily_counts: list[dict[str, object]] = [{"date": m.date, "count": m.deployment_count} for m in metrics]
+    total = sum(m.deployment_count for m in metrics)
     deploys_per_week = round(total / (days / 7), 1) if days > 0 else 0.0
     return {"total": total, "daily_counts": daily_counts, "deploys_per_week": deploys_per_week}
 
@@ -261,15 +283,21 @@ async def get_lead_time_summary(
 ) -> list[dict]:
     since = date.today() - timedelta(days=days)
     result = await session.execute(
-        select(LeadTimeWeeklyMetric).where(
+        select(LeadTimeWeeklyMetric)
+        .where(
             LeadTimeWeeklyMetric.tenant_id == tenant_id,
             LeadTimeWeeklyMetric.repo_id == repo.id,
             LeadTimeWeeklyMetric.week_start >= since,
-        ).order_by(LeadTimeWeeklyMetric.week_start.asc())
+        )
+        .order_by(LeadTimeWeeklyMetric.week_start.asc())
     )
     return [
-        {"week_start": m.week_start, "median_seconds": m.median_seconds,
-         "p75_seconds": m.p75_seconds, "sample_size": m.sample_size}
+        {
+            "week_start": m.week_start,
+            "median_seconds": m.median_seconds,
+            "p75_seconds": m.p75_seconds,
+            "sample_size": m.sample_size,
+        }
         for m in result.scalars().all()
     ]
 
@@ -282,15 +310,21 @@ async def get_pr_cycle_time_summary(
 ) -> list[dict]:
     since = date.today() - timedelta(days=days)
     result = await session.execute(
-        select(PRCycleTimeWeeklyMetric).where(
+        select(PRCycleTimeWeeklyMetric)
+        .where(
             PRCycleTimeWeeklyMetric.tenant_id == tenant_id,
             PRCycleTimeWeeklyMetric.repo_id == repo.id,
             PRCycleTimeWeeklyMetric.week_start >= since,
-        ).order_by(PRCycleTimeWeeklyMetric.week_start.asc())
+        )
+        .order_by(PRCycleTimeWeeklyMetric.week_start.asc())
     )
     return [
-        {"week_start": m.week_start, "median_seconds": m.median_seconds,
-         "p75_seconds": m.p75_seconds, "sample_size": m.sample_size}
+        {
+            "week_start": m.week_start,
+            "median_seconds": m.median_seconds,
+            "p75_seconds": m.p75_seconds,
+            "sample_size": m.sample_size,
+        }
         for m in result.scalars().all()
     ]
 
@@ -303,11 +337,13 @@ async def get_pr_throughput(
 ) -> list[dict]:
     since = date.today() - timedelta(days=days)
     result = await session.execute(
-        select(PRThroughputWeeklyMetric).where(
+        select(PRThroughputWeeklyMetric)
+        .where(
             PRThroughputWeeklyMetric.tenant_id == tenant_id,
             PRThroughputWeeklyMetric.repo_id == repo.id,
             PRThroughputWeeklyMetric.week_start >= since,
-        ).order_by(PRThroughputWeeklyMetric.week_start.asc())
+        )
+        .order_by(PRThroughputWeeklyMetric.week_start.asc())
     )
     return [{"week_start": m.week_start, "pr_count": m.pr_count} for m in result.scalars().all()]
 
@@ -318,7 +354,7 @@ async def get_lead_time_aggregate(
     session: AsyncSession,
     days: int,
 ) -> dict:
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
     result = await session.execute(
         select(
             PullRequest.merged_at,
@@ -350,7 +386,7 @@ async def get_pr_cycle_time_aggregate(
     session: AsyncSession,
     days: int,
 ) -> dict:
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
     result = await session.execute(
         select(PullRequest).where(
             PullRequest.tenant_id == tenant_id,
@@ -363,7 +399,9 @@ async def get_pr_cycle_time_aggregate(
     durations = [
         (pr.merged_at - pr.opened_at).total_seconds()
         for pr in result.scalars().all()
-        if (pr.merged_at - pr.opened_at).total_seconds() > 0
+        if pr.merged_at is not None
+        and pr.opened_at is not None
+        and (pr.merged_at - pr.opened_at).total_seconds() > 0
     ]
     return {
         "median_seconds": statistics.median(durations) if durations else None,
@@ -419,7 +457,9 @@ async def recompute_repo(
 ) -> RecomputeResult:
     errors: list[str] = []
 
-    metric_fns = [
+    from typing import Any
+
+    metric_fns: list[tuple[str, Any, tuple[Any, ...]]] = [
         ("deployment_frequency", compute_deployment_frequency, (tenant_id, repo_id, session)),
         ("lead_time", compute_lead_time, (tenant_id, repo_id, default_branch, session)),
         ("pr_cycle_time", compute_pr_cycle_time, (tenant_id, repo_id, default_branch, session)),

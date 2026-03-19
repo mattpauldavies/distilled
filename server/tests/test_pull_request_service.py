@@ -1,10 +1,8 @@
-import uuid
-from datetime import date
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from tests.conftest import TENANT_ID, REPO_ID, make_repo, mock_result
+from tests.conftest import REPO_ID, TENANT_ID, make_repo
 
 
 @pytest.mark.asyncio

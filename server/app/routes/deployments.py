@@ -6,12 +6,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
+from app.middleware.repo import get_verified_repo
+from app.middleware.tenant import get_tenant_id
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
-from app.middleware.repo import get_verified_repo
-from app.middleware.tenant import get_tenant_id
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.deployments import DeploymentDetailResponse, DeploymentResponse
 from app.schemas.pull_requests import PullRequestResponse
@@ -44,9 +44,7 @@ async def list_deployments(
     total = total_result.scalar_one()
 
     result = await session.execute(
-        base.order_by(ProductionDeploymentEvent.deployed_at.desc())
-        .offset(pagination.offset)
-        .limit(pagination.limit)
+        base.order_by(ProductionDeploymentEvent.deployed_at.desc()).offset(pagination.offset).limit(pagination.limit)
     )
     deployments = result.scalars().all()
 

@@ -9,9 +9,7 @@ from app.models.base import Base, TimestampMixin, TZDatetime
 
 class PullRequest(TimestampMixin, Base):
     __tablename__ = "pull_requests"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "repo_id", "number"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "repo_id", "number"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))

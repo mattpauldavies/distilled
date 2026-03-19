@@ -1,12 +1,10 @@
-import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock as AsyncMockFn
 
 import pytest
 
-from unittest.mock import patch, AsyncMock as AsyncMockFn
-
-from tests.conftest import TENANT_ID, REPO_ID, make_deployment, make_pr
+from tests.conftest import REPO_ID, TENANT_ID, make_deployment, make_pr
 
 
 @pytest.mark.asyncio
@@ -16,15 +14,15 @@ async def test_deployment_frequency_counts_by_date(mock_session):
 
     d1 = make_deployment(
         repo_id=REPO_ID,
-        deployed_at=datetime(2025, 1, 10, 8, 0, tzinfo=timezone.utc),
+        deployed_at=datetime(2025, 1, 10, 8, 0, tzinfo=UTC),
     )
     d2 = make_deployment(
         repo_id=REPO_ID,
-        deployed_at=datetime(2025, 1, 10, 14, 0, tzinfo=timezone.utc),
+        deployed_at=datetime(2025, 1, 10, 14, 0, tzinfo=UTC),
     )
     d3 = make_deployment(
         repo_id=REPO_ID,
-        deployed_at=datetime(2025, 1, 11, 9, 0, tzinfo=timezone.utc),
+        deployed_at=datetime(2025, 1, 11, 9, 0, tzinfo=UTC),
     )
 
     result_mock = MagicMock()
@@ -61,17 +59,19 @@ async def test_lead_time_computes_median_and_p75(mock_session):
     """Given 4 attributed PRs in same week, computes correct median/P75."""
     from app.services.metrics_service import compute_lead_time
 
-    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=timezone.utc)
+    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=UTC)
 
     # Lead times: 1h, 2h, 3h, 4h
     prs_with_deploy = []
     for hours in [1, 2, 3, 4]:
         merged = deployed_at - timedelta(hours=hours)
-        prs_with_deploy.append(MagicMock(
-            merged_at=merged,
-            deployed_at=deployed_at,
-            base_ref="main",
-        ))
+        prs_with_deploy.append(
+            MagicMock(
+                merged_at=merged,
+                deployed_at=deployed_at,
+                base_ref="main",
+            )
+        )
 
     result_mock = MagicMock()
     result_mock.all.return_value = prs_with_deploy
@@ -88,7 +88,7 @@ async def test_lead_time_skips_negative_durations(mock_session):
     """PRs where merged_at > deployed_at should be excluded."""
     from app.services.metrics_service import compute_lead_time
 
-    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=timezone.utc)
+    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=UTC)
     bad = MagicMock(
         merged_at=deployed_at + timedelta(hours=1),
         deployed_at=deployed_at,
@@ -113,15 +113,15 @@ async def test_pr_cycle_time_computes_from_opened_to_merged(mock_session):
     pr1 = make_pr(
         repo_id=REPO_ID,
         base_ref="main",
-        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=timezone.utc),
-        merged_at=datetime(2025, 1, 14, 8, 0, tzinfo=timezone.utc),  # 24h
+        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=UTC),
+        merged_at=datetime(2025, 1, 14, 8, 0, tzinfo=UTC),  # 24h
     )
     pr2 = make_pr(
         repo_id=REPO_ID,
         base_ref="main",
         number=2,
-        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=timezone.utc),
-        merged_at=datetime(2025, 1, 15, 8, 0, tzinfo=timezone.utc),  # 48h
+        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=UTC),
+        merged_at=datetime(2025, 1, 15, 8, 0, tzinfo=UTC),  # 48h
     )
 
     result_mock = MagicMock()
@@ -142,8 +142,7 @@ async def test_pr_throughput_counts_by_week(mock_session):
     from app.services.metrics_service import compute_pr_throughput
 
     prs = [
-        make_pr(repo_id=REPO_ID, base_ref="main", number=i,
-                merged_at=datetime(2025, 1, 13 + i, 8, 0, tzinfo=timezone.utc))
+        make_pr(repo_id=REPO_ID, base_ref="main", number=i, merged_at=datetime(2025, 1, 13 + i, 8, 0, tzinfo=UTC))
         for i in range(3)
     ]
 
@@ -164,11 +163,12 @@ async def test_recompute_repo_calls_all_four_metrics(mock_session):
     """recompute_repo should call all 4 compute functions."""
     from app.services.metrics_service import recompute_repo
 
-    with patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn) as mock_df, \
-         patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt, \
-         patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct, \
-         patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp:
-
+    with (
+        patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn) as mock_df,
+        patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt,
+        patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct,
+        patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp,
+    ):
         result = await recompute_repo(TENANT_ID, REPO_ID, "main", mock_session)
 
     mock_df.assert_called_once_with(TENANT_ID, REPO_ID, mock_session)
@@ -183,11 +183,13 @@ async def test_recompute_repo_continues_on_partial_failure(mock_session):
     """If one metric fails, others still run."""
     from app.services.metrics_service import recompute_repo
 
-    with patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn, side_effect=Exception("db error")), \
-         patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt, \
-         patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct, \
-         patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp:
-
+    exc = Exception("db error")
+    with (
+        patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn, side_effect=exc),
+        patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt,
+        patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct,
+        patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp,
+    ):
         result = await recompute_repo(TENANT_ID, REPO_ID, "main", mock_session)
 
     mock_lt.assert_called_once()
@@ -199,8 +201,9 @@ async def test_recompute_repo_continues_on_partial_failure(mock_session):
 
 # --- Read-side query functions ---
 
-from tests.conftest import make_repo, mock_result
 from datetime import date
+
+from tests.conftest import make_repo, mock_result
 
 
 @pytest.mark.asyncio
@@ -328,16 +331,13 @@ async def test_get_pr_throughput_summary_no_authors_returns_none_rate(mock_sessi
 
 @pytest.mark.asyncio
 async def test_get_lead_time_aggregate_computes_median(mock_session):
+
     from app.services.metrics_service import get_lead_time_aggregate
-    from datetime import timezone
 
     repo = make_repo(id=REPO_ID)
-    now = datetime(2026, 3, 18, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 3, 18, 12, 0, tzinfo=UTC)
     # Lead times: 1h, 2h, 3h — median = 2h = 7200s
-    rows = [
-        MagicMock(merged_at=now - timedelta(hours=h + 1), deployed_at=now - timedelta(hours=1))
-        for h in [1, 2, 3]
-    ]
+    rows = [MagicMock(merged_at=now - timedelta(hours=h + 1), deployed_at=now - timedelta(hours=1)) for h in [1, 2, 3]]
     result_mock = MagicMock()
     result_mock.all.return_value = rows
     mock_session.execute = AsyncMock(return_value=result_mock)
@@ -365,11 +365,11 @@ async def test_get_lead_time_aggregate_empty_returns_none(mock_session):
 
 @pytest.mark.asyncio
 async def test_get_pr_cycle_time_aggregate_computes_median(mock_session):
+
     from app.services.metrics_service import get_pr_cycle_time_aggregate
-    from datetime import timezone
 
     repo = make_repo(id=REPO_ID)
-    now = datetime(2026, 3, 18, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 3, 18, 12, 0, tzinfo=UTC)
     # Cycle times: 24h, 48h, 72h — median = 48h = 172800s
     prs = [
         make_pr(

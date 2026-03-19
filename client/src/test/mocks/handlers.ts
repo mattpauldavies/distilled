@@ -1,5 +1,5 @@
-import { http, HttpResponse } from "msw";
-import { makeDashboardResponse, makeRepo } from "../factories";
+import { http, HttpResponse } from "msw"
+import { makeDashboardResponse, makeRepo } from "../factories"
 
 export const handlers = [
   http.get("/api/repos", () => {
@@ -8,10 +8,10 @@ export const handlers = [
       total: 2,
       offset: 0,
       limit: 100,
-    });
+    })
   }),
 
   http.get("/api/metrics/unified", () => {
-    return HttpResponse.json(makeDashboardResponse());
+    return HttpResponse.json(makeDashboardResponse())
   }),
-];
+]

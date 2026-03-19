@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from tests.conftest import TENANT_ID, REPO_ID, make_environment
+from tests.conftest import REPO_ID, make_environment
 
 
 def _make_daily_metric(d: date, count: int):
