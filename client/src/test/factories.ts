@@ -32,6 +32,7 @@ export function makeDeploymentFrequency(
       { date: "2025-06-01", count: 3 },
       { date: "2025-06-02", count: 5 },
     ],
+    deploys_per_week: 4.2,
     ...overrides,
   }
 }
@@ -42,6 +43,7 @@ export function makeLeadTime(overrides?: Partial<LeadTimeSection>): LeadTimeSect
     weekly: [
       { week_start: "2025-05-26", median_seconds: 7200, p75_seconds: 10800, sample_size: 10 },
     ],
+    median_seconds: 7200,
     ...overrides,
   }
 }
@@ -50,6 +52,7 @@ export function makeCycleTime(overrides?: Partial<PRCycleTimeSection>): PRCycleT
   return {
     status: "ok",
     weekly: [{ week_start: "2025-05-26", median_seconds: 3600, p75_seconds: 5400, sample_size: 8 }],
+    median_seconds: 3600,
     ...overrides,
   }
 }
@@ -57,6 +60,9 @@ export function makeCycleTime(overrides?: Partial<PRCycleTimeSection>): PRCycleT
 export function makeThroughput(overrides?: Partial<ThroughputSection>): ThroughputSection {
   return {
     weekly: [{ week_start: "2025-05-26", pr_count: 15 }],
+    total_prs: 15,
+    unique_authors: 3,
+    prs_per_engineer_per_month: 5.0,
     ...overrides,
   }
 }
