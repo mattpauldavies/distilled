@@ -2,10 +2,11 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.auth import require_api_key
 from app.config import settings
 from app.db import dispose_db, init_db
 from app.logging import configure_logging
@@ -43,11 +44,11 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router, prefix="/api")
     app.include_router(webhooks.router, prefix="/api")
-    app.include_router(repos.router, prefix="/api")
-    app.include_router(environments.router, prefix="/api")
-    app.include_router(deployments.router, prefix="/api")
-    app.include_router(pull_requests.router, prefix="/api")
-    app.include_router(metrics.router, prefix="/api")
+    app.include_router(repos.router, prefix="/api", dependencies=[Depends(require_api_key)])
+    app.include_router(environments.router, prefix="/api", dependencies=[Depends(require_api_key)])
+    app.include_router(deployments.router, prefix="/api", dependencies=[Depends(require_api_key)])
+    app.include_router(pull_requests.router, prefix="/api", dependencies=[Depends(require_api_key)])
+    app.include_router(metrics.router, prefix="/api", dependencies=[Depends(require_api_key)])
     return app
 
 

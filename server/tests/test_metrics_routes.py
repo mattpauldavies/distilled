@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.auth import require_api_key
 from app.db import get_session
 from app.main import create_app
 from app.schemas.metrics import (
@@ -28,6 +29,7 @@ def metrics_client(mock_session):
         yield mock_session
 
     app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[require_api_key] = lambda: None  # bypass auth in tests
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     return AsyncClient(transport=transport, base_url="http://test")
 
