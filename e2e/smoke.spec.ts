@@ -198,58 +198,56 @@ test.describe("Chart panels — data rendered, no empty states", () => {
 });
 
 test.describe("Time window toggle", () => {
-  test("switching to 7d shows fewer deployments than 90d", async ({ page }) => {
+  test("switching to 30d shows a higher deployment frequency than 6m", async ({ page }) => {
     await loadDashboard(page);
 
-    // Read the deployment count at 90d
-    await page.getByRole("button", { name: "90d" }).click();
-    await expect(page.getByRole("button", { name: "90d" })).toHaveAttribute(
+    // Read the deployment count at 6m
+    await page.getByRole("button", { name: "6m" }).click();
+    await expect(page.getByRole("button", { name: "6m" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
     // Wait for chart to update
     await page.waitForTimeout(500);
-    const count90 = parseInt(
+    const count180 = parseFloat(
       await metricCard(page, "Deployment Frequency")
         .locator("p.text-5xl")
         .innerText(),
-      10,
     );
 
-    // Read the deployment count at 7d
-    await page.getByRole("button", { name: "7d" }).click();
-    await expect(page.getByRole("button", { name: "7d" })).toHaveAttribute(
+    // Read the deployment count at 30d
+    await page.getByRole("button", { name: "30d" }).click();
+    await expect(page.getByRole("button", { name: "30d" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
     await page.waitForTimeout(500);
-    const count7 = parseInt(
+    const count30 = parseFloat(
       await metricCard(page, "Deployment Frequency")
         .locator("p.text-5xl")
         .innerText(),
-      10,
     );
 
-    expect(count7).toBeLessThanOrEqual(count90);
+    expect(count30).toBeGreaterThanOrEqual(count180);
   });
 
   test("active window button has aria-pressed=true", async ({ page }) => {
     await loadDashboard(page);
-    // Default is 30d
-    await expect(page.getByRole("button", { name: "30d" })).toHaveAttribute(
+    // Default is 90d
+    await expect(page.getByRole("button", { name: "90d" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    await expect(page.getByRole("button", { name: "7d" })).toHaveAttribute(
+    await expect(page.getByRole("button", { name: "30d" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
-    await page.getByRole("button", { name: "7d" }).click();
-    await expect(page.getByRole("button", { name: "7d" })).toHaveAttribute(
+    await page.getByRole("button", { name: "30d" }).click();
+    await expect(page.getByRole("button", { name: "30d" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    await expect(page.getByRole("button", { name: "30d" })).toHaveAttribute(
+    await expect(page.getByRole("button", { name: "90d" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
