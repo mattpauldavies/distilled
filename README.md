@@ -80,8 +80,3 @@ Find all documentation in `/docs` key highlights are:
 - [Architecture](docs/architecture.md)
 - [Metrics](docs/metrics.md)
 - [Local Setup Runbook](docs/runbooks/local-setup.md) — full setup guide including GitHub integration
-- [RFC 001: Deployment Detection](docs/rfcs/001-deployment-detection.md) — deployment detection system
-- [RFC 003: Better Python Tests](docs/rfcs/003-better-python-tests.md) — server test infrastructure + 60 tests
-- [RFC 004: Client Testing](docs/rfcs/004-client-testing.md) — client test infrastructure + 27 tests
-- [RFC 005: Metrics Aggregation Engine](docs/rfcs/005-metrics-aggregation-engine.md) — scheduled per-repo metric recompute
-- [RFC 011: Dashboard UI](docs/rfcs/011-dashboard-ui.md) — engineering health dashboard design + implementation plan
