@@ -8,9 +8,7 @@ from app.models.base import Base, ImmutableTimestampMixin, TZDatetime
 
 class ProductionDeploymentEvent(ImmutableTimestampMixin, Base):
     __tablename__ = "deployment_events"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "deployment_id"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "deployment_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))

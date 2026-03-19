@@ -385,9 +385,7 @@ def _compute_metrics(
         )
 
         # PR cycle time
-        cycle_secs = sorted(
-            (pr.merged_at - pr.opened_at).total_seconds() for pr in week_prs
-        )
+        cycle_secs = sorted((pr.merged_at - pr.opened_at).total_seconds() for pr in week_prs)
         med_cycle = median(cycle_secs)
         p75_cycle = cycle_secs[min(int(len(cycle_secs) * 0.75), len(cycle_secs) - 1)]
         metrics.append(
@@ -431,9 +429,7 @@ async def main() -> None:
     async with session_factory() as session:
         # Idempotency check
         result = await session.execute(
-            select(GitHubInstallation).where(
-                GitHubInstallation.account_login == "acme-corp"
-            )
+            select(GitHubInstallation).where(GitHubInstallation.account_login == "acme-corp")
         )
         if result.scalar_one_or_none() is not None:
             print("Demo data already exists. Run `make seed-reset` first to refresh.")
@@ -441,9 +437,7 @@ async def main() -> None:
             return
 
         rng = random.Random(42)
-        now = datetime.now(UTC).replace(
-            hour=12, minute=0, second=0, microsecond=0
-        )
+        now = datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0)
 
         # ── Ensure dev tenant exists (created by migration, but check defensively) ──
         existing_tenant = await session.get(Tenant, TENANT_ID)
@@ -536,11 +530,7 @@ async def main() -> None:
 
             phase = get_api_phase(weeks_ago)
             api_params = PHASE_PARAMS[phase]
-            api_titles = (
-                API_TITLES_ROUGH
-                if phase in ("deteriorating", "rough_patch")
-                else API_TITLES_HEALTHY
-            )
+            api_titles = API_TITLES_ROUGH if phase in ("deteriorating", "rough_patch") else API_TITLES_HEALTHY
             api_prs.extend(
                 _generate_week_prs(
                     rng=rng,
@@ -603,13 +593,9 @@ async def main() -> None:
             session.add(attr)
 
         # ── Metrics ───────────────────────────────────────────────────────────
-        for metric in _compute_metrics(
-            TENANT_ID, WEB_REPO_ID, web_prs, web_deployments, web_attributions
-        ):
+        for metric in _compute_metrics(TENANT_ID, WEB_REPO_ID, web_prs, web_deployments, web_attributions):
             session.add(metric)
-        for metric in _compute_metrics(
-            TENANT_ID, API_REPO_ID, api_prs, api_deployments, api_attributions
-        ):
+        for metric in _compute_metrics(TENANT_ID, API_REPO_ID, api_prs, api_deployments, api_attributions):
             session.add(metric)
 
         await session.commit()

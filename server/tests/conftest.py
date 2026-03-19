@@ -85,6 +85,7 @@ def client(mock_session, tenant_id):
 
 # --- Model factories ---
 
+
 def make_tenant(**overrides):
     defaults = dict(
         id=TENANT_ID,

@@ -35,9 +35,7 @@ async def test_lead_time_returns_weekly_data(client, mock_session):
     attributed_prs_result = MagicMock()
     attributed_prs_result.scalar_one.return_value = 8
 
-    mock_session.execute = AsyncMock(
-        side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result]
-    )
+    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result])
 
     resp = await client.get(f"/api/metrics/lead-time?repo_id={REPO_ID}")
 
@@ -84,9 +82,7 @@ async def test_lead_time_zero_state(client, mock_session):
     attributed_prs_result = MagicMock()
     attributed_prs_result.scalar_one.return_value = 0
 
-    mock_session.execute = AsyncMock(
-        side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result]
-    )
+    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result])
 
     resp = await client.get(f"/api/metrics/lead-time?repo_id={REPO_ID}")
 
@@ -114,9 +110,7 @@ async def test_lead_time_custom_days(client, mock_session):
     attributed_prs_result = MagicMock()
     attributed_prs_result.scalar_one.return_value = 0
 
-    mock_session.execute = AsyncMock(
-        side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result]
-    )
+    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result])
 
     resp = await client.get(f"/api/metrics/lead-time?repo_id={REPO_ID}&days=90")
 

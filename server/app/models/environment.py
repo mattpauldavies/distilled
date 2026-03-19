@@ -8,9 +8,7 @@ from app.models.base import Base, TimestampMixin
 
 class Environment(TimestampMixin, Base):
     __tablename__ = "environments"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "repo_id", "name"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "repo_id", "name"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))

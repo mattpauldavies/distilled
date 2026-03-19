@@ -13,16 +13,17 @@ async def test_get_unified_dashboard_happy_path(mock_session):
 
     repo = make_repo(id=REPO_ID, default_branch="main")
 
-    with patch("app.services.dashboard_service.get_production_environments", new_callable=AM) as mock_prod_envs, \
-         patch("app.services.dashboard_service.get_deployment_frequency", new_callable=AM) as mock_dep, \
-         patch("app.services.dashboard_service.get_lead_time_summary", new_callable=AM) as mock_lt, \
-         patch("app.services.dashboard_service.get_pr_cycle_time_summary", new_callable=AM) as mock_ct, \
-         patch("app.services.dashboard_service.get_pr_throughput", new_callable=AM) as mock_tp, \
-         patch("app.services.dashboard_service.get_open_pr_count", new_callable=AM) as mock_open, \
-         patch("app.services.dashboard_service.get_pr_ageing", new_callable=AM) as mock_age, \
-         patch("app.services.dashboard_service.get_metrics_freshness", new_callable=AM) as mock_fresh, \
-         patch("app.services.dashboard_service.get_attribution_coverage", new_callable=AM) as mock_cov:
-
+    with (
+        patch("app.services.dashboard_service.get_production_environments", new_callable=AM) as mock_prod_envs,
+        patch("app.services.dashboard_service.get_deployment_frequency", new_callable=AM) as mock_dep,
+        patch("app.services.dashboard_service.get_lead_time_summary", new_callable=AM) as mock_lt,
+        patch("app.services.dashboard_service.get_pr_cycle_time_summary", new_callable=AM) as mock_ct,
+        patch("app.services.dashboard_service.get_pr_throughput", new_callable=AM) as mock_tp,
+        patch("app.services.dashboard_service.get_open_pr_count", new_callable=AM) as mock_open,
+        patch("app.services.dashboard_service.get_pr_ageing", new_callable=AM) as mock_age,
+        patch("app.services.dashboard_service.get_metrics_freshness", new_callable=AM) as mock_fresh,
+        patch("app.services.dashboard_service.get_attribution_coverage", new_callable=AM) as mock_cov,
+    ):
         mock_prod_envs.return_value = ["production"]
         mock_dep.return_value = {"total": 5, "daily_counts": [{"date": date(2026, 3, 11), "count": 5}]}
         mock_lt.return_value = [
@@ -36,6 +37,7 @@ async def test_get_unified_dashboard_happy_path(mock_session):
         mock_age.return_value = [{"bucket": "<2d", "count": 2}]
 
         from app.services.data_quality_service import MetricsFreshness
+
         mock_fresh.return_value = MetricsFreshness(status="ok", last_refresh_at=None)
         mock_cov.return_value = 87.5
 
@@ -61,19 +63,21 @@ async def test_get_unified_dashboard_no_prod_env(mock_session):
 
     repo = make_repo(id=REPO_ID, default_branch="main")
 
-    with patch("app.services.dashboard_service.get_production_environments", new_callable=AM) as mock_prod_envs, \
-         patch("app.services.dashboard_service.get_pr_throughput", new_callable=AM) as mock_tp, \
-         patch("app.services.dashboard_service.get_open_pr_count", new_callable=AM) as mock_open, \
-         patch("app.services.dashboard_service.get_pr_ageing", new_callable=AM) as mock_age, \
-         patch("app.services.dashboard_service.get_metrics_freshness", new_callable=AM) as mock_fresh, \
-         patch("app.services.dashboard_service.get_attribution_coverage", new_callable=AM) as mock_cov:
-
+    with (
+        patch("app.services.dashboard_service.get_production_environments", new_callable=AM) as mock_prod_envs,
+        patch("app.services.dashboard_service.get_pr_throughput", new_callable=AM) as mock_tp,
+        patch("app.services.dashboard_service.get_open_pr_count", new_callable=AM) as mock_open,
+        patch("app.services.dashboard_service.get_pr_ageing", new_callable=AM) as mock_age,
+        patch("app.services.dashboard_service.get_metrics_freshness", new_callable=AM) as mock_fresh,
+        patch("app.services.dashboard_service.get_attribution_coverage", new_callable=AM) as mock_cov,
+    ):
         mock_prod_envs.return_value = []
         mock_tp.return_value = []
         mock_open.return_value = {"total": 0, "live": 0, "draft": 0}
         mock_age.return_value = []
 
         from app.services.data_quality_service import MetricsFreshness
+
         mock_fresh.return_value = MetricsFreshness(status="no_data", last_refresh_at=None)
         mock_cov.return_value = None
 

@@ -29,9 +29,7 @@ function timeAgo(isoString: string | null): string {
 
 export function Dashboard() {
   const { repos, loading: reposLoading, error: reposError } = useRepos();
-  const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(
-    null,
-  );
+  const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null);
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(90);
 
   const selectedRepoId = userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
@@ -52,7 +50,6 @@ export function Dashboard() {
   const throughput = data?.throughput;
   const openPrs = data?.open_prs;
   const freshness = data?.data_quality?.freshness;
-
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
@@ -137,7 +134,11 @@ export function Dashboard() {
         />
         <MetricCard
           title="Throughput"
-          value={throughput?.prs_per_engineer_per_month != null ? throughput.prs_per_engineer_per_month.toFixed(1) : "—"}
+          value={
+            throughput?.prs_per_engineer_per_month != null
+              ? throughput.prs_per_engineer_per_month.toFixed(1)
+              : "—"
+          }
           caption="PRs / engineer / month"
           loading={loading}
         />

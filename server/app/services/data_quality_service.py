@@ -53,12 +53,14 @@ async def get_attribution_coverage(
 
     total_result = await session.execute(
         select(func.count()).select_from(
-            select(PullRequest.id).where(
+            select(PullRequest.id)
+            .where(
                 PullRequest.tenant_id == tenant_id,
                 PullRequest.repo_id == repo_id,
                 PullRequest.base_ref == default_branch,
                 PullRequest.merged_at >= since,
-            ).subquery()
+            )
+            .subquery()
         )
     )
     total = total_result.scalar_one()
@@ -68,7 +70,8 @@ async def get_attribution_coverage(
 
     attributed_result = await session.execute(
         select(func.count()).select_from(
-            select(PullRequest.id).where(
+            select(PullRequest.id)
+            .where(
                 PullRequest.tenant_id == tenant_id,
                 PullRequest.repo_id == repo_id,
                 PullRequest.base_ref == default_branch,
@@ -78,7 +81,8 @@ async def get_attribution_coverage(
                         DeploymentAttribution.tenant_id == tenant_id,
                     )
                 ),
-            ).subquery()
+            )
+            .subquery()
         )
     )
     attributed = attributed_result.scalar_one()

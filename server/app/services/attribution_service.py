@@ -51,11 +51,15 @@ async def attribute_prs_to_deployment(
         return
 
     for pr in prs:
-        stmt = insert(DeploymentAttribution).values(
-            deployment_id=deployment.id,
-            pr_id=pr.id,
-            tenant_id=deployment.tenant_id,
-        ).on_conflict_do_nothing()
+        stmt = (
+            insert(DeploymentAttribution)
+            .values(
+                deployment_id=deployment.id,
+                pr_id=pr.id,
+                tenant_id=deployment.tenant_id,
+            )
+            .on_conflict_do_nothing()
+        )
         await session.execute(stmt)
 
     logger.info("attributed %d PRs to deployment=%s", len(prs), deployment.id)

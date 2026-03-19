@@ -58,18 +58,17 @@ async def get_pr_ageing(
         select(
             bucket_expr,
             func.count().label("count"),
-        ).where(
+        )
+        .where(
             PullRequest.tenant_id == tenant_id,
             PullRequest.repo_id == repo.id,
             PullRequest.base_ref == repo.default_branch,
             PullRequest.merged_at.is_(None),
             PullRequest.closed_at.is_(None),
             PullRequest.is_draft.is_(False),
-        ).group_by(sa.text("bucket"))
+        )
+        .group_by(sa.text("bucket"))
     )
     _order = {"<2d": 0, "2-7d": 1, "7-14d": 2, ">14d": 3}
     counts = {row.bucket: row.count for row in result.all()}
-    return [
-        {"bucket": bucket, "count": counts.get(bucket, 0)}
-        for bucket in sorted(_order, key=_order.__getitem__)
-    ]
+    return [{"bucket": bucket, "count": counts.get(bucket, 0)} for bucket in sorted(_order, key=_order.__getitem__)]

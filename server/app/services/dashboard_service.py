@@ -57,7 +57,11 @@ async def get_unified_dashboard(
     ageing = await get_pr_ageing(tenant_id, repo, session)
     freshness = await get_metrics_freshness(tenant_id, repo.id, session)
     coverage = await get_attribution_coverage(
-        tenant_id, repo.id, repo.default_branch, session, days,
+        tenant_id,
+        repo.id,
+        repo.default_branch,
+        session,
+        days,
     )
 
     return UnifiedDashboardResponse(

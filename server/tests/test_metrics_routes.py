@@ -62,8 +62,10 @@ async def test_recompute_success(metrics_client, mock_session):
     # First call returns repo, subsequent calls return default mock
     mock_session.execute = AsyncMock(side_effect=[repo_result, MagicMock(), MagicMock()])
 
-    with patch("app.routes.metrics.settings") as mock_settings, \
-         patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute:
+    with (
+        patch("app.routes.metrics.settings") as mock_settings,
+        patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute,
+    ):
         mock_settings.internal_cron_secret = "test-secret"
         mock_recompute.return_value = RecomputeResult(status="success")
 

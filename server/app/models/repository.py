@@ -8,9 +8,7 @@ from app.models.base import Base, TimestampMixin
 
 class Repository(TimestampMixin, Base):
     __tablename__ = "repositories"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "github_id"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "github_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))

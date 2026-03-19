@@ -60,20 +60,24 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
 
     # Insert deployment event
     dep_id = uuid.uuid4()
-    stmt = insert(ProductionDeploymentEvent).values(
-        id=dep_id,
-        tenant_id=tenant_id,
-        repo_id=repo.id,
-        environment_name=env_name,
-        deployment_id=deployment["id"],
-        commit_sha=deployment.get("sha", ""),
-        ref=deployment.get("ref", ""),
-        started_at=started_at,
-        completed_at=completed_at,
-        deployed_at=deployed_at,
-        html_url=deployment_status.get("target_url", ""),
-    ).on_conflict_do_nothing(
-        index_elements=["tenant_id", "deployment_id"],
+    stmt = (
+        insert(ProductionDeploymentEvent)
+        .values(
+            id=dep_id,
+            tenant_id=tenant_id,
+            repo_id=repo.id,
+            environment_name=env_name,
+            deployment_id=deployment["id"],
+            commit_sha=deployment.get("sha", ""),
+            ref=deployment.get("ref", ""),
+            started_at=started_at,
+            completed_at=completed_at,
+            deployed_at=deployed_at,
+            html_url=deployment_status.get("target_url", ""),
+        )
+        .on_conflict_do_nothing(
+            index_elements=["tenant_id", "deployment_id"],
+        )
     )
     insert_result = await session.execute(stmt)
     await session.flush()
@@ -126,9 +130,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
     # Determine closed_at
     closed_at = None
     if action == "closed" and not is_merged:
-        closed_at = _parse_dt_optional(pr_data.get("closed_at")) or datetime.now(
-            tz=UTC
-        )
+        closed_at = _parse_dt_optional(pr_data.get("closed_at")) or datetime.now(tz=UTC)
 
     # Determine field overrides based on action
     if action == "converted_to_draft":
@@ -141,32 +143,36 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
 
     merge_commit_sha = pr_data.get("merge_commit_sha") or None
 
-    stmt = insert(PullRequest).values(
-        id=uuid.uuid4(),
-        tenant_id=tenant_id,
-        repo_id=repo.id,
-        github_id=pr_data["id"],
-        number=pr_data["number"],
-        title=pr_data.get("title", ""),
-        base_ref=pr_data.get("base", {}).get("ref", ""),
-        merged_at=merged_at,
-        merge_commit_sha=merge_commit_sha,
-        head_sha=pr_data.get("head", {}).get("sha", ""),
-        author_login=pr_data.get("user", {}).get("login", ""),
-        html_url=pr_data.get("html_url", ""),
-        opened_at=opened_at,
-        is_draft=is_draft,
-        closed_at=closed_at,
-    ).on_conflict_do_update(
-        index_elements=["tenant_id", "repo_id", "number"],
-        set_={
-            "title": pr_data.get("title", ""),
-            "merged_at": merged_at,
-            "merge_commit_sha": merge_commit_sha,
-            "opened_at": opened_at,
-            "is_draft": is_draft,
-            "closed_at": closed_at,
-        },
+    stmt = (
+        insert(PullRequest)
+        .values(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            repo_id=repo.id,
+            github_id=pr_data["id"],
+            number=pr_data["number"],
+            title=pr_data.get("title", ""),
+            base_ref=pr_data.get("base", {}).get("ref", ""),
+            merged_at=merged_at,
+            merge_commit_sha=merge_commit_sha,
+            head_sha=pr_data.get("head", {}).get("sha", ""),
+            author_login=pr_data.get("user", {}).get("login", ""),
+            html_url=pr_data.get("html_url", ""),
+            opened_at=opened_at,
+            is_draft=is_draft,
+            closed_at=closed_at,
+        )
+        .on_conflict_do_update(
+            index_elements=["tenant_id", "repo_id", "number"],
+            set_={
+                "title": pr_data.get("title", ""),
+                "merged_at": merged_at,
+                "merge_commit_sha": merge_commit_sha,
+                "opened_at": opened_at,
+                "is_draft": is_draft,
+                "closed_at": closed_at,
+            },
+        )
     )
     await session.execute(stmt)
 

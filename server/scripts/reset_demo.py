@@ -51,74 +51,38 @@ async def main() -> None:
 
         # Collect demo repo IDs (scoped to this installation)
         repo_result = await session.execute(
-            select(Repository.id).where(
-                Repository.installation_id == installation_uuid
-            )
+            select(Repository.id).where(Repository.installation_id == installation_uuid)
         )
         repo_ids = [row[0] for row in repo_result.all()]
 
         if repo_ids:
             # Collect deployment IDs for attribution deletion
             deploy_result = await session.execute(
-                select(ProductionDeploymentEvent.id).where(
-                    ProductionDeploymentEvent.repo_id.in_(repo_ids)
-                )
+                select(ProductionDeploymentEvent.id).where(ProductionDeploymentEvent.repo_id.in_(repo_ids))
             )
             deploy_ids = [row[0] for row in deploy_result.all()]
 
             # Delete in FK-safe order, scoped to demo repos/deployments
             if deploy_ids:
                 await session.execute(
-                    delete(DeploymentAttribution).where(
-                        DeploymentAttribution.deployment_id.in_(deploy_ids)
-                    )
+                    delete(DeploymentAttribution).where(DeploymentAttribution.deployment_id.in_(deploy_ids))
                 )
+            await session.execute(delete(DeploymentDailyMetric).where(DeploymentDailyMetric.repo_id.in_(repo_ids)))
+            await session.execute(delete(LeadTimeWeeklyMetric).where(LeadTimeWeeklyMetric.repo_id.in_(repo_ids)))
+            await session.execute(delete(PRCycleTimeWeeklyMetric).where(PRCycleTimeWeeklyMetric.repo_id.in_(repo_ids)))
             await session.execute(
-                delete(DeploymentDailyMetric).where(
-                    DeploymentDailyMetric.repo_id.in_(repo_ids)
-                )
+                delete(PRThroughputWeeklyMetric).where(PRThroughputWeeklyMetric.repo_id.in_(repo_ids))
             )
+            await session.execute(delete(MetricsRefreshLog).where(MetricsRefreshLog.repo_id.in_(repo_ids)))
             await session.execute(
-                delete(LeadTimeWeeklyMetric).where(
-                    LeadTimeWeeklyMetric.repo_id.in_(repo_ids)
-                )
+                delete(ProductionDeploymentEvent).where(ProductionDeploymentEvent.repo_id.in_(repo_ids))
             )
-            await session.execute(
-                delete(PRCycleTimeWeeklyMetric).where(
-                    PRCycleTimeWeeklyMetric.repo_id.in_(repo_ids)
-                )
-            )
-            await session.execute(
-                delete(PRThroughputWeeklyMetric).where(
-                    PRThroughputWeeklyMetric.repo_id.in_(repo_ids)
-                )
-            )
-            await session.execute(
-                delete(MetricsRefreshLog).where(
-                    MetricsRefreshLog.repo_id.in_(repo_ids)
-                )
-            )
-            await session.execute(
-                delete(ProductionDeploymentEvent).where(
-                    ProductionDeploymentEvent.repo_id.in_(repo_ids)
-                )
-            )
-            await session.execute(
-                delete(PullRequest).where(PullRequest.repo_id.in_(repo_ids))
-            )
-            await session.execute(
-                delete(Environment).where(Environment.repo_id.in_(repo_ids))
-            )
-            await session.execute(
-                delete(Repository).where(Repository.id.in_(repo_ids))
-            )
+            await session.execute(delete(PullRequest).where(PullRequest.repo_id.in_(repo_ids)))
+            await session.execute(delete(Environment).where(Environment.repo_id.in_(repo_ids)))
+            await session.execute(delete(Repository).where(Repository.id.in_(repo_ids)))
 
         # Delete the installation (but NOT the tenant — it's shared with dev)
-        await session.execute(
-            delete(GitHubInstallation).where(
-                GitHubInstallation.id == installation_uuid
-            )
-        )
+        await session.execute(delete(GitHubInstallation).where(GitHubInstallation.id == installation_uuid))
 
         await session.commit()
         print(f"✓ Demo data removed ({len(repo_ids)} repos).")

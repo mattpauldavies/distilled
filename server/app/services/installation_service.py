@@ -28,18 +28,22 @@ async def _handle_created(payload: dict, session: AsyncSession) -> None:
     tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
     # Upsert installation
-    stmt = insert(GitHubInstallation).values(
-        id=uuid.uuid4(),
-        tenant_id=tenant_id,
-        installation_id=installation_data["id"],
-        account_login=installation_data["account"]["login"],
-        account_type=installation_data["account"]["type"].lower(),
-    ).on_conflict_do_update(
-        index_elements=["tenant_id", "installation_id"],
-        set_={
-            "account_login": installation_data["account"]["login"],
-            "account_type": installation_data["account"]["type"].lower(),
-        },
+    stmt = (
+        insert(GitHubInstallation)
+        .values(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            installation_id=installation_data["id"],
+            account_login=installation_data["account"]["login"],
+            account_type=installation_data["account"]["type"].lower(),
+        )
+        .on_conflict_do_update(
+            index_elements=["tenant_id", "installation_id"],
+            set_={
+                "account_login": installation_data["account"]["login"],
+                "account_type": installation_data["account"]["type"].lower(),
+            },
+        )
     )
     await session.execute(stmt)
     await session.flush()
@@ -82,19 +86,23 @@ async def sync_repos(
     session: AsyncSession,
 ) -> None:
     for repo_data in repos_data:
-        stmt = insert(Repository).values(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            installation_id=installation.id,
-            github_id=repo_data["id"],
-            full_name=repo_data["full_name"],
-            default_branch=repo_data.get("default_branch", "main"),
-        ).on_conflict_do_update(
-            index_elements=["tenant_id", "github_id"],
-            set_={
-                "full_name": repo_data["full_name"],
-                "default_branch": repo_data.get("default_branch", "main"),
-            },
+        stmt = (
+            insert(Repository)
+            .values(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                installation_id=installation.id,
+                github_id=repo_data["id"],
+                full_name=repo_data["full_name"],
+                default_branch=repo_data.get("default_branch", "main"),
+            )
+            .on_conflict_do_update(
+                index_elements=["tenant_id", "github_id"],
+                set_={
+                    "full_name": repo_data["full_name"],
+                    "default_branch": repo_data.get("default_branch", "main"),
+                },
+            )
         )
         await session.execute(stmt)
     await session.flush()

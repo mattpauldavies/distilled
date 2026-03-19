@@ -44,9 +44,7 @@ async def list_pull_requests(
     total = total_result.scalar_one()
 
     result = await session.execute(
-        base.order_by(PullRequest.merged_at.desc())
-        .offset(pagination.offset)
-        .limit(pagination.limit)
+        base.order_by(PullRequest.merged_at.desc()).offset(pagination.offset).limit(pagination.limit)
     )
     prs = result.scalars().all()
 

@@ -65,11 +65,13 @@ async def test_lead_time_computes_median_and_p75(mock_session):
     prs_with_deploy = []
     for hours in [1, 2, 3, 4]:
         merged = deployed_at - timedelta(hours=hours)
-        prs_with_deploy.append(MagicMock(
-            merged_at=merged,
-            deployed_at=deployed_at,
-            base_ref="main",
-        ))
+        prs_with_deploy.append(
+            MagicMock(
+                merged_at=merged,
+                deployed_at=deployed_at,
+                base_ref="main",
+            )
+        )
 
     result_mock = MagicMock()
     result_mock.all.return_value = prs_with_deploy
@@ -140,8 +142,7 @@ async def test_pr_throughput_counts_by_week(mock_session):
     from app.services.metrics_service import compute_pr_throughput
 
     prs = [
-        make_pr(repo_id=REPO_ID, base_ref="main", number=i,
-                merged_at=datetime(2025, 1, 13 + i, 8, 0, tzinfo=UTC))
+        make_pr(repo_id=REPO_ID, base_ref="main", number=i, merged_at=datetime(2025, 1, 13 + i, 8, 0, tzinfo=UTC))
         for i in range(3)
     ]
 
@@ -162,11 +163,12 @@ async def test_recompute_repo_calls_all_four_metrics(mock_session):
     """recompute_repo should call all 4 compute functions."""
     from app.services.metrics_service import recompute_repo
 
-    with patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn) as mock_df, \
-         patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt, \
-         patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct, \
-         patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp:
-
+    with (
+        patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn) as mock_df,
+        patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt,
+        patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct,
+        patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp,
+    ):
         result = await recompute_repo(TENANT_ID, REPO_ID, "main", mock_session)
 
     mock_df.assert_called_once_with(TENANT_ID, REPO_ID, mock_session)
@@ -188,7 +190,6 @@ async def test_recompute_repo_continues_on_partial_failure(mock_session):
         patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct,
         patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp,
     ):
-
         result = await recompute_repo(TENANT_ID, REPO_ID, "main", mock_session)
 
     mock_lt.assert_called_once()
@@ -330,16 +331,13 @@ async def test_get_pr_throughput_summary_no_authors_returns_none_rate(mock_sessi
 
 @pytest.mark.asyncio
 async def test_get_lead_time_aggregate_computes_median(mock_session):
+
     from app.services.metrics_service import get_lead_time_aggregate
-    from datetime import timezone
 
     repo = make_repo(id=REPO_ID)
-    now = datetime(2026, 3, 18, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 3, 18, 12, 0, tzinfo=UTC)
     # Lead times: 1h, 2h, 3h — median = 2h = 7200s
-    rows = [
-        MagicMock(merged_at=now - timedelta(hours=h + 1), deployed_at=now - timedelta(hours=1))
-        for h in [1, 2, 3]
-    ]
+    rows = [MagicMock(merged_at=now - timedelta(hours=h + 1), deployed_at=now - timedelta(hours=1)) for h in [1, 2, 3]]
     result_mock = MagicMock()
     result_mock.all.return_value = rows
     mock_session.execute = AsyncMock(return_value=result_mock)
@@ -367,11 +365,11 @@ async def test_get_lead_time_aggregate_empty_returns_none(mock_session):
 
 @pytest.mark.asyncio
 async def test_get_pr_cycle_time_aggregate_computes_median(mock_session):
+
     from app.services.metrics_service import get_pr_cycle_time_aggregate
-    from datetime import timezone
 
     repo = make_repo(id=REPO_ID)
-    now = datetime(2026, 3, 18, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 3, 18, 12, 0, tzinfo=UTC)
     # Cycle times: 24h, 48h, 72h — median = 48h = 172800s
     prs = [
         make_pr(

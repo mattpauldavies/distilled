@@ -76,27 +76,34 @@ async def recompute_metrics(
     hour = now.replace(minute=0, second=0, microsecond=0)
 
     result = await recompute_repo(
-        body.tenant_id, body.repo_id, repo.default_branch, session,
+        body.tenant_id,
+        body.repo_id,
+        repo.default_branch,
+        session,
     )
 
     # UPSERT refresh log (dedup per hour)
-    stmt = insert(MetricsRefreshLog).values(
-        id=uuid.uuid4(),
-        tenant_id=body.tenant_id,
-        repo_id=body.repo_id,
-        hour=hour,
-        started_at=now,
-        completed_at=datetime.now(UTC),
-        status=result.status,
-        error_message=result.error_message,
-    ).on_conflict_do_update(
-        index_elements=["tenant_id", "repo_id", "hour"],
-        set_={
-            "started_at": now,
-            "completed_at": datetime.now(UTC),
-            "status": result.status,
-            "error_message": result.error_message,
-        },
+    stmt = (
+        insert(MetricsRefreshLog)
+        .values(
+            id=uuid.uuid4(),
+            tenant_id=body.tenant_id,
+            repo_id=body.repo_id,
+            hour=hour,
+            started_at=now,
+            completed_at=datetime.now(UTC),
+            status=result.status,
+            error_message=result.error_message,
+        )
+        .on_conflict_do_update(
+            index_elements=["tenant_id", "repo_id", "hour"],
+            set_={
+                "started_at": now,
+                "completed_at": datetime.now(UTC),
+                "status": result.status,
+                "error_message": result.error_message,
+            },
+        )
     )
     await session.execute(stmt)
     await session.commit()
@@ -139,7 +146,11 @@ async def get_lead_time_endpoint(
         )
     weekly = await get_lead_time_summary(tenant_id, repo, session, int(days))
     coverage = await get_attribution_coverage(
-        tenant_id, repo.id, repo.default_branch, session, int(days),
+        tenant_id,
+        repo.id,
+        repo.default_branch,
+        session,
+        int(days),
     )
     return LeadTimeResponse(
         status="ok",

@@ -44,9 +44,7 @@ async def list_deployments(
     total = total_result.scalar_one()
 
     result = await session.execute(
-        base.order_by(ProductionDeploymentEvent.deployed_at.desc())
-        .offset(pagination.offset)
-        .limit(pagination.limit)
+        base.order_by(ProductionDeploymentEvent.deployed_at.desc()).offset(pagination.offset).limit(pagination.limit)
     )
     deployments = result.scalars().all()
 
