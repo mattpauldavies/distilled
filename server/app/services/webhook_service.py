@@ -20,6 +20,8 @@ def register_handler(event_type: str) -> Callable[[Callable[..., Any]], Callable
 
 
 def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
+    if not secret:
+        return False
     if not signature.startswith("sha256="):
         return False
     expected = hmac.new(

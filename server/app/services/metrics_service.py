@@ -399,9 +399,7 @@ async def get_pr_cycle_time_aggregate(
     durations = [
         (pr.merged_at - pr.opened_at).total_seconds()
         for pr in result.scalars().all()
-        if pr.merged_at is not None
-        and pr.opened_at is not None
-        and (pr.merged_at - pr.opened_at).total_seconds() > 0
+        if pr.merged_at is not None and pr.opened_at is not None and (pr.merged_at - pr.opened_at).total_seconds() > 0
     ]
     return {
         "median_seconds": statistics.median(durations) if durations else None,
