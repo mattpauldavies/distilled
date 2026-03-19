@@ -1,3 +1,4 @@
+import hmac
 import uuid
 from datetime import UTC, datetime
 
@@ -8,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import require_api_key
 from app.config import settings
 from app.db import get_session
 from app.middleware.repo import get_verified_repo
@@ -51,7 +53,7 @@ def _verify_cron_secret(
 ) -> None:
     if not settings.internal_cron_secret:
         raise HTTPException(status_code=401, detail="cron secret not configured")
-    if credentials.credentials != settings.internal_cron_secret:
+    if not hmac.compare_digest(credentials.credentials, settings.internal_cron_secret):
         raise HTTPException(status_code=401, detail="invalid authorization")
 
 
@@ -111,7 +113,7 @@ async def recompute_metrics(
     return {"status": result.status, "error_message": result.error_message}
 
 
-@router.get("/deployment-frequency")
+@router.get("/deployment-frequency", dependencies=[Depends(require_api_key)])
 async def get_deployment_frequency_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -132,7 +134,7 @@ async def get_deployment_frequency_endpoint(
     )
 
 
-@router.get("/lead-time")
+@router.get("/lead-time", dependencies=[Depends(require_api_key)])
 async def get_lead_time_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -160,7 +162,7 @@ async def get_lead_time_endpoint(
     )
 
 
-@router.get("/open-prs")
+@router.get("/open-prs", dependencies=[Depends(require_api_key)])
 async def get_open_prs_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -170,7 +172,7 @@ async def get_open_prs_endpoint(
     return OpenPRsResponse(**result)
 
 
-@router.get("/pr-ageing")
+@router.get("/pr-ageing", dependencies=[Depends(require_api_key)])
 async def get_pr_ageing_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -180,7 +182,7 @@ async def get_pr_ageing_endpoint(
     return PRAgeingResponse(buckets=[AgeBucket(**b) for b in result])
 
 
-@router.get("/unified")
+@router.get("/unified", dependencies=[Depends(require_api_key)])
 async def get_unified_dashboard_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),

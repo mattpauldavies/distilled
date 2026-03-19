@@ -55,7 +55,13 @@ jobs:
 
       - name: Configure server environment
         working-directory: server
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          echo "API_KEY=smoke-test-api-key" >> .env
+
+      - name: Configure client environment
+        working-directory: client
+        run: echo "VITE_API_KEY=smoke-test-api-key" > .env
 
       - name: Run migrations
         working-directory: server

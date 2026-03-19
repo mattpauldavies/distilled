@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import type { UnifiedDashboardResponse, DaysWindow } from "@/types/dashboard"
+import { apiFetch } from "@/lib/api"
 
 export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
   const [data, setData] = useState<UnifiedDashboardResponse | null>(null)
@@ -22,7 +23,7 @@ export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
 
     async function fetchDashboard() {
       try {
-        const res = await fetch(`/api/metrics/unified?repo_id=${repoId}&window=${daysWindow}`)
+        const res = await apiFetch(`/api/metrics/unified?repo_id=${repoId}&window=${daysWindow}`)
         if (!res.ok) throw new Error(`Failed to load metrics: ${res.status}`)
         const json: UnifiedDashboardResponse = await res.json()
         if (!cancelled) {

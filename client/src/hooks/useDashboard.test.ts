@@ -2,6 +2,7 @@ import { renderHook, waitFor, act } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { server } from "@/test/mocks/server"
 import { useDashboard } from "./useDashboard"
+import { makeDashboardResponse } from "@/test/factories"
 
 describe("useDashboard", () => {
   it("fetches dashboard data", async () => {
@@ -66,6 +67,21 @@ describe("useDashboard", () => {
 
     await waitFor(() => expect(result.current.data).not.toBeNull())
     expect(result.current.error).toBeNull()
+  })
+
+  it("sends Authorization header on every request", async () => {
+    const headers: string[] = []
+    server.use(
+      http.get("/api/metrics/unified", ({ request }) => {
+        headers.push(request.headers.get("Authorization") ?? "")
+        return HttpResponse.json(makeDashboardResponse())
+      })
+    )
+
+    const { result } = renderHook(() => useDashboard("repo-1", 30))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(headers[0]).toBe("Bearer test-api-key")
   })
 
   it("refetches when repoId changes", async () => {
