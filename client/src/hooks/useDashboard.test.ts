@@ -81,7 +81,7 @@ describe("useDashboard", () => {
     const { result } = renderHook(() => useDashboard("repo-1", 30))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(headers[0]).toMatch(/^Bearer /)
+    expect(headers[0]).toBe("Bearer test-api-key")
   })
 
   it("refetches when repoId changes", async () => {

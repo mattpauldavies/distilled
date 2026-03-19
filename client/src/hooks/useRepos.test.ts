@@ -64,6 +64,6 @@ describe("useRepos", () => {
     const { result } = renderHook(() => useRepos())
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(headers[0]).toMatch(/^Bearer /)
+    expect(headers[0]).toBe("Bearer test-api-key")
   })
 })
