@@ -51,4 +51,19 @@ describe("useRepos", () => {
     expect(result.current.repos).toEqual([])
     expect(result.current.error).toBeNull()
   })
+
+  it("sends Authorization header on every request", async () => {
+    const headers: string[] = []
+    server.use(
+      http.get("/api/repos", ({ request }) => {
+        headers.push(request.headers.get("Authorization") ?? "")
+        return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 100 })
+      })
+    )
+
+    const { result } = renderHook(() => useRepos())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(headers[0]).toMatch(/^Bearer /)
+  })
 })

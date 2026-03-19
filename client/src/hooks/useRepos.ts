@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { Repo, PaginatedResponse } from "@/types/dashboard"
+import { apiFetch } from "@/lib/api"
 
 export function useRepos() {
   const [repos, setRepos] = useState<Repo[]>([])
@@ -11,7 +12,7 @@ export function useRepos() {
 
     async function fetchRepos() {
       try {
-        const res = await fetch("/api/repos?limit=100")
+        const res = await apiFetch("/api/repos?limit=100")
         if (!res.ok) throw new Error(`Failed to fetch repos: ${res.status}`)
         const data: PaginatedResponse<Repo> = await res.json()
         if (!cancelled) {
