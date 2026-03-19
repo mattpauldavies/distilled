@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset lint lint-server lint-client format format-server format-client
+.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset lint lint-server lint-client format format-server format-client smoke-test
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -60,3 +60,6 @@ format-server:
 
 format-client:
 	cd client && npm run format
+
+smoke-test:  ## Run end-to-end smoke tests against a running server (default: http://localhost:8000)
+	cd server && poetry run pytest ../tests/smoke/ -v $(ARGS)
