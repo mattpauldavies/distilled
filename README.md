@@ -63,6 +63,12 @@ Makefile  # dev commands + database management
 | `test-server`      | Server tests only                          |
 | `test-client`      | Client tests only                          |
 | `test-coverage`    | Server + client tests with coverage        |
+| `lint`             | Lint server (ruff + mypy) + client (eslint + prettier) |
+| `lint-server`      | Server lint only                           |
+| `lint-client`      | Client lint only                           |
+| `format`           | Auto-format server (ruff) + client (prettier) |
+| `format-server`    | Server format only                         |
+| `format-client`    | Client format only                         |
 
 ## Documentation
 

@@ -94,3 +94,19 @@ make test-coverage     # show coverage report
 ```
 
 See [RFC 003: Better Python Tests](../docs/rfcs/003-better-python-tests.md) for architecture details.
+
+## Linting and formatting
+
+```sh
+make lint-server       # ruff check + mypy
+make format-server     # ruff format (auto-fix style)
+```
+
+Tools and configuration (all in `pyproject.toml`):
+
+| Tool   | Purpose                   | Config key       |
+| ------ | ------------------------- | ---------------- |
+| `ruff` | Lint + format             | `[tool.ruff]`    |
+| `mypy` | Static type checking      | `[tool.mypy]`    |
+
+Ruff enforces E, F, I (import sort), UP (pyupgrade), and B (bugbear) rules at 120-char line length. Auto-generated migration files (`database/`) are excluded. `mypy` runs with `disallow_untyped_defs = true` — all functions must have type annotations.
