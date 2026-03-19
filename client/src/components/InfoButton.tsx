@@ -1,9 +1,9 @@
-import { InfoIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { InfoIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface InfoButtonProps {
-  content: string
+  content: string;
 }
 
 export function InfoButton({ content }: InfoButtonProps) {
@@ -21,5 +21,5 @@ export function InfoButton({ content }: InfoButtonProps) {
       </PopoverTrigger>
       <PopoverContent>{content}</PopoverContent>
     </Popover>
-  )
+  );
 }

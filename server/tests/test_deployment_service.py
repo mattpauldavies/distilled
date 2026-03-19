@@ -1,8 +1,18 @@
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from tests.conftest import mock_result, mock_insert_result, make_repo, make_deployment, make_environment, TENANT_ID, NOW
-from app.services.deployment_service import handle_deployment_status_event, handle_pull_request_event
+import pytest
+
+from app.services.deployment_service import (
+    handle_deployment_status_event,
+    handle_pull_request_event,
+)
+from tests.conftest import (
+    make_deployment,
+    make_environment,
+    make_repo,
+    mock_insert_result,
+    mock_result,
+)
 
 
 def _deployment_status_payload(state="success", repo_github_id=111, env_name="production"):
@@ -223,7 +233,6 @@ async def test_inserts_merged_pr(mock_session):
 @pytest.mark.asyncio
 async def test_pull_request_event_stores_opened_at(mock_session):
     """Webhook handler should parse opened_at from pr_data.created_at."""
-    from datetime import datetime, timezone
 
     repo = make_repo(github_id=111)
     payload = _pull_request_payload()

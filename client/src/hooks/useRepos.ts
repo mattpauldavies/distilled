@@ -28,7 +28,9 @@ export function useRepos() {
     }
 
     fetchRepos();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { repos, loading, error };

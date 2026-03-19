@@ -1,12 +1,10 @@
-import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock as AsyncMockFn
 
 import pytest
 
-from unittest.mock import patch, AsyncMock as AsyncMockFn
-
-from tests.conftest import TENANT_ID, REPO_ID, make_deployment, make_pr
+from tests.conftest import REPO_ID, TENANT_ID, make_deployment, make_pr
 
 
 @pytest.mark.asyncio
@@ -16,15 +14,15 @@ async def test_deployment_frequency_counts_by_date(mock_session):
 
     d1 = make_deployment(
         repo_id=REPO_ID,
-        deployed_at=datetime(2025, 1, 10, 8, 0, tzinfo=timezone.utc),
+        deployed_at=datetime(2025, 1, 10, 8, 0, tzinfo=UTC),
     )
     d2 = make_deployment(
         repo_id=REPO_ID,
-        deployed_at=datetime(2025, 1, 10, 14, 0, tzinfo=timezone.utc),
+        deployed_at=datetime(2025, 1, 10, 14, 0, tzinfo=UTC),
     )
     d3 = make_deployment(
         repo_id=REPO_ID,
-        deployed_at=datetime(2025, 1, 11, 9, 0, tzinfo=timezone.utc),
+        deployed_at=datetime(2025, 1, 11, 9, 0, tzinfo=UTC),
     )
 
     result_mock = MagicMock()
@@ -61,7 +59,7 @@ async def test_lead_time_computes_median_and_p75(mock_session):
     """Given 4 attributed PRs in same week, computes correct median/P75."""
     from app.services.metrics_service import compute_lead_time
 
-    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=timezone.utc)
+    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=UTC)
 
     # Lead times: 1h, 2h, 3h, 4h
     prs_with_deploy = []
@@ -88,7 +86,7 @@ async def test_lead_time_skips_negative_durations(mock_session):
     """PRs where merged_at > deployed_at should be excluded."""
     from app.services.metrics_service import compute_lead_time
 
-    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=timezone.utc)
+    deployed_at = datetime(2025, 1, 15, 12, 0, tzinfo=UTC)
     bad = MagicMock(
         merged_at=deployed_at + timedelta(hours=1),
         deployed_at=deployed_at,
@@ -113,15 +111,15 @@ async def test_pr_cycle_time_computes_from_opened_to_merged(mock_session):
     pr1 = make_pr(
         repo_id=REPO_ID,
         base_ref="main",
-        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=timezone.utc),
-        merged_at=datetime(2025, 1, 14, 8, 0, tzinfo=timezone.utc),  # 24h
+        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=UTC),
+        merged_at=datetime(2025, 1, 14, 8, 0, tzinfo=UTC),  # 24h
     )
     pr2 = make_pr(
         repo_id=REPO_ID,
         base_ref="main",
         number=2,
-        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=timezone.utc),
-        merged_at=datetime(2025, 1, 15, 8, 0, tzinfo=timezone.utc),  # 48h
+        opened_at=datetime(2025, 1, 13, 8, 0, tzinfo=UTC),
+        merged_at=datetime(2025, 1, 15, 8, 0, tzinfo=UTC),  # 48h
     )
 
     result_mock = MagicMock()
@@ -143,7 +141,7 @@ async def test_pr_throughput_counts_by_week(mock_session):
 
     prs = [
         make_pr(repo_id=REPO_ID, base_ref="main", number=i,
-                merged_at=datetime(2025, 1, 13 + i, 8, 0, tzinfo=timezone.utc))
+                merged_at=datetime(2025, 1, 13 + i, 8, 0, tzinfo=UTC))
         for i in range(3)
     ]
 
@@ -183,10 +181,13 @@ async def test_recompute_repo_continues_on_partial_failure(mock_session):
     """If one metric fails, others still run."""
     from app.services.metrics_service import recompute_repo
 
-    with patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn, side_effect=Exception("db error")), \
-         patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt, \
-         patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct, \
-         patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp:
+    exc = Exception("db error")
+    with (
+        patch("app.services.metrics_service.compute_deployment_frequency", new_callable=AsyncMockFn, side_effect=exc),
+        patch("app.services.metrics_service.compute_lead_time", new_callable=AsyncMockFn) as mock_lt,
+        patch("app.services.metrics_service.compute_pr_cycle_time", new_callable=AsyncMockFn) as mock_ct,
+        patch("app.services.metrics_service.compute_pr_throughput", new_callable=AsyncMockFn) as mock_tp,
+    ):
 
         result = await recompute_repo(TENANT_ID, REPO_ID, "main", mock_session)
 
@@ -199,8 +200,9 @@ async def test_recompute_repo_continues_on_partial_failure(mock_session):
 
 # --- Read-side query functions ---
 
-from tests.conftest import make_repo, mock_result
 from datetime import date
+
+from tests.conftest import make_repo, mock_result
 
 
 @pytest.mark.asyncio

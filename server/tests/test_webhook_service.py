@@ -1,8 +1,6 @@
 import hashlib
 import hmac
 
-import pytest
-
 from app.services.webhook_service import EVENT_HANDLERS, register_handler, verify_signature
 
 

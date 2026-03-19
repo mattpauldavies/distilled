@@ -38,7 +38,11 @@ export function PRAgeingChart({ buckets }: Props) {
   };
 
   return (
-    <div role="img" aria-label="Bar chart showing age distribution of open pull requests" className="h-[220px]">
+    <div
+      role="img"
+      aria-label="Bar chart showing age distribution of open pull requests"
+      className="h-[220px]"
+    >
       <Bar data={data} options={options} />
     </div>
   );

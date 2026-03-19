@@ -5,8 +5,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models.repository import Repository
 from app.middleware.tenant import get_tenant_id
+from app.models.repository import Repository
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.repos import RepoResponse
 

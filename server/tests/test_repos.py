@@ -1,5 +1,6 @@
 import pytest
-from tests.conftest import mock_result, mock_count_result, make_repo
+
+from tests.conftest import make_repo, mock_count_result, mock_result
 
 
 @pytest.mark.asyncio

@@ -11,21 +11,15 @@ describe("MetricCard", () => {
 
   it("shows skeleton when loading", () => {
     const { container } = render(
-      <MetricCard title="Deploys" value="42" caption="last 30 days" loading />,
+      <MetricCard title="Deploys" value="42" caption="last 30 days" loading />
     );
-    expect(
-      container.querySelector('[class*="animate-pulse"]'),
-    ).toBeInTheDocument();
+    expect(container.querySelector('[class*="animate-pulse"]')).toBeInTheDocument();
     expect(screen.queryByText("42")).not.toBeInTheDocument();
   });
 
   it("shows setup message when setupRequired", () => {
-    render(
-      <MetricCard title="Lead Time" value="—" caption="median" setupRequired />,
-    );
-    expect(
-      screen.getByText("Requires a connected production environment"),
-    ).toBeInTheDocument();
+    render(<MetricCard title="Lead Time" value="—" caption="median" setupRequired />);
+    expect(screen.getByText("Requires a connected production environment")).toBeInTheDocument();
     expect(screen.queryByText("—")).not.toBeInTheDocument();
   });
 });

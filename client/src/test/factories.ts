@@ -49,9 +49,7 @@ export function makeLeadTime(overrides?: Partial<LeadTimeSection>): LeadTimeSect
 export function makeCycleTime(overrides?: Partial<PRCycleTimeSection>): PRCycleTimeSection {
   return {
     status: "ok",
-    weekly: [
-      { week_start: "2025-05-26", median_seconds: 3600, p75_seconds: 5400, sample_size: 8 },
-    ],
+    weekly: [{ week_start: "2025-05-26", median_seconds: 3600, p75_seconds: 5400, sample_size: 8 }],
     ...overrides,
   };
 }

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from tests.conftest import TENANT_ID, REPO_ID, make_environment
+from tests.conftest import REPO_ID, make_environment
 
 
 def _make_weekly_metric(week_start: date, median: float, p75: float, sample: int):

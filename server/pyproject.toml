@@ -22,6 +22,8 @@ pytest = "^8.3"
 pytest-asyncio = "^0.25"
 pytest-cov = "^6.0"
 httpx = "^0.28"
+ruff = "^0.15.6"
+mypy = "^1.19.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -32,3 +34,25 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 omit = ["app/services/github_client.py"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["database/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+  "B008",   # FastAPI uses Depends/Query as default argument values by design
+  "E402",   # Module-level imports not at top (side-effect imports in main.py)
+  "E712",   # SQLAlchemy ORM uses == True/False for SQL expression generation
+  "UP046",  # Generic[T] subclass form required for Pydantic BaseModel compatibility
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+disallow_untyped_defs = true

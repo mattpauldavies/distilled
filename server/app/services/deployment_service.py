@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -75,20 +75,20 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
     ).on_conflict_do_nothing(
         index_elements=["tenant_id", "deployment_id"],
     )
-    result = await session.execute(stmt)
+    insert_result = await session.execute(stmt)
     await session.flush()
 
-    if result.rowcount == 0:
+    if insert_result.rowcount == 0:  # type: ignore[attr-defined]
         logger.info("duplicate deployment_id=%s, skipping", deployment["id"])
         return
 
     # Get the inserted event for attribution
-    result = await session.execute(
+    dep_result = await session.execute(
         select(ProductionDeploymentEvent).where(
             ProductionDeploymentEvent.id == dep_id,
         )
     )
-    dep_event = result.scalar_one()
+    dep_event = dep_result.scalar_one()
     await attribute_prs_to_deployment(dep_event, repo, session)
 
 
@@ -127,7 +127,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
     closed_at = None
     if action == "closed" and not is_merged:
         closed_at = _parse_dt_optional(pr_data.get("closed_at")) or datetime.now(
-            tz=timezone.utc
+            tz=UTC
         )
 
     # Determine field overrides based on action

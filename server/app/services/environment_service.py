@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.environment import Environment
 from app.models.repository import Repository
-from app.services.github_client import GitHubClient
 
 logger = logging.getLogger(__name__)
 

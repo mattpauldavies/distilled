@@ -57,7 +57,11 @@ export function LeadTimeChart({ weekly }: Props) {
   };
 
   return (
-    <div role="img" aria-label="Line chart showing weekly lead time: median and 75th percentile in hours" className="h-[220px]">
+    <div
+      role="img"
+      aria-label="Line chart showing weekly lead time: median and 75th percentile in hours"
+      className="h-[220px]"
+    >
       <Line data={data} options={options} />
     </div>
   );

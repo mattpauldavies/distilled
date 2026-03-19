@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 import jwt
@@ -36,7 +36,7 @@ class GitHubClient:
         cached = self._token_cache.get(installation_id)
         if cached:
             token, expires_at = cached
-            if datetime.now(timezone.utc) < expires_at:
+            if datetime.now(UTC) < expires_at:
                 return token
 
         token_jwt = self._generate_jwt()

@@ -57,7 +57,11 @@ export function CycleTimeChart({ weekly }: Props) {
   };
 
   return (
-    <div role="img" aria-label="Line chart showing weekly PR cycle time: median and 75th percentile in hours" className="h-[220px]">
+    <div
+      role="img"
+      aria-label="Line chart showing weekly PR cycle time: median and 75th percentile in hours"
+      className="h-[220px]"
+    >
       <Line data={data} options={options} />
     </div>
   );

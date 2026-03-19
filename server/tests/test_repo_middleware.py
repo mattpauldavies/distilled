@@ -1,8 +1,8 @@
 import uuid
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import HTTPException
-from unittest.mock import AsyncMock
 
 from tests.conftest import TENANT_ID, make_repo, mock_result
 

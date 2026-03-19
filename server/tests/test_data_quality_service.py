@@ -1,17 +1,15 @@
-import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 import pytest
 
 from tests.conftest import (
-    TENANT_ID,
     REPO_ID,
+    TENANT_ID,
     make_environment,
-    mock_result,
     mock_count_result,
+    mock_result,
 )
-
 
 # --- get_metrics_freshness ---
 
@@ -34,7 +32,7 @@ async def test_freshness_returns_no_data_when_no_records(mock_session):
 async def test_freshness_returns_ok_when_recent(mock_session):
     from app.services.data_quality_service import get_metrics_freshness
 
-    recent = datetime.now(timezone.utc) - timedelta(minutes=30)
+    recent = datetime.now(UTC) - timedelta(minutes=30)
     mock_session.execute = AsyncMock(
         return_value=mock_result(scalar_or_none=recent)
     )
@@ -49,7 +47,7 @@ async def test_freshness_returns_ok_when_recent(mock_session):
 async def test_freshness_returns_stale_when_old(mock_session):
     from app.services.data_quality_service import get_metrics_freshness
 
-    old = datetime.now(timezone.utc) - timedelta(hours=3)
+    old = datetime.now(UTC) - timedelta(hours=3)
     mock_session.execute = AsyncMock(
         return_value=mock_result(scalar_or_none=old)
     )
@@ -64,7 +62,7 @@ async def test_freshness_returns_stale_when_old(mock_session):
 async def test_freshness_boundary_exactly_2h_is_ok(mock_session):
     from app.services.data_quality_service import get_metrics_freshness
 
-    now = datetime(2025, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+    now = datetime(2025, 1, 15, 14, 0, 0, tzinfo=UTC)
     boundary = now - timedelta(hours=2)
     mock_session.execute = AsyncMock(
         return_value=mock_result(scalar_or_none=boundary)

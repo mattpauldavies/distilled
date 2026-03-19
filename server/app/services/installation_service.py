@@ -60,13 +60,13 @@ async def _handle_created(payload: dict, session: AsyncSession) -> None:
     # Discover environments for each repo
     github = GitHubClient()
     try:
-        result = await session.execute(
+        repo_result = await session.execute(
             select(Repository).where(
                 Repository.tenant_id == tenant_id,
                 Repository.installation_id == installation.id,
             )
         )
-        db_repos = result.scalars().all()
+        db_repos = repo_result.scalars().all()
         for repo in db_repos:
             owner, name = repo.full_name.split("/", 1)
             envs = await github.list_environments(owner, name, installation.installation_id)

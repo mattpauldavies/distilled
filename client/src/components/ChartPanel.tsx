@@ -13,7 +13,15 @@ interface Props {
   children: ReactNode;
 }
 
-export function ChartPanel({ title, caption, loading, empty, emptyMessage = "No data available", info, children }: Props) {
+export function ChartPanel({
+  title,
+  caption,
+  loading,
+  empty,
+  emptyMessage = "No data available",
+  info,
+  children,
+}: Props) {
   return (
     <Card className="gap-2 py-4">
       <CardHeader className="pb-2">
@@ -30,9 +38,7 @@ export function ChartPanel({ title, caption, loading, empty, emptyMessage = "No 
           <Skeleton className="h-[220px] w-full" />
         ) : empty ? (
           <div className="flex h-[220px] items-center justify-center">
-            <p className="text-sm text-muted-foreground">
-              {emptyMessage}
-            </p>
+            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           </div>
         ) : (
           children

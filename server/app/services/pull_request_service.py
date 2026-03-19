@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import func, select
@@ -8,7 +9,7 @@ from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 
 
-def _ageing_bucket_expr():
+def _ageing_bucket_expr() -> Any:
     """SQL CASE expression for PR age buckets. Single definition — no duplication."""
     now = func.now()
     age = now - PullRequest.opened_at

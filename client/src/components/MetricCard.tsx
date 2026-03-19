@@ -10,14 +10,7 @@ interface Props {
   muted?: boolean;
 }
 
-export function MetricCard({
-  title,
-  value,
-  caption,
-  loading,
-  setupRequired,
-  muted,
-}: Props) {
+export function MetricCard({ title, value, caption, loading, setupRequired, muted }: Props) {
   return (
     <Card className="gap-0 py-0">
       <CardContent className="p-5">

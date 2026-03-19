@@ -1,10 +1,10 @@
-import uuid
 from datetime import date
-from unittest.mock import AsyncMock, MagicMock, patch, AsyncMock as AM
+from unittest.mock import AsyncMock as AM
+from unittest.mock import patch
 
 import pytest
 
-from tests.conftest import TENANT_ID, REPO_ID, make_repo
+from tests.conftest import REPO_ID, TENANT_ID, make_repo
 
 
 @pytest.mark.asyncio
@@ -25,8 +25,12 @@ async def test_get_unified_dashboard_happy_path(mock_session):
 
         mock_prod_envs.return_value = ["production"]
         mock_dep.return_value = {"total": 5, "daily_counts": [{"date": date(2026, 3, 11), "count": 5}]}
-        mock_lt.return_value = [{"week_start": date(2026, 3, 3), "median_seconds": 3600.0, "p75_seconds": 7200.0, "sample_size": 5}]
-        mock_ct.return_value = [{"week_start": date(2026, 3, 3), "median_seconds": 1800.0, "p75_seconds": 3600.0, "sample_size": 8}]
+        mock_lt.return_value = [
+            {"week_start": date(2026, 3, 3), "median_seconds": 3600.0, "p75_seconds": 7200.0, "sample_size": 5}
+        ]
+        mock_ct.return_value = [
+            {"week_start": date(2026, 3, 3), "median_seconds": 1800.0, "p75_seconds": 3600.0, "sample_size": 8}
+        ]
         mock_tp.return_value = [{"week_start": date(2026, 3, 3), "pr_count": 12}]
         mock_open.return_value = {"total": 5, "live": 3, "draft": 2}
         mock_age.return_value = [{"bucket": "<2d", "count": 2}]

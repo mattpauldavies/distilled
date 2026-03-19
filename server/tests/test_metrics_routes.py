@@ -1,5 +1,3 @@
-import uuid
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -7,12 +5,19 @@ from httpx import ASGITransport, AsyncClient
 
 from app.db import get_session
 from app.main import create_app
-from tests.conftest import TENANT_ID, REPO_ID, make_repo
 from app.schemas.metrics import (
-    UnifiedDashboardResponse, DataQuality,
-    DeploymentFrequencySection, LeadTimeSection, PRCycleTimeSection, ThroughputSection,
-    OpenPRsSection, PRAgeingSection, FreshnessInfo, SetupInfo,
+    DataQuality,
+    DeploymentFrequencySection,
+    FreshnessInfo,
+    LeadTimeSection,
+    OpenPRsSection,
+    PRAgeingSection,
+    PRCycleTimeSection,
+    SetupInfo,
+    ThroughputSection,
+    UnifiedDashboardResponse,
 )
+from tests.conftest import REPO_ID, TENANT_ID, make_repo
 
 
 @pytest.fixture

@@ -89,10 +89,9 @@ describe("useDashboard", () => {
       })
     );
 
-    const { result, rerender } = renderHook(
-      ({ repoId }) => useDashboard(repoId, 30),
-      { initialProps: { repoId: "repo-1" as string | null } }
-    );
+    const { result, rerender } = renderHook(({ repoId }) => useDashboard(repoId, 30), {
+      initialProps: { repoId: "repo-1" as string | null },
+    });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 

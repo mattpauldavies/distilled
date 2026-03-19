@@ -1,5 +1,4 @@
 import logging
-import uuid
 from datetime import timedelta
 
 from sqlalchemy import select

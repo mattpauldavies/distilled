@@ -12,7 +12,7 @@ import hashlib
 import random
 import uuid
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from statistics import median
 from uuid import UUID
 
@@ -206,7 +206,7 @@ def _generate_week_prs(
 
         # merged_at: random time within the week
         merged_ts = rng.randint(week_start_ts, week_end_ts)
-        merged_at = datetime.fromtimestamp(merged_ts, tz=timezone.utc)
+        merged_at = datetime.fromtimestamp(merged_ts, tz=UTC)
 
         # opened_at: merged_at minus cycle time
         cycle_secs = rng.randint(cycle_min_secs, cycle_max_secs)
@@ -441,7 +441,7 @@ async def main() -> None:
             return
 
         rng = random.Random(42)
-        now = datetime.now(timezone.utc).replace(
+        now = datetime.now(UTC).replace(
             hour=12, minute=0, second=0, microsecond=0
         )
 

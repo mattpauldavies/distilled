@@ -17,7 +17,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   Tooltip,
-  Legend,
+  Legend
 );
 
 ChartJS.defaults.color = chartTheme.tick;

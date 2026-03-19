@@ -3,7 +3,7 @@ import statistics
 import uuid
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import distinct, func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -27,7 +27,7 @@ ALGORITHM_VERSION = 1
 
 
 def _cutoff(now: datetime | None = None) -> datetime:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     return now - timedelta(days=RECOMPUTE_DAYS)
 
 
@@ -163,6 +163,8 @@ async def compute_pr_cycle_time(
 
     weekly: defaultdict[date, list[float]] = defaultdict(list)
     for pr in prs:
+        if pr.merged_at is None or pr.opened_at is None:
+            continue
         cycle_seconds = (pr.merged_at - pr.opened_at).total_seconds()
         if cycle_seconds <= 0:
             continue
@@ -211,6 +213,8 @@ async def compute_pr_throughput(
 
     weekly: Counter = Counter()
     for pr in prs:
+        if pr.merged_at is None:
+            continue
         week = _week_start(pr.merged_at)
         weekly[week] += 1
 
@@ -419,7 +423,9 @@ async def recompute_repo(
 ) -> RecomputeResult:
     errors: list[str] = []
 
-    metric_fns = [
+    from typing import Any
+
+    metric_fns: list[tuple[str, Any, tuple[Any, ...]]] = [
         ("deployment_frequency", compute_deployment_frequency, (tenant_id, repo_id, session)),
         ("lead_time", compute_lead_time, (tenant_id, repo_id, default_branch, session)),
         ("pr_cycle_time", compute_pr_cycle_time, (tenant_id, repo_id, default_branch, session)),

@@ -34,13 +34,9 @@ export function Dashboard() {
   );
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(90);
 
-  const selectedRepoId =
-    userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
+  const selectedRepoId = userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null);
   const selectedRepo = repos.find((r) => r.id === selectedRepoId);
-  const { data, loading, error, retry } = useDashboard(
-    selectedRepoId,
-    daysWindow,
-  );
+  const { data, loading, error, retry } = useDashboard(selectedRepoId, daysWindow);
 
   if (!reposLoading && !reposError && repos.length === 0) {
     return (
@@ -74,8 +70,8 @@ export function Dashboard() {
                 }`}
               />
               <span className="text-xs text-muted-foreground">
-                {freshness.status === "ok" ? "Data current" : "Data stale"} ·
-                updated {timeAgo(freshness.last_refresh_at)}
+                {freshness.status === "ok" ? "Data current" : "Data stale"} · updated{" "}
+                {timeAgo(freshness.last_refresh_at)}
               </span>
             </div>
           )}
@@ -148,19 +144,13 @@ export function Dashboard() {
         <MetricCard
           title="Open PRs"
           value={openPrs ? String(openPrs.total) : "—"}
-          caption={
-            openPrs
-              ? `${openPrs.live} live · ${openPrs.draft} draft`
-              : "Open pull requests"
-          }
+          caption={openPrs ? `${openPrs.live} live · ${openPrs.draft} draft` : "Open pull requests"}
           loading={loading}
         />
       </div>
 
       <div className="flex items-center gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-primary">
-          Trends
-        </h2>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-primary">Trends</h2>
         <div className="h-px flex-1 bg-separator" />
       </div>
 
@@ -170,28 +160,21 @@ export function Dashboard() {
           caption="Deployments per day"
           info="The number of deployments to production per day. A core DORA metric — higher frequency means smaller, safer changes shipped more often."
           loading={loading}
-          empty={
-            depFreq?.status === "setup_required" ||
-            !depFreq?.daily_counts?.length
-          }
+          empty={depFreq?.status === "setup_required" || !depFreq?.daily_counts?.length}
           emptyMessage={
             depFreq?.status === "setup_required"
               ? "Connect a production environment to track deployments"
               : "No deployments in this period"
           }
         >
-          {depFreq?.daily_counts && (
-            <DeploymentChart dailyCounts={depFreq.daily_counts} />
-          )}
+          {depFreq?.daily_counts && <DeploymentChart dailyCounts={depFreq.daily_counts} />}
         </ChartPanel>
         <ChartPanel
           title="Lead Time"
           caption="Median and 75th percentile by week (hours)"
           info="Time from first commit to production deploy, shown as median and 75th percentile (P75). Lower lead time means faster delivery and shorter feedback loops."
           loading={loading}
-          empty={
-            leadTime?.status === "setup_required" || !leadTime?.weekly?.length
-          }
+          empty={leadTime?.status === "setup_required" || !leadTime?.weekly?.length}
           emptyMessage={
             leadTime?.status === "setup_required"
               ? "Connect a production environment to track lead time"
@@ -205,9 +188,7 @@ export function Dashboard() {
           caption="Median and 75th percentile by week (hours)"
           info="Time from PR opened to merged, shown as median and 75th percentile (P75). High cycle time often indicates bottlenecks in the review process."
           loading={loading}
-          empty={
-            cycleTime?.status === "setup_required" || !cycleTime?.weekly?.length
-          }
+          empty={cycleTime?.status === "setup_required" || !cycleTime?.weekly?.length}
           emptyMessage={
             cycleTime?.status === "setup_required"
               ? "Connect a production environment to track cycle time"
@@ -224,9 +205,7 @@ export function Dashboard() {
           empty={!data?.pr_ageing?.buckets?.length}
           emptyMessage="No open pull requests"
         >
-          {data?.pr_ageing && (
-            <PRAgeingChart buckets={data.pr_ageing.buckets} />
-          )}
+          {data?.pr_ageing && <PRAgeingChart buckets={data.pr_ageing.buckets} />}
         </ChartPanel>
       </div>
     </main>
