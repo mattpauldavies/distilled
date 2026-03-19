@@ -42,10 +42,21 @@ describe("Dashboard", () => {
       http.get("/api/metrics/unified", async () => {
         await delay(100)
         return HttpResponse.json({
-          deployment_frequency: { status: "ok", total: 1, days: 30, daily_counts: [], deploys_per_week: 1.0 },
+          deployment_frequency: {
+            status: "ok",
+            total: 1,
+            days: 30,
+            daily_counts: [],
+            deploys_per_week: 1.0,
+          },
           lead_time: { status: "ok", weekly: [], median_seconds: null },
           pr_cycle_time: { status: "ok", weekly: [], median_seconds: null },
-          throughput: { weekly: [], total_prs: null, unique_authors: null, prs_per_engineer_per_month: null },
+          throughput: {
+            weekly: [],
+            total_prs: null,
+            unique_authors: null,
+            prs_per_engineer_per_month: null,
+          },
           open_prs: { total: 0, live: 0, draft: 0 },
           pr_ageing: { buckets: [] },
           data_quality: {

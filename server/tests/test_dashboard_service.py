@@ -28,7 +28,11 @@ async def test_get_unified_dashboard_happy_path(mock_session):
         patch("app.services.dashboard_service.get_attribution_coverage", new_callable=AM) as mock_cov,
     ):
         mock_prod_envs.return_value = ["production"]
-        mock_dep.return_value = {"total": 5, "daily_counts": [{"date": date(2026, 3, 11), "count": 5}], "deploys_per_week": 1.2}
+        mock_dep.return_value = {
+            "total": 5,
+            "daily_counts": [{"date": date(2026, 3, 11), "count": 5}],
+            "deploys_per_week": 1.2,
+        }
         mock_lt.return_value = [
             {"week_start": date(2026, 3, 3), "median_seconds": 3600.0, "p75_seconds": 7200.0, "sample_size": 5}
         ]
