@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     seed_tenant_name: str = "dev"
     internal_cron_secret: str = ""
     allowed_origins: list[str] = ["http://localhost:5173"]
+    api_key: str = ""
 
 
 settings = Settings()
