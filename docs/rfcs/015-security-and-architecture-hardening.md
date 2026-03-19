@@ -264,15 +264,22 @@ This is operational, not a code change, but must happen before any production tr
 
 Design and implement a static API key guard as a stopgap until OIDC is designed.
 
-**Approach:** FastAPI dependency injected on all non-webhook routes:
+**Approach:** FastAPI dependency injected on all non-webhook routes, using `Authorization: Bearer` — consistent with the existing cron secret auth and standard RFC 7235 semantics:
 
 ```python
 # server/app/auth.py
-from fastapi import Header, HTTPException
+from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.config import settings
 
-async def require_api_key(x_api_key: str = Header(...)):
-    if x_api_key != settings.api_key:
+_bearer_scheme = HTTPBearer()
+
+async def require_api_key(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+) -> None:
+    if not settings.api_key:
+        raise HTTPException(status_code=401, detail="API key not configured")
+    if not hmac.compare_digest(credentials.credentials, settings.api_key):
         raise HTTPException(status_code=401, detail="Unauthorized")
 ```
 
@@ -284,7 +291,7 @@ app.include_router(repos_router, dependencies=[Depends(require_api_key)])
 
 Add `api_key: str` to `Settings`, generated on first run and stored in `.env`.
 
-Update the frontend to pass the key via `X-Api-Key` header.
+Update the frontend to pass the key via `Authorization: Bearer <key>` header.
 
 ---
 
@@ -323,3 +330,481 @@ Ordered by severity:
 - Full multi-tenant authentication (OIDC, user management, SSO) — requires a dedicated RFC once the business model is defined.
 - End-to-end encryption of stored GitHub tokens — low priority while single-tenant.
 - Dependency vulnerability scanning (Dependabot/Snyk) — add as a CI step separately.
+
+---
+
+## Phase 2 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Add a static API key guard to all non-webhook routes as a stopgap auth mechanism, and wire the frontend to send the key on every request.
+
+**Architecture:** A FastAPI dependency `require_api_key` reads `Authorization: Bearer <key>` using `HTTPBearer` (consistent with the existing cron secret auth) and compares it (constant-time) against `settings.api_key`. Applied at router-include level in `main.py` for all routers except webhooks and health. The frontend reads the key from `VITE_API_KEY` env var and attaches it as `Authorization: Bearer <key>` via a central `apiFetch` wrapper that both hooks call.
+
+**Tech Stack:** FastAPI `HTTPBearer`, `hmac.compare_digest`, pydantic-settings, Vite `import.meta.env`, MSW for client tests.
+
+---
+
+### File Map
+
+| File | Action | Purpose |
+|---|---|---|
+| `server/app/auth.py` | Create | `require_api_key` dependency |
+| `server/app/config.py` | Modify | Add `api_key: str` field |
+| `server/app/main.py` | Modify | Apply auth to routers |
+| `server/tests/test_auth.py` | Create | Unit tests for the dependency |
+| `server/tests/conftest.py` | Modify | Override `require_api_key` in all test fixtures |
+| `server/.env.example` | Modify | Document `API_KEY` setting |
+| `client/src/lib/api.ts` | Create | `apiFetch` wrapper that injects `Authorization: Bearer` |
+| `client/src/hooks/useDashboard.ts` | Modify | Use `apiFetch` instead of `fetch` |
+| `client/src/hooks/useRepos.ts` | Modify | Use `apiFetch` instead of `fetch` |
+| `client/src/hooks/useDashboard.test.ts` | Modify | Assert header is sent |
+| `client/src/hooks/useRepos.test.ts` | Modify | Assert header is sent |
+| `client/.env.example` | Create | Document `VITE_API_KEY` setting |
+
+---
+
+### Task 1: `require_api_key` dependency + Settings field
+
+**Files:**
+- Create: `server/app/auth.py`
+- Modify: `server/app/config.py`
+- Create: `server/tests/test_auth.py`
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+# server/tests/test_auth.py
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+
+from app.auth import require_api_key
+
+
+def make_secured_app():
+    from fastapi import Depends
+    app = FastAPI()
+
+    @app.get("/protected")
+    async def protected(_: None = Depends(require_api_key)):
+        return {"ok": True}
+
+    return app
+
+
+@pytest.mark.asyncio
+async def test_missing_auth_header_returns_403():
+    """HTTPBearer returns 403 when Authorization header is absent."""
+    app = make_secured_app()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/protected")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_wrong_api_key_returns_401():
+    app = make_secured_app()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/protected", headers={"Authorization": "Bearer wrong"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_unconfigured_api_key_returns_401():
+    """When api_key is not configured the dependency must reject all requests."""
+    app = make_secured_app()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/protected", headers={"Authorization": "Bearer anything"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_correct_api_key_returns_200():
+    from unittest.mock import patch
+    app = make_secured_app()
+    with patch("app.auth.settings") as mock_settings:
+        mock_settings.api_key = "secret-key"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/protected", headers={"Authorization": "Bearer secret-key"})
+    assert resp.status_code == 200
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+```bash
+cd server && python -m pytest tests/test_auth.py -v
+```
+
+Expected: `ModuleNotFoundError: No module named 'app.auth'`
+
+- [ ] **Step 3: Add `api_key` to Settings**
+
+In `server/app/config.py`, add the field:
+
+```python
+api_key: str = ""
+```
+
+after `allowed_origins`.
+
+- [ ] **Step 4: Create `server/app/auth.py`**
+
+```python
+import hmac
+
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.config import settings
+
+_bearer_scheme = HTTPBearer()
+
+
+async def require_api_key(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+) -> None:
+    if not settings.api_key:
+        raise HTTPException(status_code=401, detail="API key not configured")
+    if not hmac.compare_digest(credentials.credentials, settings.api_key):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+```bash
+cd server && python -m pytest tests/test_auth.py -v
+```
+
+Expected: 4 tests PASS
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add server/app/auth.py server/app/config.py server/tests/test_auth.py
+git commit -m "feat: add require_api_key dependency and api_key setting"
+```
+
+---
+
+### Task 2: Apply auth to routers and update test fixtures
+
+**Files:**
+- Modify: `server/app/main.py`
+- Modify: `server/tests/conftest.py`
+
+- [ ] **Step 1: Write a failing integration test**
+
+Add to `server/tests/test_repos.py`:
+
+```python
+@pytest.mark.asyncio
+async def test_list_repos_requires_api_key(mock_session):
+    """Unauthenticated requests to protected routes must return 401."""
+    from app.main import create_app
+    from httpx import ASGITransport, AsyncClient
+    from app.db import get_session
+
+    app = create_app()
+
+    async def override_session():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override_session
+    # deliberately do NOT override require_api_key
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test"
+    ) as client:
+        resp = await client.get("/api/repos")
+
+    assert resp.status_code == 403  # HTTPBearer returns 403 for missing Authorization header
+```
+
+- [ ] **Step 2: Run the new test to confirm it fails (returns 200, not 403)**
+
+```bash
+cd server && python -m pytest tests/test_repos.py::test_list_repos_requires_api_key -v
+```
+
+Expected: FAIL (asserts 403 but gets 200)
+
+- [ ] **Step 3: Apply `require_api_key` to routers in `main.py`**
+
+```python
+# server/app/main.py  (add import)
+from fastapi import Depends
+from app.auth import require_api_key
+
+# In create_app(), replace the protected router includes:
+app.include_router(health.router, prefix="/api")
+app.include_router(webhooks.router, prefix="/api")
+app.include_router(repos.router, prefix="/api", dependencies=[Depends(require_api_key)])
+app.include_router(environments.router, prefix="/api", dependencies=[Depends(require_api_key)])
+app.include_router(deployments.router, prefix="/api", dependencies=[Depends(require_api_key)])
+app.include_router(pull_requests.router, prefix="/api", dependencies=[Depends(require_api_key)])
+app.include_router(metrics.router, prefix="/api", dependencies=[Depends(require_api_key)])
+```
+
+- [ ] **Step 4: Run new test to confirm it now passes**
+
+```bash
+cd server && python -m pytest tests/test_repos.py::test_list_repos_requires_api_key -v
+```
+
+Expected: PASS
+
+- [ ] **Step 5: Run full test suite — expect many 401 failures**
+
+```bash
+cd server && python -m pytest -v 2>&1 | tail -30
+```
+
+Expected: most existing tests now fail with 401
+
+- [ ] **Step 6: Override `require_api_key` in the `client` fixture in `conftest.py`**
+
+In `server/tests/conftest.py`, update the `client` fixture:
+
+```python
+from app.auth import require_api_key
+
+@pytest.fixture
+def client(mock_session, tenant_id):
+    app = create_app()
+
+    async def override_session():
+        yield mock_session
+
+    repo = make_repo(id=REPO_ID)
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_tenant_id] = lambda: tenant_id
+    app.dependency_overrides[get_verified_repo] = lambda: repo
+    app.dependency_overrides[require_api_key] = lambda: None  # bypass auth in tests
+
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    return AsyncClient(transport=transport, base_url="http://test")
+```
+
+Also update the `metrics_client` fixture in `server/tests/test_metrics_routes.py`:
+
+```python
+from app.auth import require_api_key
+
+@pytest.fixture
+def metrics_client(mock_session):
+    app = create_app()
+
+    async def override_session():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[require_api_key] = lambda: None  # bypass auth in tests
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    return AsyncClient(transport=transport, base_url="http://test")
+```
+
+- [ ] **Step 7: Run full test suite — all should pass**
+
+```bash
+cd server && python -m pytest -v
+```
+
+Expected: all tests PASS
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add server/app/main.py server/tests/conftest.py server/tests/test_repos.py server/tests/test_metrics_routes.py
+git commit -m "feat: apply api key auth to all non-webhook routes"
+```
+
+---
+
+### Task 3: Update server `.env.example`
+
+**Files:**
+- Modify: `server/.env.example`
+
+- [ ] **Step 1: Add `API_KEY` to `.env.example`**
+
+```
+# API_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
+```
+
+Add this line after `# INTERNAL_CRON_SECRET=`.
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add server/.env.example
+git commit -m "docs: document API_KEY setting in .env.example"
+```
+
+---
+
+### Task 4: Client `apiFetch` wrapper
+
+**Files:**
+- Create: `client/src/lib/api.ts`
+- Modify: `client/src/hooks/useDashboard.ts`
+- Modify: `client/src/hooks/useRepos.ts`
+- Modify: `client/src/hooks/useDashboard.test.ts`
+- Modify: `client/src/hooks/useRepos.test.ts`
+- Create: `client/.env.example`
+
+- [ ] **Step 1: Write failing tests that verify the header is sent**
+
+In `client/src/hooks/useDashboard.test.ts`, add a new test:
+
+```typescript
+it("sends Authorization header on every request", async () => {
+  const headers: string[] = []
+  server.use(
+    http.get("/api/metrics/unified", ({ request }) => {
+      headers.push(request.headers.get("Authorization") ?? "")
+      return HttpResponse.json(makeDashboardResponse())
+    })
+  )
+
+  const { result } = renderHook(() => useDashboard("repo-1", 30))
+  await waitFor(() => expect(result.current.loading).toBe(false))
+
+  expect(headers[0]).toMatch(/^Bearer /)
+})
+```
+
+In `client/src/hooks/useRepos.test.ts`, add:
+
+```typescript
+it("sends Authorization header on every request", async () => {
+  const headers: string[] = []
+  server.use(
+    http.get("/api/repos", ({ request }) => {
+      headers.push(request.headers.get("Authorization") ?? "")
+      return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 100 })
+    })
+  )
+
+  const { result } = renderHook(() => useRepos())
+  await waitFor(() => expect(result.current.loading).toBe(false))
+
+  expect(headers[0]).toMatch(/^Bearer /)
+})
+```
+
+- [ ] **Step 2: Run tests to confirm they fail**
+
+```bash
+cd client && source ~/.nvm/nvm.sh && nvm use && npx vitest run src/hooks/useDashboard.test.ts src/hooks/useRepos.test.ts
+```
+
+Expected: the two new header tests FAIL
+
+- [ ] **Step 3: Create `client/src/lib/api.ts`**
+
+```typescript
+const API_KEY = import.meta.env.VITE_API_KEY ?? ""
+
+export function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  return fetch(input, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      Authorization: `Bearer ${API_KEY}`,
+    },
+  })
+}
+```
+
+- [ ] **Step 4: Update `useDashboard.ts` to use `apiFetch`**
+
+```typescript
+import { apiFetch } from "@/lib/api"
+
+// Inside fetchDashboard(), replace:
+const res = await fetch(`/api/metrics/unified?repo_id=${repoId}&window=${daysWindow}`)
+// with:
+const res = await apiFetch(`/api/metrics/unified?repo_id=${repoId}&window=${daysWindow}`)
+```
+
+- [ ] **Step 5: Update `useRepos.ts` to use `apiFetch`**
+
+```typescript
+import { apiFetch } from "@/lib/api"
+
+// Inside fetchRepos(), replace:
+const res = await fetch("/api/repos?limit=100")
+// with:
+const res = await apiFetch("/api/repos?limit=100")
+```
+
+- [ ] **Step 6: Run tests to confirm they pass**
+
+```bash
+cd client && source ~/.nvm/nvm.sh && nvm use && npx vitest run src/hooks/useDashboard.test.ts src/hooks/useRepos.test.ts
+```
+
+Expected: all tests PASS (including the two new header tests)
+
+- [ ] **Step 7: Create `client/.env.example`**
+
+```
+VITE_API_KEY=<paste the value from server/.env API_KEY>
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add client/src/lib/api.ts client/src/hooks/useDashboard.ts client/src/hooks/useRepos.ts client/src/hooks/useDashboard.test.ts client/src/hooks/useRepos.test.ts client/.env.example
+git commit -m "feat: add apiFetch wrapper and wire API key header in client hooks"
+```
+
+---
+
+### Task 5: Final verification
+
+- [ ] **Step 1: Run full server test suite**
+
+```bash
+cd server && python -m pytest -v
+```
+
+Expected: all tests PASS
+
+- [ ] **Step 2: Run full client test suite**
+
+```bash
+cd client && source ~/.nvm/nvm.sh && nvm use && npx vitest run
+```
+
+Expected: all tests PASS
+
+- [ ] **Step 3: Smoke-test the running app**
+
+Generate a key and add it to both `.env` files:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Add `API_KEY=<value>` to `server/.env` and `VITE_API_KEY=<value>` to `client/.env`.
+
+Start the server (`cd server && uvicorn app.main:app --reload`) and verify:
+
+```bash
+# Without key — should 401
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/repos
+
+# With key — should 200
+curl -s -o /dev/null -w "%{http_code}" -H "X-Api-Key: <value>" http://localhost:8000/api/repos
+
+# Webhook — should still work without key
+curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/api/webhooks/github -d '{}'
+```
+
+- [ ] **Step 4: Finish the development branch**
+
+Use `superpowers:finishing-a-development-branch` skill.
