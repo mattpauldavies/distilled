@@ -266,6 +266,34 @@ curl -X PATCH http://localhost:8000/api/environments/{env_id} \
 
 ---
 
+## Running Smoke Tests
+
+Browser-driven smoke tests verify the full stack is working correctly with the demo data. They use Playwright to drive a real Chromium browser and assert on exact metric values from the seed.
+
+### First-time setup
+
+```sh
+make smoke-install    # installs Playwright + downloads Chromium
+```
+
+### Running
+
+With the app running (`make dev`) and demo data seeded (`make seed-demo`):
+
+```sh
+make smoke-test
+```
+
+To target a deployed environment instead:
+
+```sh
+SMOKE_BASE_URL=https://app.example.com make smoke-test
+```
+
+The suite runs 19 tests across 6 groups — page structure, repo selector, exact Open PR counts, metric card states, chart visibility, and time window/repo switching. A clean run takes under 30 seconds.
+
+---
+
 ## Troubleshooting
 
 ### Webhooks not arriving
