@@ -312,6 +312,7 @@ Ordered by severity:
 | MED-004  | Add rate limiting middleware                                          | S      |
 | MED-005  | Handle malformed JSON in webhook handler                              | XS     |
 | MED-006  | Guard `console.error` in `ErrorBoundary.tsx`                          | XS     |
+| MED-007  | Validate `Content-Type: application/json` on webhook request          | XS     |
 | ARCH-002 | Unify write path to use `settings.seed_tenant_id`                     | XS     |
 | ARCH-005 | Add `pool_pre_ping`, `pool_recycle`, `pool_timeout` to engine         | XS     |
 
