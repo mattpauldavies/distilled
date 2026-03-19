@@ -29,6 +29,12 @@ def test_verify_signature_missing_prefix():
     assert verify_signature(payload, digest, secret) is False
 
 
+def test_verify_signature_rejects_empty_secret():
+    payload = b"test payload"
+    sig = make_signature(payload, "")
+    assert verify_signature(payload, sig, "") is False
+
+
 def test_register_handler_registers_correctly():
     event_type = "_test_event_single"
     EVENT_HANDLERS.pop(event_type, None)
