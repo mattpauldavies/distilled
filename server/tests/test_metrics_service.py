@@ -376,7 +376,7 @@ async def test_get_pr_cycle_time_aggregate_computes_median(mock_session):
             repo_id=REPO_ID,
             base_ref="main",
             number=i,
-            opened_at=now - timedelta(hours=(i + 1) * 24),
+            opened_at=now - timedelta(hours=i * 24),
             merged_at=now,
         )
         for i in [1, 2, 3]

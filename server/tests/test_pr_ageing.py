@@ -38,4 +38,9 @@ async def test_pr_ageing_zero_state(client, mock_session):
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["buckets"] == []
+    assert data["buckets"] == [
+        {"bucket": "<2d", "count": 0},
+        {"bucket": "2-7d", "count": 0},
+        {"bucket": "7-14d", "count": 0},
+        {"bucket": ">14d", "count": 0},
+    ]

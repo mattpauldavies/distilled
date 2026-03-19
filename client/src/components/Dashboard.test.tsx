@@ -21,16 +21,17 @@ describe("Dashboard", () => {
   it("renders metric cards with data", async () => {
     render(<Dashboard />)
 
+    // Deployment frequency: deploys_per_week 4.2 → "4.2"
     await waitFor(() => {
-      expect(screen.getByText("42")).toBeInTheDocument()
+      expect(screen.getByText("4.2")).toBeInTheDocument()
     })
 
-    // Lead time: 7200 seconds = 2h
+    // Lead time: median_seconds 7200 = 2h
     expect(screen.getByText("2h")).toBeInTheDocument()
-    // Cycle time: 3600 seconds = 1h
+    // Cycle time: median_seconds 3600 = 1h
     expect(screen.getByText("1h")).toBeInTheDocument()
-    // Throughput
-    expect(screen.getByText("15")).toBeInTheDocument()
+    // Throughput: prs_per_engineer_per_month 5.0 → "5.0"
+    expect(screen.getByText("5.0")).toBeInTheDocument()
     // Open PRs
     expect(screen.getByText("7")).toBeInTheDocument()
     expect(screen.getByText("5 live · 2 draft")).toBeInTheDocument()
@@ -41,10 +42,10 @@ describe("Dashboard", () => {
       http.get("/api/metrics/unified", async () => {
         await delay(100)
         return HttpResponse.json({
-          deployment_frequency: { status: "ok", total: 1, days: 30, daily_counts: [] },
-          lead_time: { status: "ok", weekly: [] },
-          pr_cycle_time: { status: "ok", weekly: [] },
-          throughput: { weekly: [] },
+          deployment_frequency: { status: "ok", total: 1, days: 30, daily_counts: [], deploys_per_week: 1.0 },
+          lead_time: { status: "ok", weekly: [], median_seconds: null },
+          pr_cycle_time: { status: "ok", weekly: [], median_seconds: null },
+          throughput: { weekly: [], total_prs: null, unique_authors: null, prs_per_engineer_per_month: null },
           open_prs: { total: 0, live: 0, draft: 0 },
           pr_ageing: { buckets: [] },
           data_quality: {
@@ -63,10 +64,9 @@ describe("Dashboard", () => {
       expect(screen.getByText("Deployment Frequency")).toBeInTheDocument()
     })
 
-    // Metric cards should show dash values before metrics load
-    // Once metrics resolve, data appears
+    // Once metrics resolve, deployment frequency appears as deploys_per_week
     await waitFor(() => {
-      expect(screen.getByText("1")).toBeInTheDocument()
+      expect(screen.getByText("1.0")).toBeInTheDocument()
     })
   })
 
