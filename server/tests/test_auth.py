@@ -7,6 +7,7 @@ from app.auth import require_api_key
 
 def make_secured_app():
     from fastapi import Depends
+
     app = FastAPI()
 
     @app.get("/protected")
@@ -28,6 +29,7 @@ async def test_missing_auth_header_returns_403():
 @pytest.mark.asyncio
 async def test_wrong_api_key_returns_401():
     from unittest.mock import patch
+
     app = make_secured_app()
     with patch("app.auth.settings") as mock_settings:
         mock_settings.api_key = "correct-key"
@@ -48,6 +50,7 @@ async def test_unconfigured_api_key_returns_401():
 @pytest.mark.asyncio
 async def test_correct_api_key_returns_200():
     from unittest.mock import patch
+
     app = make_secured_app()
     with patch("app.auth.settings") as mock_settings:
         mock_settings.api_key = "secret-key"

@@ -54,8 +54,7 @@ async def test_list_repos_requires_auth(mock_session):
     # deliberately do NOT override require_api_key
 
     async with AsyncClient(
-        transport=ASGITransport(app=app, raise_app_exceptions=False),
-        base_url="http://test"
+        transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://test"
     ) as client:
         resp = await client.get("/api/repos")
 
