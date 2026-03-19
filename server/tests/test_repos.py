@@ -40,9 +40,10 @@ async def test_list_repos_empty(client, mock_session):
 @pytest.mark.asyncio
 async def test_list_repos_requires_auth(mock_session):
     """Requests without Authorization header must be rejected."""
-    from app.main import create_app
     from httpx import ASGITransport, AsyncClient
+
     from app.db import get_session
+    from app.main import create_app
 
     app = create_app()
 
