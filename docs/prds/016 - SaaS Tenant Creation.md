@@ -263,7 +263,7 @@ _Make this a env variable_
 
 2. **Clerk domain:** Will we use the default Clerk subdomain (`xxx.clerk.accounts.dev`) or a custom domain? Custom domain is cleaner for production and removes the Clerk branding from OAuth consent screens.
 
-_Pending._
+_Take an env var. We will start with the defauly Clerk subdomain and upgrade later._
 
 3. **Webhook → tenant matching on username:** GitHub usernames are mutable. Should we also store the GitHub numeric user ID from the Clerk identity for a more stable match? Recommendation: yes — store both.
 
