@@ -38,7 +38,7 @@ def metrics_client(mock_session):
 async def test_recompute_requires_auth(metrics_client):
     resp = await metrics_client.post(
         "/api/metrics/recompute",
-        json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
+        json={"repo_id": str(REPO_ID)},
     )
     assert resp.status_code == 403  # HTTPBearer rejects missing credentials
 
@@ -47,7 +47,7 @@ async def test_recompute_requires_auth(metrics_client):
 async def test_recompute_rejects_bad_token(metrics_client):
     resp = await metrics_client.post(
         "/api/metrics/recompute",
-        json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
+        json={"repo_id": str(REPO_ID)},
         headers={"Authorization": "Bearer wrong-secret"},
     )
     assert resp.status_code == 401
@@ -69,11 +69,12 @@ async def test_recompute_success(metrics_client, mock_session):
         patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute,
     ):
         mock_settings.internal_cron_secret = "test-secret"
+        mock_settings.seed_tenant_id = str(TENANT_ID)
         mock_recompute.return_value = RecomputeResult(status="success")
 
         resp = await metrics_client.post(
             "/api/metrics/recompute",
-            json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
+            json={"repo_id": str(REPO_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
 
@@ -89,10 +90,11 @@ async def test_recompute_repo_not_found(metrics_client, mock_session):
 
     with patch("app.routes.metrics.settings") as mock_settings:
         mock_settings.internal_cron_secret = "test-secret"
+        mock_settings.seed_tenant_id = str(TENANT_ID)
 
         resp = await metrics_client.post(
             "/api/metrics/recompute",
-            json={"tenant_id": str(TENANT_ID), "repo_id": str(REPO_ID)},
+            json={"repo_id": str(REPO_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
 

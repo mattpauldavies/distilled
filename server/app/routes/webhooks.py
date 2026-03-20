@@ -26,16 +26,29 @@ async def _dispatch_event(event_type: str, payload: dict) -> None:
                 logger.exception("handler failed for event_type=%s", event_type)
 
 
+_MAX_WEBHOOK_BODY = 25 * 1024 * 1024  # 25 MB
+
+
 @router.post("/webhooks/github")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks) -> Response:
     body = await request.body()
-    signature = request.headers.get("X-Hub-Signature-256", "")
 
+    if len(body) > _MAX_WEBHOOK_BODY:
+        return Response(status_code=413)
+
+    signature = request.headers.get("X-Hub-Signature-256", "")
     if not verify_signature(body, signature, settings.github_webhook_secret):
         return Response(status_code=401)
 
+    if request.headers.get("content-type", "") != "application/json":
+        return Response(status_code=415)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        return Response(status_code=400)
+
     event_type = request.headers.get("X-GitHub-Event", "")
-    payload = await request.json()
 
     logger.info(
         "webhook received event_type=%s action=%s",

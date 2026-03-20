@@ -1,10 +1,15 @@
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import jwt
 
 from app.config import settings
+
+# Module-level cache so tokens persist across requests (per-process).
+_token_cache: dict[int, tuple[str, datetime]] = {}
+
+_TOKEN_EXPIRY_MARGIN = timedelta(seconds=60)
 
 
 class GitHubClient:
@@ -16,7 +21,6 @@ class GitHubClient:
             headers={"Accept": "application/vnd.github+json"},
             timeout=30.0,
         )
-        self._token_cache: dict[int, tuple[str, datetime]] = {}
 
     async def close(self) -> None:
         await self._http.aclose()
@@ -33,10 +37,10 @@ class GitHubClient:
         return jwt.encode(payload, private_key, algorithm="RS256")
 
     async def get_installation_token(self, installation_id: int) -> str:
-        cached = self._token_cache.get(installation_id)
+        cached = _token_cache.get(installation_id)
         if cached:
             token, expires_at = cached
-            if datetime.now(UTC) < expires_at:
+            if datetime.now(UTC) < expires_at - _TOKEN_EXPIRY_MARGIN:
                 return token
 
         token_jwt = self._generate_jwt()
@@ -48,7 +52,7 @@ class GitHubClient:
         data = resp.json()
         token = data["token"]
         expires_at = datetime.fromisoformat(data["expires_at"].replace("Z", "+00:00"))
-        self._token_cache[installation_id] = (token, expires_at)
+        _token_cache[installation_id] = (token, expires_at)
         return token
 
     async def list_repos(self, installation_id: int) -> list[dict]:
