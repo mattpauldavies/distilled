@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.environment import Environment
 from app.models.pull_request import PullRequest
@@ -23,7 +24,7 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
 
     deployment = payload["deployment"]
     repo_data = payload["repository"]
-    tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    tenant_id = uuid.UUID(settings.seed_tenant_id)
 
     # Look up repo
     result = await session.execute(
@@ -73,7 +74,7 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
             started_at=started_at,
             completed_at=completed_at,
             deployed_at=deployed_at,
-            html_url=deployment_status.get("target_url", ""),
+            html_url=_validate_github_url(deployment_status.get("target_url", "")),
         )
         .on_conflict_do_nothing(
             index_elements=["tenant_id", "deployment_id"],
@@ -108,7 +109,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         return
 
     repo_data = payload["repository"]
-    tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    tenant_id = uuid.UUID(settings.seed_tenant_id)
 
     # Look up repo
     result = await session.execute(
@@ -157,7 +158,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
             merge_commit_sha=merge_commit_sha,
             head_sha=pr_data.get("head", {}).get("sha", ""),
             author_login=pr_data.get("user", {}).get("login", ""),
-            html_url=pr_data.get("html_url", ""),
+            html_url=_validate_github_url(pr_data.get("html_url", "")),
             opened_at=opened_at,
             is_draft=is_draft,
             closed_at=closed_at,
@@ -175,6 +176,12 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         )
     )
     await session.execute(stmt)
+
+
+def _validate_github_url(url: str) -> str:
+    if url and not url.startswith("https://github.com/"):
+        return ""
+    return url
 
 
 def _parse_dt(value: str) -> datetime:

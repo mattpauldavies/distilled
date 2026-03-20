@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.github_installation import GitHubInstallation
 from app.models.repository import Repository
 from app.services.environment_service import discover_environments
@@ -25,7 +26,7 @@ async def handle_installation_event(payload: dict, session: AsyncSession) -> Non
 
 async def _handle_created(payload: dict, session: AsyncSession) -> None:
     installation_data = payload["installation"]
-    tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    tenant_id = uuid.UUID(settings.seed_tenant_id)
 
     # Upsert installation
     stmt = (

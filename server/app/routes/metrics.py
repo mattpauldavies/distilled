@@ -41,7 +41,6 @@ router = APIRouter(prefix="/metrics")
 
 
 class RecomputeRequest(BaseModel):
-    tenant_id: uuid.UUID
     repo_id: uuid.UUID
 
 
@@ -63,11 +62,13 @@ async def recompute_metrics(
     _auth: None = Depends(_verify_cron_secret),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
+    tenant_id = uuid.UUID(settings.seed_tenant_id)
+
     # Look up repo for default_branch
     repo_result = await session.execute(
         select(Repository).where(
             Repository.id == body.repo_id,
-            Repository.tenant_id == body.tenant_id,
+            Repository.tenant_id == tenant_id,
         )
     )
     repo = repo_result.scalar_one_or_none()
@@ -78,7 +79,7 @@ async def recompute_metrics(
     hour = now.replace(minute=0, second=0, microsecond=0)
 
     result = await recompute_repo(
-        body.tenant_id,
+        tenant_id,
         body.repo_id,
         repo.default_branch,
         session,
@@ -89,7 +90,7 @@ async def recompute_metrics(
         insert(MetricsRefreshLog)
         .values(
             id=uuid.uuid4(),
-            tenant_id=body.tenant_id,
+            tenant_id=tenant_id,
             repo_id=body.repo_id,
             hour=hour,
             started_at=now,
