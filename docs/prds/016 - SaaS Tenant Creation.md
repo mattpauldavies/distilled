@@ -259,8 +259,16 @@ Once repositories exist, the setup screen is never shown again. The dashboard is
 
 1. **GitHub App slug:** What is the production GitHub App name/slug? This is needed for the install URL in onboarding. If it differs between environments, it should be a configurable env var (`GITHUB_APP_SLUG`).
 
+_Make this a env variable_
+
 2. **Clerk domain:** Will we use the default Clerk subdomain (`xxx.clerk.accounts.dev`) or a custom domain? Custom domain is cleaner for production and removes the Clerk branding from OAuth consent screens.
+
+_Pending._
 
 3. **Webhook → tenant matching on username:** GitHub usernames are mutable. Should we also store the GitHub numeric user ID from the Clerk identity for a more stable match? Recommendation: yes — store both.
 
+_If username changes after we store it, we won't know. So just store numeric id_
+
 4. **Existing seed data:** The dev seed tenant (UUID `000...001`) must remain functional for local development. What is the expected dev workflow after this change — a local Clerk dev account, or a flag to bypass auth in `DEBUG` mode?
+
+_A local clerk dev account would make sense. We could reuse this for staging later._
