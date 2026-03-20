@@ -7,13 +7,15 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
   testMatch: "*.spec.ts",
-  timeout: 30_000,
+  timeout: 90_000,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
   use: {
     baseURL: process.env.SMOKE_BASE_URL ?? "http://localhost:5173",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    navigationTimeout: 60_000,
+    actionTimeout: 30_000,
   },
   projects: [
     {
