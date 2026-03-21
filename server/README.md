@@ -49,6 +49,9 @@ database/          # Alembic migrations
 | `SEED_TENANT_NAME`        | Dev tenant name                          | `dev`                                                               |
 | `ENVIRONMENT`             | `development` enables local file logging | `production`                                                        |
 | `INTERNAL_CRON_SECRET`    | Bearer token for scheduled recompute     | —                                                                   |
+| `CLERK_JWKS_URL`          | Clerk JWKS endpoint for JWT verification | — (required in production)                                          |
+| `CLERK_PUBLISHABLE_KEY`   | Clerk publishable key (for reference)    | —                                                                   |
+| `GITHUB_APP_SLUG`         | GitHub App slug for install links        | —                                                                   |
 
 ## API endpoints
 

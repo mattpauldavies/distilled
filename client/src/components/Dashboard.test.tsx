@@ -3,6 +3,11 @@ import { http, HttpResponse, delay } from "msw"
 import { server } from "@/test/mocks/server"
 import { Dashboard } from "./Dashboard"
 
+vi.mock("@clerk/clerk-react", () => ({
+  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
+  useClerk: () => ({ signOut: vi.fn() }),
+}))
+
 // Mock chart components — Canvas doesn't work in jsdom
 vi.mock("./charts/DeploymentChart", () => ({
   DeploymentChart: () => <div data-testid="deployment-chart" />,
@@ -81,7 +86,7 @@ describe("Dashboard", () => {
     })
   })
 
-  it("shows empty state when no repos", async () => {
+  it("shows onboarding screen when no repos", async () => {
     server.use(
       http.get("/api/repos", () => {
         return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 100 })
@@ -91,7 +96,7 @@ describe("Dashboard", () => {
     render(<Dashboard />)
 
     await waitFor(() => {
-      expect(screen.getByText("No repositories found")).toBeInTheDocument()
+      expect(screen.getByText("Welcome to Distilled")).toBeInTheDocument()
     })
   })
 
@@ -122,5 +127,13 @@ describe("Dashboard", () => {
       expect(screen.getByText("Failed to load metrics: 500")).toBeInTheDocument()
     })
     expect(screen.getByText("Retry")).toBeInTheDocument()
+  })
+
+  it("shows sign out button", async () => {
+    render(<Dashboard />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign out")).toBeInTheDocument()
+    })
   })
 })

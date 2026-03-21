@@ -1,14 +1,20 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import type { Repo, PaginatedResponse } from "@/types/dashboard"
-import { apiFetch } from "@/lib/api"
+import { makeApiFetch } from "@/lib/api"
 
 export function useRepos() {
+  const { getToken } = useAuth()
   const [repos, setRepos] = useState<Repo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fetchKey, setFetchKey] = useState(0)
+
+  const refetch = useCallback(() => setFetchKey((k) => k + 1), [])
 
   useEffect(() => {
     let cancelled = false
+    const apiFetch = makeApiFetch(getToken)
 
     async function fetchRepos() {
       try {
@@ -32,7 +38,8 @@ export function useRepos() {
     return () => {
       cancelled = true
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchKey])
 
-  return { repos, loading, error }
+  return { repos, loading, error, refetch }
 }

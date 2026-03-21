@@ -3,6 +3,10 @@ import { http, HttpResponse } from "msw"
 import { server } from "@/test/mocks/server"
 import { useRepos } from "./useRepos"
 
+vi.mock("@clerk/clerk-react", () => ({
+  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
+}))
+
 describe("useRepos", () => {
   it("fetches repos successfully", async () => {
     const { result } = renderHook(() => useRepos())
@@ -52,7 +56,7 @@ describe("useRepos", () => {
     expect(result.current.error).toBeNull()
   })
 
-  it("sends Authorization header on every request", async () => {
+  it("sends Authorization header with Clerk token", async () => {
     const headers: string[] = []
     server.use(
       http.get("/api/repos", ({ request }) => {
@@ -64,6 +68,6 @@ describe("useRepos", () => {
     const { result } = renderHook(() => useRepos())
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(headers[0]).toBe("Bearer test-api-key")
+    expect(headers[0]).toBe("Bearer test-clerk-token")
   })
 })

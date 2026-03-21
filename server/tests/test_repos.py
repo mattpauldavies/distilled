@@ -51,7 +51,7 @@ async def test_list_repos_requires_auth(mock_session):
         yield mock_session
 
     app.dependency_overrides[get_session] = override_session
-    # deliberately do NOT override require_api_key
+    # deliberately do NOT override require_auth
 
     async with AsyncClient(
         transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://test"

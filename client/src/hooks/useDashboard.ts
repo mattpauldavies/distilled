@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import type { UnifiedDashboardResponse, DaysWindow } from "@/types/dashboard"
-import { apiFetch } from "@/lib/api"
+import { makeApiFetch } from "@/lib/api"
 
 export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
+  const { getToken } = useAuth()
   const [data, setData] = useState<UnifiedDashboardResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,6 +22,7 @@ export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
     let cancelled = false
     setLoading(true)
     setError(null)
+    const apiFetch = makeApiFetch(getToken)
 
     async function fetchDashboard() {
       try {
@@ -44,6 +47,7 @@ export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repoId, daysWindow, fetchKey])
 
   return { data, loading, error, retry }

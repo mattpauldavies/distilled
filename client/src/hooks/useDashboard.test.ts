@@ -4,6 +4,10 @@ import { server } from "@/test/mocks/server"
 import { useDashboard } from "./useDashboard"
 import { makeDashboardResponse } from "@/test/factories"
 
+vi.mock("@clerk/clerk-react", () => ({
+  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
+}))
+
 describe("useDashboard", () => {
   it("fetches dashboard data", async () => {
     const { result } = renderHook(() => useDashboard("repo-1", 30))
@@ -69,7 +73,7 @@ describe("useDashboard", () => {
     expect(result.current.error).toBeNull()
   })
 
-  it("sends Authorization header on every request", async () => {
+  it("sends Authorization header with Clerk token", async () => {
     const headers: string[] = []
     server.use(
       http.get("/api/metrics/unified", ({ request }) => {
@@ -81,7 +85,7 @@ describe("useDashboard", () => {
     const { result } = renderHook(() => useDashboard("repo-1", 30))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(headers[0]).toBe("Bearer test-api-key")
+    expect(headers[0]).toBe("Bearer test-clerk-token")
   })
 
   it("refetches when repoId changes", async () => {

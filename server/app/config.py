@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     seed_tenant_name: str = "dev"
     internal_cron_secret: str = ""
     allowed_origins: list[str] = ["http://localhost:5173"]
-    api_key: str = ""
+    clerk_jwks_url: str = ""
+    clerk_publishable_key: str = ""
+    github_app_slug: str = ""
 
 
 settings = Settings()

@@ -21,7 +21,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     env: {
-      VITE_API_KEY: "test-api-key",
+      VITE_CLERK_PUBLISHABLE_KEY: "pk_test_placeholder",
+      VITE_GITHUB_APP_SLUG: "test-app",
     },
   },
 })
