@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
-import { useAuth } from "@clerk/clerk-react"
 import type { UnifiedDashboardResponse, DaysWindow } from "@/types/dashboard"
 import { makeApiFetch } from "@/lib/api"
+import { useGetToken } from "@/lib/auth"
 
 export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
-  const { getToken } = useAuth()
+  const getToken = useGetToken()
   const [data, setData] = useState<UnifiedDashboardResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

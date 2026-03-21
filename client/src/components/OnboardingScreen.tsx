@@ -1,6 +1,6 @@
 import { useEffect } from "react"
-import { useAuth } from "@clerk/clerk-react"
 import { makeApiFetch } from "@/lib/api"
+import { useGetToken } from "@/lib/auth"
 import type { Repo, PaginatedResponse } from "@/types/dashboard"
 
 const GITHUB_APP_SLUG = import.meta.env.VITE_GITHUB_APP_SLUG ?? ""
@@ -16,7 +16,7 @@ export function OnboardingScreen({
   onReposDetected,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
 }: OnboardingScreenProps) {
-  const { getToken } = useAuth()
+  const getToken = useGetToken()
 
   useEffect(() => {
     const apiFetch = makeApiFetch(getToken)

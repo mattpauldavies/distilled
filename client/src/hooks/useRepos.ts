@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
-import { useAuth } from "@clerk/clerk-react"
 import type { Repo, PaginatedResponse } from "@/types/dashboard"
 import { makeApiFetch } from "@/lib/api"
+import { useGetToken } from "@/lib/auth"
 
 export function useRepos() {
-  const { getToken } = useAuth()
+  const getToken = useGetToken()
   const [repos, setRepos] = useState<Repo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

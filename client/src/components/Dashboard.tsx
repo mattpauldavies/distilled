@@ -1,5 +1,16 @@
 import { useState } from "react"
 import { useClerk } from "@clerk/clerk-react"
+
+const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+function SignOutButton() {
+  const { signOut } = useClerk()
+  return (
+    <Button variant="outline" size="sm" onClick={() => signOut()}>
+      Sign out
+    </Button>
+  )
+}
 import { useRepos } from "@/hooks/useRepos"
 import { useDashboard } from "@/hooks/useDashboard"
 import { DashboardControls } from "@/components/DashboardControls"
@@ -30,7 +41,6 @@ function timeAgo(isoString: string | null): string {
 }
 
 export function Dashboard() {
-  const { signOut } = useClerk()
   const { repos, loading: reposLoading, error: reposError, refetch: refetchRepos } = useRepos()
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(90)
@@ -80,9 +90,7 @@ export function Dashboard() {
             daysWindow={daysWindow}
             onDaysWindowChange={setDaysWindow}
           />
-          <Button variant="outline" size="sm" onClick={() => signOut()}>
-            Sign out
-          </Button>
+          {HAS_CLERK && <SignOutButton />}
         </div>
       </div>
 

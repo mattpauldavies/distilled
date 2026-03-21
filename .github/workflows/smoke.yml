@@ -55,13 +55,15 @@ jobs:
 
       - name: Configure server environment
         working-directory: server
-        run: |
-          cp .env.example .env
-          echo "API_KEY=smoke-test-api-key" >> .env
+        run: cp .env.example .env
+        # CLERK_JWKS_URL is intentionally absent — server uses dev bypass mode
+        # which returns the seed tenant for all requests without a JWT.
 
       - name: Configure client environment
         working-directory: client
-        run: echo "VITE_API_KEY=smoke-test-api-key" > .env
+        run: touch .env
+        # VITE_CLERK_PUBLISHABLE_KEY is intentionally absent — client renders
+        # Dashboard directly without the Clerk auth gate.
 
       - name: Run migrations
         working-directory: server

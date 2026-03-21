@@ -80,6 +80,11 @@ test.describe("Page structure", () => {
     await loadDashboard(page);
     await expect(page.getByRole("alert")).not.toBeVisible();
   });
+
+  test("does not show onboarding screen when repos are present", async ({ page }) => {
+    await loadDashboard(page);
+    await expect(page.getByText("Welcome to Distilled")).not.toBeVisible();
+  });
 });
 
 test.describe("Repository selector", () => {
