@@ -487,6 +487,11 @@
       border-radius: 4px;
     }
 
+    .metric-badge.coming-soon {
+      color: #c87070;
+      background: rgba(224, 82, 82, 0.12);
+    }
+
     /* ─── How it works ──────────────────────────────────────── */
     .how {
       background: var(--bg-surface);
@@ -509,6 +514,7 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 0;
       position: relative;
+      list-style-type: none;
     }
 
     .steps::before {
@@ -849,8 +855,7 @@
       </ul>
 
       <div class="nav-cta">
-        <a href="#cta" class="btn btn-secondary">See a demo</a>
-        <a href="#cta" class="btn btn-primary">Get started</a>
+        <a href="#cta" class="btn btn-secondary">Login</a>
       </div>
 
       <button class="nav-mobile-toggle" aria-label="Open navigation menu" aria-expanded="false">
@@ -874,12 +879,11 @@
       </h1>
 
       <p class="hero-sub">
-        Connect GitHub and get instant visibility into how your teams ship — built for leaders who need signal, not dashboards.
+        Connect GitHub and get instant visibility into how your teams ship. Built for leaders who need signal, not dashboards.
       </p>
 
       <div class="hero-actions">
-        <a href="#cta" class="btn btn-primary btn-lg">Get started free</a>
-        <a href="#cta" class="btn btn-secondary btn-lg">See a demo</a>
+        <a href="#cta" class="btn btn-primary btn-lg">Get started for free</a>
       </div>
 
       <div class="hero-screenshot-wrap" role="img" aria-label="Distilled dashboard showing delivery metrics and trend charts">
@@ -903,8 +907,8 @@
       <div class="problem-inner">
         <div class="problem-header">
           <p class="section-label">The problem</p>
-          <h2 class="section-title" id="problem-heading">Leaders are drowning in noise</h2>
-          <p class="section-sub">Engineering teams ship constantly. But the data that matters — cycle time, deployment frequency, bottlenecks — stays buried in tools your leaders don't have time to learn.</p>
+          <h2 class="section-title" id="problem-heading">Can you find the signal in the noise?</h2>
+          <p class="section-sub">Engineering teams ship constantly. But the performance data that matters stays buried in tools your leaders don't have time to learn.</p>
         </div>
 
         <div class="pain-list" role="list">
@@ -920,7 +924,7 @@
             <div class="pain-icon" aria-hidden="true">🌫</div>
             <div class="pain-text">
               <strong>No visibility without interrogation</strong>
-              <p>You find out about a bottleneck in a 1:1, not from a dashboard. By then, the sprint has already slipped.</p>
+              <p>You find out about problems in a 1:1, not from a dashboard. By then, the sprint has already slipped.</p>
             </div>
           </div>
 
@@ -928,7 +932,7 @@
             <div class="pain-icon" aria-hidden="true">📊</div>
             <div class="pain-text">
               <strong>Data without context is just noise</strong>
-              <p>Generic BI tools give you charts. They don't give you the answer to: "Is my team shipping well this quarter?"</p>
+              <p>Generic tools give you charts. They don't give you the answer to: "Is my team shipping well this quarter?"</p>
             </div>
           </div>
         </div>
@@ -942,7 +946,7 @@
       <div class="features-header">
         <p class="section-label">Metrics that matter</p>
         <h2 class="section-title" id="features-heading">Everything you need to understand delivery health</h2>
-        <p class="section-sub">Distilled tracks the six DORA-aligned metrics that senior engineering leaders use to evaluate software delivery performance — automatically, in real time.</p>
+        <p class="section-sub">Distilled tracks the six DORA-aligned metrics that engineering leaders need to evaluate software delivery performance.</p>
       </div>
 
       <div class="metrics-grid" role="list">
@@ -957,14 +961,29 @@
         <article class="metric-card" role="listitem">
           <div class="metric-icon" aria-hidden="true">⚡</div>
           <div class="metric-name">Lead Time for Changes</div>
-          <p class="metric-desc">From first commit to production deployment — understand how fast ideas become value in the hands of customers.</p>
+          <p class="metric-desc">From first commit to production deployment, understand how fast ideas become value in the hands of customers.</p>
           <span class="metric-badge">DORA core</span>
+        </article>
+
+
+        <article class="metric-card" role="listitem" aria-label="Change Failure Rate — coming soon">
+          <div class="metric-icon" aria-hidden="true">🔥</div>
+          <div class="metric-name">Change Failure Rate</div>
+          <p class="metric-desc">What percentage of deployments cause a failure in production? A critical signal for understanding the quality cost of your delivery speed.</p>
+          <span class="metric-badge">DORA core</span> <span class="metric-badge coming-soon">Coming soon</span>
+        </article>
+
+        <article class="metric-card" role="listitem" aria-label="Failure Recovery Time — coming soon">
+          <div class="metric-icon" aria-hidden="true">🛠</div>
+          <div class="metric-name">Failure Recovery Time</div>
+          <p class="metric-desc">How long does it take to restore service after an incident? Track your team's ability to recover fast and reduce mean time to recovery.</p>
+          <span class="metric-badge">DORA core</span> <span class="metric-badge coming-soon">Coming soon</span>
         </article>
 
         <article class="metric-card" role="listitem">
           <div class="metric-icon" aria-hidden="true">🔄</div>
           <div class="metric-name">PR Cycle Time</div>
-          <p class="metric-desc">The time a pull request spends open — from creation to merge. Surface reviews and bottlenecks before they compound.</p>
+          <p class="metric-desc">The time a pull request spends open from creation to merge. Surface reviews and bottlenecks before they compound.</p>
           <span class="metric-badge">Flow metric</span>
         </article>
 
@@ -972,20 +991,6 @@
           <div class="metric-icon" aria-hidden="true">📈</div>
           <div class="metric-name">PR Throughput</div>
           <p class="metric-desc">How many pull requests are your teams merging per week? Throughput tells you whether velocity is real or just noise.</p>
-          <span class="metric-badge">Flow metric</span>
-        </article>
-
-        <article class="metric-card" role="listitem">
-          <div class="metric-icon" aria-hidden="true">🕰</div>
-          <div class="metric-name">PR Ageing</div>
-          <p class="metric-desc">PRs that sit open are a risk. Spot stale work before it becomes a merge conflict or a missed deadline.</p>
-          <span class="metric-badge">Risk signal</span>
-        </article>
-
-        <article class="metric-card" role="listitem">
-          <div class="metric-icon" aria-hidden="true">🔢</div>
-          <div class="metric-name">Work in Progress</div>
-          <p class="metric-desc">Too much WIP slows everyone down. See open PRs across your org at a glance and identify where work is piling up.</p>
           <span class="metric-badge">Flow metric</span>
         </article>
 
@@ -1010,7 +1015,7 @@
           <div class="step-number" aria-hidden="true">1</div>
           <div class="step-body">
             <div class="step-title">Connect GitHub</div>
-            <p class="step-desc">Authorise Distilled with your GitHub organisation. We read your repositories, pull requests, and deployment events — securely and read-only.</p>
+            <p class="step-desc">Authorise Distilled with your GitHub organisation. We read your pull request and deployment events securely and read-only.</p>
           </div>
         </li>
 
@@ -1018,7 +1023,7 @@
           <div class="step-number" aria-hidden="true">2</div>
           <div class="step-body">
             <div class="step-title">Distilled analyses your delivery</div>
-            <p class="step-desc">Our engine processes your engineering data and computes DORA metrics, flow metrics, and risk signals — continuously, as your teams ship.</p>
+            <p class="step-desc">Our engine processes your engineering data, computes metrics, and risk signals continuously, as your teams ship.</p>
           </div>
         </li>
 
@@ -1026,7 +1031,7 @@
           <div class="step-number" aria-hidden="true">3</div>
           <div class="step-body">
             <div class="step-title">Get instant clarity</div>
-            <p class="step-desc">Open Distilled and see the state of your delivery — trend lines, team health, bottlenecks. No digging. No decoding. Just signal.</p>
+            <p class="step-desc">Open Distilled and see the state of your delivery. No digging. No decoding. Just signal.</p>
           </div>
         </li>
 
@@ -1045,7 +1050,7 @@
         <div class="trust-item" role="listitem">
           <div class="trust-item-icon" aria-hidden="true">🔐</div>
           <div class="trust-item-title">Read-only access</div>
-          <p class="trust-item-desc">Distilled never writes to your repositories. We operate with the minimum permissions needed to compute your metrics — nothing more.</p>
+          <p class="trust-item-desc">Distilled never writes to your repositories. We operate with the minimum permissions needed to compute your metrics and nothing more.</p>
         </div>
 
         <div class="trust-item" role="listitem">
@@ -1073,10 +1078,9 @@
         <h2 id="cta-heading">Clarity in your delivery.<br />Confidence in your decisions.</h2>
         <p>Connect GitHub and see your team's delivery health in minutes. No setup cost. No manual work.</p>
         <div class="cta-actions">
-          <a href="#" class="btn btn-primary btn-lg">Get started free</a>
-          <a href="#" class="btn btn-secondary btn-lg">See a demo</a>
+          <a href="#" class="btn btn-primary btn-lg">Get started for free</a>
         </div>
-        <p class="cta-note">Read-only GitHub access &nbsp;·&nbsp; No credit card required &nbsp;·&nbsp; Cancel any time</p>
+        <p class="cta-note">Read-only GitHub access &nbsp;·&nbsp; No credit card required</p>
       </div>
     </div>
   </section>
