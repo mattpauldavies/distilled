@@ -7,7 +7,7 @@
   <meta name="description" content="Connect GitHub and get instant visibility into how your teams ship. Built for engineering leaders who need signal, not dashboards." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <style>
     *, *::before, *::after {
@@ -25,24 +25,29 @@
       --border-strong: rgba(255, 255, 255, 0.12);
       --text-primary:  #f0f0f2;
       --text-secondary:#9a9aaa;
-      --text-muted:    #5a5a6e;
+      --text-muted:    #8080a0;
       --accent:        #c8973a;
       --accent-light:  #e0aa50;
       --accent-dim:    rgba(200, 151, 58, 0.15);
       --accent-glow:   rgba(200, 151, 58, 0.08);
       --green:         #3ecf8e;
       --red:           #e05252;
+      --red-dim:       rgba(224, 82, 82, 0.10);
+      --red-muted:     #c87070;
       --radius-sm:     6px;
       --radius:        10px;
       --radius-lg:     16px;
       --radius-xl:     24px;
-      --font:          'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font:          'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:     'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
       --max-width:     1120px;
       --nav-height:    64px;
     }
 
     html {
       scroll-behavior: smooth;
+      scroll-padding-top: var(--nav-height);
     }
 
     body {
@@ -53,6 +58,13 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+    }
+
+    /* ─── Focus ────────────────────────────────────────────── */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: var(--radius-sm);
     }
 
     /* ─── Utility ──────────────────────────────────────────── */
@@ -100,6 +112,7 @@
     }
 
     .nav-logo {
+      font-family: var(--font);
       font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.02em;
@@ -136,6 +149,32 @@
       gap: 12px;
     }
 
+    /* ─── GitHub link ───────────────────────────────────────── */
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: color 0.15s ease;
+      line-height: 1;
+    }
+
+    .github-link:hover {
+      color: var(--text-primary);
+    }
+
+    .github-link svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .footer-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
     /* ─── Buttons ───────────────────────────────────────────── */
     .btn {
       display: inline-flex;
@@ -155,13 +194,23 @@
 
     .btn-primary {
       background: var(--accent);
-      color: #0a0a0b;
+      color: var(--bg-base);
       padding: 10px 20px;
     }
 
     .btn-primary:hover {
       background: var(--accent-light);
       transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      background: var(--accent);
+    }
+
+    .btn-secondary:active {
+      transform: translateY(0);
+      opacity: 0.7;
     }
 
     .btn-secondary {
@@ -233,8 +282,9 @@
     }
 
     .hero h1 {
+      font-family: var(--font-display);
       font-size: clamp(38px, 6vw, 72px);
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: -0.04em;
       line-height: 1.05;
       color: var(--text-primary);
@@ -321,8 +371,9 @@
     }
 
     .section-title {
+      font-family: var(--font);
       font-size: clamp(28px, 4vw, 44px);
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.1;
       color: var(--text-primary);
@@ -376,7 +427,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(224, 82, 82, 0.1);
+      background: var(--red-dim);
       border-radius: var(--radius-sm);
       font-size: 16px;
     }
@@ -461,6 +512,7 @@
     }
 
     .metric-name {
+      font-family: var(--font);
       font-size: 14px;
       font-weight: 700;
       color: var(--text-primary);
@@ -488,8 +540,8 @@
     }
 
     .metric-badge.coming-soon {
-      color: #c87070;
-      background: rgba(224, 82, 82, 0.12);
+      color: var(--red-muted);
+      background: var(--red-dim);
     }
 
     /* ─── How it works ──────────────────────────────────────── */
@@ -545,6 +597,7 @@
       align-items: center;
       justify-content: center;
       margin: 0 auto 28px;
+      font-family: var(--font);
       font-size: 15px;
       font-weight: 700;
       color: var(--accent);
@@ -553,8 +606,9 @@
     }
 
     .step-title {
+      font-family: var(--font);
       font-size: 17px;
-      font-weight: 700;
+      font-weight: 600;
       color: var(--text-primary);
       letter-spacing: -0.02em;
       margin-bottom: 10px;
@@ -572,8 +626,9 @@
     }
 
     .trust-headline {
+      font-family: var(--font);
       font-size: clamp(22px, 3vw, 36px);
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: -0.03em;
       color: var(--text-primary);
       margin-bottom: 12px;
@@ -662,8 +717,9 @@
     }
 
     .cta-box h2 {
+      font-family: var(--font);
       font-size: clamp(28px, 4vw, 44px);
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.1;
       color: var(--text-primary);
@@ -706,6 +762,7 @@
     }
 
     .footer-logo {
+      font-family: var(--font);
       font-size: 16px;
       font-weight: 700;
       letter-spacing: -0.02em;
@@ -740,7 +797,7 @@
       flex-direction: column;
       gap: 5px;
       cursor: pointer;
-      padding: 4px;
+      padding: 8px;
       background: none;
       border: none;
     }
@@ -752,6 +809,44 @@
       background: var(--text-secondary);
       border-radius: 2px;
       transition: all 0.2s ease;
+    }
+
+    .nav-mobile-menu {
+      display: none;
+      position: fixed;
+      top: var(--nav-height);
+      left: 0;
+      right: 0;
+      background: rgba(10, 10, 11, 0.97);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px 24px;
+      z-index: 99;
+    }
+
+    .nav-mobile-menu.is-open {
+      display: block;
+    }
+
+    .nav-mobile-links {
+      list-style: none;
+      margin-bottom: 16px;
+    }
+
+    .nav-mobile-links a {
+      display: block;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.15s ease;
+    }
+
+    .nav-mobile-links a:hover {
+      color: var(--text-primary);
     }
 
     /* ─── Responsive ────────────────────────────────────────── */
@@ -838,6 +933,22 @@
         gap: 16px;
         text-align: center;
       }
+
+      .footer-right {
+        align-items: center;
+      }
+    }
+
+    /* ─── Reduced motion ─────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      html {
+        scroll-behavior: auto;
+      }
     }
   </style>
 </head>
@@ -855,16 +966,30 @@
       </ul>
 
       <div class="nav-cta">
-        <a href="#cta" class="btn btn-secondary">Login</a>
+        <a href="https://github.com/mattpauldavies/distilled" class="github-link" aria-label="Distilled on GitHub" target="_blank" rel="noopener noreferrer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        </a>
+        <a href="#" class="btn btn-secondary">Sign in</a>
       </div>
 
-      <button class="nav-mobile-toggle" aria-label="Open navigation menu" aria-expanded="false">
+      <button class="nav-mobile-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-menu">
         <span></span>
         <span></span>
         <span></span>
       </button>
     </div>
   </nav>
+
+  <div id="mobile-menu" class="nav-mobile-menu" aria-hidden="true">
+    <ul class="nav-mobile-links" role="list">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#trust">Why Distilled</a></li>
+    </ul>
+    <a href="#cta" class="btn btn-primary" style="width:100%;justify-content:center;">Get started for free</a>
+  </div>
+
+  <main>
 
   <!-- ─── Hero ──────────────────────────────────────────────── -->
   <section class="hero" aria-labelledby="hero-heading">
@@ -892,6 +1017,8 @@
           <img
             src="images/distilled-screenshot.png"
             alt="Distilled dashboard — metric cards for Deployment Frequency, Lead Time, PR Cycle Time and more, with trend charts"
+            width="1920"
+            height="1200"
             loading="eager"
             decoding="async"
           />
@@ -1085,6 +1212,8 @@
     </div>
   </section>
 
+  </main>
+
   <!-- ─── Footer ─────────────────────────────────────────────── -->
   <footer>
     <div class="container">
@@ -1093,10 +1222,43 @@
           <div class="footer-logo">Distilled<span>.</span></div>
           <div class="footer-tagline">Engineering intelligence without the noise.</div>
         </div>
-        <div class="footer-copy">&copy; 2026 Distilled. All rights reserved.</div>
+        <div class="footer-right">
+          <a href="https://github.com/mattpauldavies/distilled" class="github-link" aria-label="Distilled on GitHub" target="_blank" rel="noopener noreferrer">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          </a>
+          <div class="footer-copy">&copy; 2026 Distilled. All rights reserved.</div>
+        </div>
       </div>
     </div>
   </footer>
+
+  <script>
+    const toggle = document.querySelector('.nav-mobile-toggle');
+    const menu = document.getElementById('mobile-menu');
+
+    toggle.addEventListener('click', () => {
+      const isOpen = menu.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+      menu.setAttribute('aria-hidden', String(!isOpen));
+    });
+
+    menu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menu.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+      });
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && menu.classList.contains('is-open')) {
+        menu.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+        toggle.focus();
+      }
+    });
+  </script>
 
 </body>
 </html>
