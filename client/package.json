@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.4",
+    "@clerk/ui": "^1.2.4",
     "@tailwindcss/vite": "^4.2.1",
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
