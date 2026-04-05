@@ -42,6 +42,7 @@ router = APIRouter(prefix="/metrics")
 
 class RecomputeRequest(BaseModel):
     repo_id: uuid.UUID
+    tenant_id: uuid.UUID
 
 
 _bearer_scheme = HTTPBearer()
@@ -62,7 +63,7 @@ async def recompute_metrics(
     _auth: None = Depends(_verify_cron_secret),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    tenant_id = uuid.UUID(settings.seed_tenant_id)
+    tenant_id = body.tenant_id
 
     # Look up repo for default_branch
     repo_result = await session.execute(

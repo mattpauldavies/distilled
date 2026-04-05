@@ -69,12 +69,11 @@ async def test_recompute_success(metrics_client, mock_session):
         patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute,
     ):
         mock_settings.internal_cron_secret = "test-secret"
-        mock_settings.seed_tenant_id = str(TENANT_ID)
         mock_recompute.return_value = RecomputeResult(status="success")
 
         resp = await metrics_client.post(
             "/api/metrics/recompute",
-            json={"repo_id": str(REPO_ID)},
+            json={"repo_id": str(REPO_ID), "tenant_id": str(TENANT_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
 
@@ -90,11 +89,10 @@ async def test_recompute_repo_not_found(metrics_client, mock_session):
 
     with patch("app.routes.metrics.settings") as mock_settings:
         mock_settings.internal_cron_secret = "test-secret"
-        mock_settings.seed_tenant_id = str(TENANT_ID)
 
         resp = await metrics_client.post(
             "/api/metrics/recompute",
-            json={"repo_id": str(REPO_ID)},
+            json={"repo_id": str(REPO_ID), "tenant_id": str(TENANT_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
 
