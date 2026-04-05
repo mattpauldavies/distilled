@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:5173"]
     clerk_jwks_url: str = ""
     clerk_publishable_key: str = ""
+    clerk_secret_key: str = ""
     github_app_slug: str = ""
 
 

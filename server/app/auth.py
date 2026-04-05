@@ -50,7 +50,7 @@ async def require_auth(
 
     token = auth_header[7:]
     claims = await verifier.verify_token(token)
-    user, tenant = await get_or_create_user_and_tenant(claims, session)
+    user, tenant = await get_or_create_user_and_tenant(claims, session, verifier)
     return CurrentUser(
         user_id=user.id,
         tenant_id=tenant.id,

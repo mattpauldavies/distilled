@@ -31,6 +31,19 @@ class ClerkJWTVerifier:
                 self._fetched_at = now
         return self._jwks_data  # type: ignore[return-value]
 
+    async def get_user(self, clerk_user_id: str) -> dict:
+        """Fetch full user profile from Clerk Backend API."""
+        if not settings.clerk_secret_key:
+            raise HTTPException(status_code=503, detail="Clerk secret key not configured")
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://api.clerk.com/v1/users/{clerk_user_id}",
+                headers={"Authorization": f"Bearer {settings.clerk_secret_key}"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            return resp.json()
+
     async def verify_token(self, token: str) -> dict:
         if not settings.clerk_jwks_url:
             raise HTTPException(status_code=401, detail="Auth not configured")
