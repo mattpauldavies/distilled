@@ -15,5 +15,15 @@ services:
       timeout: 5s
       retries: 5
 
+  pgweb:
+    image: sosedoff/pgweb:latest
+    ports:
+      - "5050:8081"
+    environment:
+      DATABASE_URL: postgres://distilled:${POSTGRES_PASSWORD:-distilled}@postgres:5432/distilled?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:

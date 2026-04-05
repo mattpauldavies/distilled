@@ -13,13 +13,13 @@ dev-client:
 	cd client && source ~/.nvm/nvm.sh && nvm use && npm run dev
 
 db-up:
-	docker compose up -d postgres
+	docker compose up -d postgres pgweb
 
 db-down:
 	docker compose down
 
 db-reset:
-	docker compose down -v && docker compose up -d postgres
+	docker compose down -v && docker compose up -d postgres pgweb
 
 migrate:
 	cd server && poetry run alembic upgrade head

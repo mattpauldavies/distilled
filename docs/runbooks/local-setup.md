@@ -16,7 +16,7 @@ End-to-end guide for running and testing Distilled locally, including GitHub App
 ## 1. Start the Database
 
 ```sh
-make db-up        # starts Postgres 16 via Docker on port 5432
+make db-up        # starts Postgres 16 via Docker on port 5432, plus pgweb on port 5050
 make migrate      # applies Alembic migrations
 ```
 
@@ -25,6 +25,8 @@ Verify it's running:
 ```sh
 docker compose ps   # should show postgres healthy
 ```
+
+**pgweb** (a lightweight Postgres browser) starts automatically alongside Postgres. Open http://localhost:5050 to browse tables and run queries against the dev database — no login required, it connects automatically.
 
 To reset to a clean slate:
 
@@ -325,6 +327,14 @@ The suite runs 19 tests across 6 groups — page structure, repo selector, exact
 make db-reset     # nuclear option: drops everything
 make migrate      # re-apply migrations
 ```
+
+To browse the database interactively, open http://localhost:5050 (pgweb). It starts automatically with `make db-up` and connects to the dev database without any login.
+
+### pgweb not loading
+
+- Run `docker compose ps` — the `pgweb` container should be running
+- It depends on Postgres being healthy, so if Postgres is still starting up pgweb may take a few seconds
+- Try `docker compose logs pgweb` to see any connection errors
 
 ### Port conflicts
 

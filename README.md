@@ -35,6 +35,7 @@ make dev
 - Client: http://localhost:5173
 - Server: http://localhost:8000
 - API docs: http://localhost:8000/docs
+- DB browser: http://localhost:5050
 
 For full setup including GitHub App integration, see the [local setup runbook](docs/runbooks/local-setup.md).
 
@@ -55,9 +56,9 @@ Makefile  # dev commands + database management
 | `dev`              | Run server + client concurrently                          |
 | `dev-server`       | Server only (port 8000)                                   |
 | `dev-client`       | Client only (port 5173)                                   |
-| `db-up`            | Start Postgres                                            |
-| `db-down`          | Stop Postgres                                             |
-| `db-reset`         | Drop volume + restart Postgres                            |
+| `db-up`            | Start Postgres + pgweb (DB browser at port 5050)          |
+| `db-down`          | Stop Postgres + pgweb                                     |
+| `db-reset`         | Drop volume + restart.                                    |
 | `migrate`          | Run Alembic migrations                                    |
 | `create-migration` | Create new migration (`MSG="description"`)                |
 | `test`             | Run all server + client tests                             |
@@ -70,7 +71,7 @@ Makefile  # dev commands + database management
 | `format`           | Auto-format server (ruff) + client (prettier)             |
 | `format-server`    | Server format only                                        |
 | `format-client`    | Client format only                                        |
-| `smoke-install`    | Install Playwright and download Chromium (first-time)     |
+| `smoke-install`    | Install Playwright and download Chromium (first-time)      |
 | `smoke-test`       | Run browser smoke tests against the running app           |
 
 ## Documentation
