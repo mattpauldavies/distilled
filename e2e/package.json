@@ -8,6 +8,7 @@
     "test:ui": "playwright test --ui"
   },
   "devDependencies": {
+    "@clerk/testing": "^1.4.5",
     "@playwright/test": "^1.56.0"
   }
 }
