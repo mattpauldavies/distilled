@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset lint lint-server lint-client format format-server format-client smoke-install smoke-test
+.PHONY: dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset seed-claim lint lint-server lint-client format format-server format-client smoke-install smoke-test
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -44,6 +44,10 @@ seed-demo:  ## Seed the database with realistic demo data
 
 seed-reset:  ## Remove all demo data from the database
 	cd server && PYTHONPATH=. poetry run python scripts/reset_demo.py
+
+seed-claim:  ## Link your Clerk user to seed data: make seed-claim USER=user_abc123
+	@test -n "$(USER)" || (echo "Usage: make seed-claim USER=<clerk_user_id>" && exit 1)
+	cd server && PYTHONPATH=. poetry run python scripts/claim_seed_data.py $(USER)
 
 lint: lint-server lint-client
 
