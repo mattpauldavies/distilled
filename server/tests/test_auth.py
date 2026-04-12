@@ -81,10 +81,9 @@ async def test_valid_jwt_injects_current_user():
 
     app.dependency_overrides[get_session] = override_session
 
-    with patch(
-        "app.auth.verifier.verify_token", new=AsyncMock(return_value={"sub": "user_test123"})
-    ), patch(
-        "app.auth.get_or_create_user_and_tenant", new=AsyncMock(return_value=(mock_user, mock_tenant))
+    with (
+        patch("app.auth.verifier.verify_token", new=AsyncMock(return_value={"sub": "user_test123"})),
+        patch("app.auth.get_or_create_user_and_tenant", new=AsyncMock(return_value=(mock_user, mock_tenant))),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/protected", headers={"Authorization": "Bearer valid.jwt"})

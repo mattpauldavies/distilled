@@ -111,13 +111,9 @@ async def get_or_create_user_and_tenant(
     except IntegrityError:
         # Concurrent request already created this user — re-query
         await session.rollback()
-        result = await session.execute(
-            select(User).where(User.clerk_user_id == clerk_user_id)
-        )
+        result = await session.execute(select(User).where(User.clerk_user_id == clerk_user_id))
         user = result.scalar_one()
-        tenant_result = await session.execute(
-            select(Tenant).where(Tenant.id == user.tenant_id)
-        )
+        tenant_result = await session.execute(select(Tenant).where(Tenant.id == user.tenant_id))
         tenant = tenant_result.scalar_one()
 
     return user, tenant

@@ -75,11 +75,11 @@ async def test_handle_created_known_account(mock_github_cls, mock_discover, mock
     user_result.scalar_one_or_none.return_value = test_user
 
     mock_session.execute.side_effect = [
-        user_result,             # User lookup by github_account_id
-        mock_insert_result(1),   # upsert installation
+        user_result,  # User lookup by github_account_id
+        mock_insert_result(1),  # upsert installation
         mock_result(scalar=installation),  # get installation
-        mock_insert_result(1),   # sync repo 1
-        mock_insert_result(1),   # sync repo 2
+        mock_insert_result(1),  # sync repo 1
+        mock_insert_result(1),  # sync repo 2
         mock_result(rows=[repo1, repo2]),  # get repos after flush
     ]
 

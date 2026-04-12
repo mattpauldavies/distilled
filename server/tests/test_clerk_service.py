@@ -26,8 +26,9 @@ async def test_get_jwks_fetches_on_first_call():
     test_jwks = {"keys": [{"kid": "key-1", "kty": "RSA"}]}
     mock_client = make_mock_http_client(test_jwks)
 
-    with patch("app.services.clerk_service.settings") as mock_settings, patch(
-        "httpx.AsyncClient", return_value=mock_client
+    with (
+        patch("app.services.clerk_service.settings") as mock_settings,
+        patch("httpx.AsyncClient", return_value=mock_client),
     ):
         mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
         result = await verifier.get_jwks()
@@ -43,8 +44,9 @@ async def test_get_jwks_caches_result():
     test_jwks = {"keys": [{"kid": "key-1", "kty": "RSA"}]}
     mock_client = make_mock_http_client(test_jwks)
 
-    with patch("app.services.clerk_service.settings") as mock_settings, patch(
-        "httpx.AsyncClient", return_value=mock_client
+    with (
+        patch("app.services.clerk_service.settings") as mock_settings,
+        patch("httpx.AsyncClient", return_value=mock_client),
     ):
         mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
         result1 = await verifier.get_jwks()
@@ -63,8 +65,9 @@ async def test_get_jwks_refetches_after_ttl():
     test_jwks = {"keys": []}
     mock_client = make_mock_http_client(test_jwks)
 
-    with patch("app.services.clerk_service.settings") as mock_settings, patch(
-        "httpx.AsyncClient", return_value=mock_client
+    with (
+        patch("app.services.clerk_service.settings") as mock_settings,
+        patch("httpx.AsyncClient", return_value=mock_client),
     ):
         mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
         await verifier.get_jwks()
@@ -99,8 +102,9 @@ async def test_verify_token_raises_401_for_invalid_token():
     test_jwks = {"keys": []}
     mock_client = make_mock_http_client(test_jwks)
 
-    with patch("app.services.clerk_service.settings") as mock_settings, patch(
-        "httpx.AsyncClient", return_value=mock_client
+    with (
+        patch("app.services.clerk_service.settings") as mock_settings,
+        patch("httpx.AsyncClient", return_value=mock_client),
     ):
         mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
         with pytest.raises(HTTPException) as exc_info:
@@ -122,8 +126,9 @@ async def test_verify_token_raises_401_for_unknown_kid():
     # Create a token with a different kid (decode without verification to fake the header)
     fake_token = pyjwt.encode({"sub": "user_123"}, "secret", algorithm="HS256", headers={"kid": "unknown-kid"})
 
-    with patch("app.services.clerk_service.settings") as mock_settings, patch(
-        "httpx.AsyncClient", return_value=mock_client
+    with (
+        patch("app.services.clerk_service.settings") as mock_settings,
+        patch("httpx.AsyncClient", return_value=mock_client),
     ):
         mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
         with pytest.raises(HTTPException) as exc_info:

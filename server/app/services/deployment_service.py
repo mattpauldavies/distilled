@@ -25,9 +25,7 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
     repo_data = payload["repository"]
 
     # Look up repo by GitHub ID — globally unique, tenant derived from repo
-    result = await session.execute(
-        select(Repository).where(Repository.github_id == repo_data["id"])
-    )
+    result = await session.execute(select(Repository).where(Repository.github_id == repo_data["id"]))
     repo = result.scalar_one_or_none()
     if not repo:
         logger.warning("repo not found github_id=%s", repo_data["id"])
@@ -108,9 +106,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
     repo_data = payload["repository"]
 
     # Look up repo by GitHub ID — globally unique, tenant derived from repo
-    result = await session.execute(
-        select(Repository).where(Repository.github_id == repo_data["id"])
-    )
+    result = await session.execute(select(Repository).where(Repository.github_id == repo_data["id"]))
     repo = result.scalar_one_or_none()
     if not repo:
         logger.warning("repo not found for PR, github_id=%s", repo_data["id"])

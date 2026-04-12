@@ -37,9 +37,7 @@ class Settings(BaseSettings):
                 if not getattr(self, field)
             ]
             if missing:
-                raise ValueError(
-                    f"Required secrets not set for production: {', '.join(missing)}"
-                )
+                raise ValueError(f"Required secrets not set for production: {', '.join(missing)}")
         return self
 
 

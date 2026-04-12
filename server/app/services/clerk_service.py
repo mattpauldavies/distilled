@@ -23,9 +23,7 @@ class ClerkJWTVerifier:
 
     async def get_jwks(self) -> dict:
         now = time.monotonic()
-        if self._jwks_data is None or (
-            self._fetched_at is not None and now - self._fetched_at > self._ttl
-        ):
+        if self._jwks_data is None or (self._fetched_at is not None and now - self._fetched_at > self._ttl):
             async with httpx.AsyncClient() as client:
                 resp = await client.get(settings.clerk_jwks_url, timeout=10)
                 resp.raise_for_status()
