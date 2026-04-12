@@ -44,7 +44,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
       Authorization: `Bearer ${secretKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ user_id: userId }),
+    body: JSON.stringify({ user_id: userId, redirect_url: baseUrl }),
   });
 
   if (!tokenResponse.ok) {
@@ -65,7 +65,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   await page.goto(signInUrl);
 
   // Wait for Clerk to redirect back to the app after processing the token
-  await page.waitForURL(`${baseUrl}/**`, { timeout: 30_000 });
+  await page.waitForURL(`${baseUrl}*`, { timeout: 30_000 });
 
   // Wait for the dashboard to be ready — confirms auth + API round-trip both worked
   await page.waitForSelector('[role="combobox"]', { timeout: 30_000 });
