@@ -16,16 +16,18 @@
  *      stores it in process.env (CLERK_FAPI, CLERK_TESTING_TOKEN). These env
  *      vars are inherited by Playwright worker processes for per-test bot
  *      detection bypass via setupClerkTestingToken().
- *   2. A one-time sign-in ticket is created for the smoke test user via the
+ *   2. A one-time sign-in URL is created for the smoke test user via the
  *      Clerk Backend API.
- *   3. The browser navigates to the app, waits for Clerk JS to load, then
- *      signs in programmatically using the ticket strategy
- *      (window.Clerk.signIn.create).
- *   4. The resulting session is saved as storageState so all test workers
+ *   3. setupClerkTestingToken() is applied to the browser context so Clerk
+ *      Frontend API requests include the testing token.
+ *   4. The browser navigates to the sign-in URL (with __clerk_testing_token
+ *      appended for the initial server-side request). Clerk verifies the
+ *      ticket server-side, sets the session, and redirects to the app.
+ *   5. The resulting session is saved as storageState so all test workers
  *      start pre-authenticated.
  */
 
-import { clerkSetup, clerk } from "@clerk/testing/playwright";
+import { clerkSetup, setupClerkTestingToken } from "@clerk/testing/playwright";
 import { chromium, FullConfig } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
@@ -58,14 +60,17 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
 
-  // Create a one-time sign-in ticket for the test user via Clerk Backend API.
+  // Create a one-time sign-in URL for the test user via Clerk Backend API.
+  // We pass redirect_url so Clerk redirects back to the app after verifying
+  // the ticket server-side. This avoids the client-side signIn.create() flow
+  // which requires the user to have an identification (email/phone).
   const tokenResponse = await fetch("https://api.clerk.com/v1/sign_in_tokens", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${secretKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ user_id: userId }),
+    body: JSON.stringify({ user_id: userId, redirect_url: baseUrl }),
   });
 
   if (!tokenResponse.ok) {
@@ -75,24 +80,31 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     );
   }
 
-  const { token: ticket } = (await tokenResponse.json()) as { token: string };
+  const { url: signInUrl } = (await tokenResponse.json()) as { url: string };
 
-  // Launch browser, navigate to the app so Clerk JS loads, then sign in
-  // programmatically using the ticket strategy. This avoids the fragile
-  // redirect-based flow and uses Clerk's own client-side API.
+  // Append the Testing Token to the sign-in URL so Clerk's server-side
+  // bot-detection is bypassed on the initial navigation to Clerk's domain.
+  const patchedUrl = new URL(signInUrl);
+  const testingToken = process.env.CLERK_TESTING_TOKEN;
+  if (testingToken) {
+    patchedUrl.searchParams.set("__clerk_testing_token", testingToken);
+  }
+
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto(baseUrl);
+  // Set up testing token interception on the context so that Clerk Frontend
+  // API requests (session validation etc.) after the redirect also include
+  // the testing token. This is critical for bot-detection bypass.
+  await setupClerkTestingToken({ page });
 
-  // clerk.signIn() internally calls setupClerkTestingToken() to bypass bot
-  // detection, waits for window.Clerk to load, then signs in via
-  // window.Clerk.signIn.create({ strategy: 'ticket', ticket }).
-  await clerk.signIn({
-    page,
-    signInParams: { strategy: "ticket", ticket },
-  });
+  // Navigate to the sign-in URL. Clerk verifies the ticket server-side,
+  // creates the session, and redirects to baseUrl.
+  await page.goto(patchedUrl.toString());
+
+  // Wait for Clerk to redirect back to the app after processing the token.
+  await page.waitForURL(`${baseUrl}**`, { timeout: 30_000 });
 
   // Wait for the dashboard to be ready — confirms auth + API round-trip worked.
   await page.waitForSelector('[role="combobox"]', { timeout: 30_000 });
