@@ -71,7 +71,7 @@ class ClerkJWTVerifier:
             return claims
         except HTTPException:
             raise
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Token expired")
+        except jwt.ExpiredSignatureError as exc:
+            raise HTTPException(status_code=401, detail="Token expired") from exc
         except jwt.InvalidTokenError as exc:
-            raise HTTPException(status_code=401, detail=f"Invalid token: {exc}")
+            raise HTTPException(status_code=401, detail=f"Invalid token: {exc}") from exc

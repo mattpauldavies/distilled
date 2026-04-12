@@ -20,7 +20,10 @@ describe("OnboardingScreen", () => {
     render(<OnboardingScreen onReposDetected={vi.fn()} />)
 
     const installLink = screen.getByRole("link", { name: /Install GitHub App/ })
-    expect(installLink).toHaveAttribute("href", "https://github.com/apps/test-app/installations/new")
+    expect(installLink).toHaveAttribute(
+      "href",
+      "https://github.com/apps/test-app/installations/new"
+    )
   })
 
   it("calls onReposDetected when polling detects repos", async () => {

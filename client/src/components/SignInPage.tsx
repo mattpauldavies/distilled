@@ -7,7 +7,7 @@ export function SignInPage() {
         appearance={{
           elements: {
             footer: {
-              display: 'none',
+              display: "none",
             },
           },
         }}

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.models.user import User
-from app.services.installation_service import _handle_created, handle_installation_event, sync_repos
+from app.services.installation_service import handle_installation_event, sync_repos
 from tests.conftest import (
     TENANT_ID,
     make_installation,
