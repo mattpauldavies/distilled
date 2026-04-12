@@ -15,7 +15,7 @@
  * fully stable regardless of when the seed was run.
  */
 
-import { expect, Page, test } from "@playwright/test";
+import { expect, Page, test } from "./fixtures";
 
 // ── Known seed values ─────────────────────────────────────────────────────────
 // From server/scripts/seed_demo.py — these never change once seeded.
