@@ -50,11 +50,11 @@ async function clerkApi(
 }
 
 /**
- * Ensure the smoke test user has at least one verified email address.
- * Clerk's client-side ticket sign-in strategy requires an "identification"
- * (email/phone/username). Returns the user's email address.
+ * Fetch the smoke test user's email address from Clerk.
+ * The ticket sign-in strategy requires the user to have at least one
+ * identification (email/phone/username).
  */
-async function ensureUserEmail(
+async function getUserEmail(
   userId: string,
   secretKey: string,
 ): Promise<string> {
@@ -69,29 +69,15 @@ async function ensureUserEmail(
     email_addresses: Array<{ email_address: string }>;
   };
 
-  if (user.email_addresses.length > 0) {
-    return user.email_addresses[0].email_address;
-  }
-
-  // No email — create a verified one so the ticket strategy works.
-  const addResp = await clerkApi(`/v1/email_addresses`, secretKey, {
-    method: "POST",
-    body: {
-      user_id: userId,
-      email_address: `smoke-test+${userId}@test.distilled.dev`,
-      verified: true,
-      primary: true,
-    },
-  });
-
-  if (!addResp.ok) {
+  if (user.email_addresses.length === 0) {
     throw new Error(
-      `Failed to add email to smoke test user: ${await addResp.text()}`,
+      `Smoke test user ${userId} has no email address. ` +
+        "Clerk's ticket sign-in strategy requires at least one identification. " +
+        "Add an email address to the user in the Clerk Dashboard.",
     );
   }
 
-  const created = (await addResp.json()) as { email_address: string };
-  return created.email_address;
+  return user.email_addresses[0].email_address;
 }
 
 export default async function globalSetup(_config: FullConfig): Promise<void> {
@@ -120,9 +106,9 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
 
-  // Ensure the smoke test user has a verified email (required for ticket
-  // sign-in strategy which needs at least one identification).
-  const email = await ensureUserEmail(userId, secretKey);
+  // Fetch the smoke test user's email (required for ticket sign-in strategy
+  // which needs at least one identification).
+  const email = await getUserEmail(userId, secretKey);
 
   // Launch browser and navigate to the app so Clerk JS loads.
   const browser = await chromium.launch();
