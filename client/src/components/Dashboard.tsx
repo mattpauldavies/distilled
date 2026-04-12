@@ -1,8 +1,6 @@
 import { useState } from "react"
 import { useClerk } from "@clerk/clerk-react"
 
-const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-
 function SignOutButton() {
   const { signOut } = useClerk()
   return (
@@ -90,7 +88,7 @@ export function Dashboard() {
             daysWindow={daysWindow}
             onDaysWindowChange={setDaysWindow}
           />
-          {HAS_CLERK && <SignOutButton />}
+          <SignOutButton />
         </div>
       </div>
 
