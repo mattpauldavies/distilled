@@ -70,17 +70,13 @@ class ClerkJWTVerifier:
                 logger.warning("clerk_jwt: token presented with unknown signing key")
                 raise HTTPException(status_code=401, detail="Unknown signing key")
 
-            decode_options: dict = {}
-            if not settings.clerk_expected_audience:
-                decode_options["verify_aud"] = False
-
             claims: dict = jwt.decode(
                 token,
                 key,
                 algorithms=["RS256"],
                 audience=settings.clerk_expected_audience or None,
                 issuer=settings.clerk_issuer or None,
-                options=decode_options,
+                options={"verify_aud": False} if not settings.clerk_expected_audience else None,
             )
             return claims
         except HTTPException:
