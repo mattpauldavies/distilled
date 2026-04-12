@@ -1,8 +1,10 @@
 import logging
 import time
+from typing import cast
 
 import httpx
 import jwt
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from fastapi import HTTPException
 from jwt.algorithms import RSAAlgorithm
 
@@ -55,7 +57,7 @@ class ClerkJWTVerifier:
             key = None
             for jwk_key in jwks.get("keys", []):
                 if jwk_key.get("kid") == kid:
-                    key = RSAAlgorithm.from_jwk(jwk_key)
+                    key = cast(RSAPublicKey, RSAAlgorithm.from_jwk(jwk_key))
                     break
 
             if key is None:
