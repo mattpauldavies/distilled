@@ -71,6 +71,9 @@ Makefile  # dev commands + database management
 | `format`           | Auto-format server (ruff) + client (prettier)             |
 | `format-server`    | Server format only                                        |
 | `format-client`    | Client format only                                        |
+| `seed-demo`        | Seed the database with realistic demo data                |
+| `seed-reset`       | Remove all demo data from the database                    |
+| `seed-claim`       | Link your Clerk user to seed data (`USER=<clerk_user_id>`)|
 | `smoke-install`    | Install Playwright and download Chromium (first-time)      |
 | `smoke-test`       | Run browser smoke tests against the running app           |
 

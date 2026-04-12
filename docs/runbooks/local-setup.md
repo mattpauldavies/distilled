@@ -47,6 +47,22 @@ make seed-demo
 
 This creates two repositories (`acme-corp/web` and `acme-corp/api`) with realistic PR and deployment history. `acme-corp/api` includes a rough-patch story arc (healthy → deteriorates → recovers) to demonstrate the full range of metrics.
 
+### Viewing seed data with your personal account
+
+By default the seed data is attached to the smoke-test user (via `CLERK_SMOKE_USER_ID`). When you log in locally with your own GitHub account, a new tenant is created for you — which has no data. To see the seed data under your personal account:
+
+```sh
+make seed-claim USER=<your_clerk_user_id>
+```
+
+Your Clerk user ID (`user_...`) is visible in the Clerk dashboard, or in the JWT `sub` claim.
+
+This works whether or not you've already logged in:
+- **Already logged in:** your existing user is moved to the seed tenant.
+- **Haven't logged in yet:** a placeholder user row is created so your first login resolves to the seed tenant automatically.
+
+### Resetting and refreshing
+
 To remove the demo data:
 
 ```sh
@@ -58,6 +74,8 @@ To refresh with a clean set (e.g. after time has passed and dates look stale):
 ```sh
 make seed-reset && make seed-demo
 ```
+
+After a reset, you'll need to re-run `make seed-claim USER=...` if you were using the seed data with your personal account.
 
 > **Note:** Demo data is isolated from any real GitHub data you connect later. Connecting a real GitHub App will add your real repos alongside the demo repos — run `make seed-reset` first if you want a clean install.
 

@@ -24,6 +24,7 @@ from app.models.metrics import (
 )
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
+from app.models.user import User
 
 TENANT_ID = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -84,8 +85,14 @@ async def main() -> None:
         # Delete the installation (but NOT the tenant — it's shared with dev)
         await session.execute(delete(GitHubInstallation).where(GitHubInstallation.id == installation_uuid))
 
+        # Remove any users linked to the seed tenant (smoke test user, claimed users)
+        user_result = await session.execute(
+            delete(User).where(User.tenant_id == TENANT_ID)
+        )
+        users_removed = user_result.rowcount
+
         await session.commit()
-        print(f"✓ Demo data removed ({len(repo_ids)} repos).")
+        print(f"✓ Demo data removed ({len(repo_ids)} repos, {users_removed} users).")
 
     await engine.dispose()
 
