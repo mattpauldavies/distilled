@@ -13,10 +13,12 @@ from app.models.metrics import (
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 from app.models.tenant import Tenant
+from app.models.user import User
 
 __all__ = [
     "Base",
     "Tenant",
+    "User",
     "GitHubInstallation",
     "Repository",
     "Environment",

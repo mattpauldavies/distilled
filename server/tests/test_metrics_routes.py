@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.auth import require_api_key
+from app.auth import require_auth
 from app.db import get_session
 from app.main import create_app
 from app.schemas.metrics import (
@@ -29,7 +29,7 @@ def metrics_client(mock_session):
         yield mock_session
 
     app.dependency_overrides[get_session] = override_session
-    app.dependency_overrides[require_api_key] = lambda: None  # bypass auth in tests
+    app.dependency_overrides[require_auth] = lambda: None  # bypass auth in tests
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     return AsyncClient(transport=transport, base_url="http://test")
 
@@ -69,12 +69,11 @@ async def test_recompute_success(metrics_client, mock_session):
         patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute,
     ):
         mock_settings.internal_cron_secret = "test-secret"
-        mock_settings.seed_tenant_id = str(TENANT_ID)
         mock_recompute.return_value = RecomputeResult(status="success")
 
         resp = await metrics_client.post(
             "/api/metrics/recompute",
-            json={"repo_id": str(REPO_ID)},
+            json={"repo_id": str(REPO_ID), "tenant_id": str(TENANT_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
 
@@ -90,11 +89,10 @@ async def test_recompute_repo_not_found(metrics_client, mock_session):
 
     with patch("app.routes.metrics.settings") as mock_settings:
         mock_settings.internal_cron_secret = "test-secret"
-        mock_settings.seed_tenant_id = str(TENANT_ID)
 
         resp = await metrics_client.post(
             "/api/metrics/recompute",
-            json={"repo_id": str(REPO_ID)},
+            json={"repo_id": str(REPO_ID), "tenant_id": str(TENANT_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
 

@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_api_key
+from app.auth import require_auth
 from app.config import settings
 from app.db import get_session
 from app.middleware.repo import get_verified_repo
@@ -42,6 +42,7 @@ router = APIRouter(prefix="/metrics")
 
 class RecomputeRequest(BaseModel):
     repo_id: uuid.UUID
+    tenant_id: uuid.UUID
 
 
 _bearer_scheme = HTTPBearer()
@@ -62,7 +63,7 @@ async def recompute_metrics(
     _auth: None = Depends(_verify_cron_secret),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    tenant_id = uuid.UUID(settings.seed_tenant_id)
+    tenant_id = body.tenant_id
 
     # Look up repo for default_branch
     repo_result = await session.execute(
@@ -114,7 +115,7 @@ async def recompute_metrics(
     return {"status": result.status, "error_message": result.error_message}
 
 
-@router.get("/deployment-frequency", dependencies=[Depends(require_api_key)])
+@router.get("/deployment-frequency", dependencies=[Depends(require_auth)])
 async def get_deployment_frequency_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -135,7 +136,7 @@ async def get_deployment_frequency_endpoint(
     )
 
 
-@router.get("/lead-time", dependencies=[Depends(require_api_key)])
+@router.get("/lead-time", dependencies=[Depends(require_auth)])
 async def get_lead_time_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -163,7 +164,7 @@ async def get_lead_time_endpoint(
     )
 
 
-@router.get("/open-prs", dependencies=[Depends(require_api_key)])
+@router.get("/open-prs", dependencies=[Depends(require_auth)])
 async def get_open_prs_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -173,7 +174,7 @@ async def get_open_prs_endpoint(
     return OpenPRsResponse(**result)
 
 
-@router.get("/pr-ageing", dependencies=[Depends(require_api_key)])
+@router.get("/pr-ageing", dependencies=[Depends(require_auth)])
 async def get_pr_ageing_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
@@ -183,7 +184,7 @@ async def get_pr_ageing_endpoint(
     return PRAgeingResponse(buckets=[AgeBucket(**b) for b in result])
 
 
-@router.get("/unified", dependencies=[Depends(require_api_key)])
+@router.get("/unified", dependencies=[Depends(require_auth)])
 async def get_unified_dashboard_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),

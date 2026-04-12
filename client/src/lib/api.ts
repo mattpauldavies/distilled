@@ -1,11 +1,12 @@
-const API_KEY = import.meta.env.VITE_API_KEY ?? ""
-
-export function apiFetch(input: string, init?: RequestInit): Promise<Response> {
-  return fetch(input, {
-    ...init,
-    headers: {
-      ...init?.headers,
-      Authorization: `Bearer ${API_KEY}`,
-    },
-  })
+export function makeApiFetch(getToken: () => Promise<string | null>) {
+  return async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+    const token = await getToken()
+    return fetch(input, {
+      ...init,
+      headers: {
+        ...init?.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+  }
 }

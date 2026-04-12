@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.environment import Environment
 from app.models.pull_request import PullRequest
@@ -24,19 +23,17 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
 
     deployment = payload["deployment"]
     repo_data = payload["repository"]
-    tenant_id = uuid.UUID(settings.seed_tenant_id)
 
-    # Look up repo
+    # Look up repo by GitHub ID — globally unique, tenant derived from repo
     result = await session.execute(
-        select(Repository).where(
-            Repository.tenant_id == tenant_id,
-            Repository.github_id == repo_data["id"],
-        )
+        select(Repository).where(Repository.github_id == repo_data["id"])
     )
     repo = result.scalar_one_or_none()
     if not repo:
         logger.warning("repo not found github_id=%s", repo_data["id"])
         return
+
+    tenant_id = repo.tenant_id
 
     # Check if environment is production
     env_name = deployment["environment"]
@@ -109,19 +106,17 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         return
 
     repo_data = payload["repository"]
-    tenant_id = uuid.UUID(settings.seed_tenant_id)
 
-    # Look up repo
+    # Look up repo by GitHub ID — globally unique, tenant derived from repo
     result = await session.execute(
-        select(Repository).where(
-            Repository.tenant_id == tenant_id,
-            Repository.github_id == repo_data["id"],
-        )
+        select(Repository).where(Repository.github_id == repo_data["id"])
     )
     repo = result.scalar_one_or_none()
     if not repo:
         logger.warning("repo not found for PR, github_id=%s", repo_data["id"])
         return
+
+    tenant_id = repo.tenant_id
 
     merged_at = _parse_dt_optional(pr_data.get("merged_at"))
     opened_at = _parse_dt(pr_data.get("created_at", ""))

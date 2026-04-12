@@ -51,11 +51,13 @@ async def test_list_repos_requires_auth(mock_session):
         yield mock_session
 
     app.dependency_overrides[get_session] = override_session
-    # deliberately do NOT override require_api_key
+    # deliberately do NOT override require_auth
 
     async with AsyncClient(
         transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://test"
     ) as client:
         resp = await client.get("/api/repos")
 
-    assert resp.status_code == 403  # HTTPBearer returns 403 for missing Authorization header
+    # 503: auth not configured (CLERK_JWKS_URL empty + production env)
+    # 403: auth configured but no Authorization header
+    assert resp.status_code in (403, 503)

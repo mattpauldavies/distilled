@@ -1,4 +1,14 @@
 import { useState } from "react"
+import { useClerk } from "@clerk/clerk-react"
+
+function SignOutButton() {
+  const { signOut } = useClerk()
+  return (
+    <Button variant="outline" size="sm" onClick={() => signOut()}>
+      Sign out
+    </Button>
+  )
+}
 import { useRepos } from "@/hooks/useRepos"
 import { useDashboard } from "@/hooks/useDashboard"
 import { DashboardControls } from "@/components/DashboardControls"
@@ -8,6 +18,7 @@ import { DeploymentChart } from "@/components/charts/DeploymentChart"
 import { LeadTimeChart } from "@/components/charts/LeadTimeChart"
 import { CycleTimeChart } from "@/components/charts/CycleTimeChart"
 import { PRAgeingChart } from "@/components/charts/PRAgeingChart"
+import { OnboardingScreen } from "@/components/OnboardingScreen"
 import { Button } from "@/components/ui/button"
 import type { DaysWindow } from "@/types/dashboard"
 
@@ -28,7 +39,7 @@ function timeAgo(isoString: string | null): string {
 }
 
 export function Dashboard() {
-  const { repos, loading: reposLoading, error: reposError } = useRepos()
+  const { repos, loading: reposLoading, error: reposError, refetch: refetchRepos } = useRepos()
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
@@ -37,11 +48,7 @@ export function Dashboard() {
   const { data, loading, error, retry } = useDashboard(selectedRepoId, daysWindow)
 
   if (!reposLoading && !reposError && repos.length === 0) {
-    return (
-      <main className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-muted-foreground">No repositories found</p>
-      </main>
-    )
+    return <OnboardingScreen onReposDetected={refetchRepos} />
   }
 
   const depFreq = data?.deployment_frequency
@@ -73,13 +80,16 @@ export function Dashboard() {
             </div>
           )}
         </div>
-        <DashboardControls
-          repos={repos}
-          selectedRepoId={selectedRepoId}
-          onRepoChange={setUserSelectedRepoId}
-          daysWindow={daysWindow}
-          onDaysWindowChange={setDaysWindow}
-        />
+        <div className="flex shrink-0 items-center gap-3">
+          <DashboardControls
+            repos={repos}
+            selectedRepoId={selectedRepoId}
+            onRepoChange={setUserSelectedRepoId}
+            daysWindow={daysWindow}
+            onDaysWindowChange={setDaysWindow}
+          />
+          <SignOutButton />
+        </div>
       </div>
 
       {reposError && (

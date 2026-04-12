@@ -8,6 +8,16 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: postgresql+asyncpg://distilled:distilled@localhost:5432/distilled
+      SEED_TENANT_ID: "00000000-0000-0000-0000-000000000001"
+      SEED_TENANT_NAME: dev
+      CLERK_JWKS_URL: ${{ secrets.CLERK_JWKS_URL }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      CLERK_SMOKE_USER_ID: ${{ secrets.CLERK_SMOKE_USER_ID }}
+      CLERK_SMOKE_USER_EMAIL: ${{ secrets.CLERK_SMOKE_USER_EMAIL }}
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+
     services:
       postgres:
         image: postgres:16
@@ -52,16 +62,6 @@ jobs:
       - name: Install Playwright and Chromium
         working-directory: e2e
         run: npm ci && npx playwright install --with-deps chromium
-
-      - name: Configure server environment
-        working-directory: server
-        run: |
-          cp .env.example .env
-          echo "API_KEY=smoke-test-api-key" >> .env
-
-      - name: Configure client environment
-        working-directory: client
-        run: echo "VITE_API_KEY=smoke-test-api-key" > .env
 
       - name: Run migrations
         working-directory: server

@@ -1,17 +1,37 @@
-import hmac
+import uuid
+from dataclasses import dataclass
 
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.db import get_session
+from app.services.clerk_service import ClerkJWTVerifier
+from app.services.user_service import get_or_create_user_and_tenant
 
-_bearer_scheme = HTTPBearer()
+verifier = ClerkJWTVerifier()
 
 
-async def require_api_key(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
-) -> None:
-    if not settings.api_key:
-        raise HTTPException(status_code=401, detail="API key not configured")
-    if not hmac.compare_digest(credentials.credentials, settings.api_key):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+@dataclass
+class CurrentUser:
+    user_id: uuid.UUID
+    tenant_id: uuid.UUID
+    clerk_user_id: str
+
+
+async def require_auth(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+) -> CurrentUser:
+    """Verify a Clerk RS256 JWT from the Authorization header."""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=403, detail="Not authenticated")
+
+    token = auth_header[7:]
+    claims = await verifier.verify_token(token)
+    user, tenant = await get_or_create_user_and_tenant(claims, session, verifier)
+    return CurrentUser(
+        user_id=user.id,
+        tenant_id=tenant.id,
+        clerk_user_id=user.clerk_user_id,
+    )

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.auth import require_api_key
+from app.auth import CurrentUser, require_auth
 from app.db import get_session
 from app.main import create_app
 from app.middleware.repo import get_verified_repo
@@ -19,7 +19,14 @@ from app.models.tenant import Tenant
 
 TENANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 REPO_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
+USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000003")
 NOW = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+
+TEST_CURRENT_USER = CurrentUser(
+    user_id=USER_ID,
+    tenant_id=TENANT_ID,
+    clerk_user_id="user_test123",
+)
 
 
 @pytest.fixture
@@ -79,7 +86,7 @@ def client(mock_session, tenant_id):
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_tenant_id] = lambda: tenant_id
     app.dependency_overrides[get_verified_repo] = lambda: repo
-    app.dependency_overrides[require_api_key] = lambda: None  # bypass auth in tests
+    app.dependency_overrides[require_auth] = lambda: TEST_CURRENT_USER  # bypass auth in tests
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     return AsyncClient(transport=transport, base_url="http://test")

@@ -5,9 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.models.github_installation import GitHubInstallation
 from app.models.repository import Repository
+from app.models.user import User
 from app.services.environment_service import discover_environments
 from app.services.github_client import GitHubClient
 from app.services.webhook_service import register_handler
@@ -26,7 +26,21 @@ async def handle_installation_event(payload: dict, session: AsyncSession) -> Non
 
 async def _handle_created(payload: dict, session: AsyncSession) -> None:
     installation_data = payload["installation"]
-    tenant_id = uuid.UUID(settings.seed_tenant_id)
+
+    # Match installation to tenant by GitHub account ID
+    github_account_id = installation_data["account"]["id"]
+    user_result = await session.execute(select(User).where(User.github_account_id == github_account_id))
+    user = user_result.scalar_one_or_none()
+
+    if user is None:
+        logger.warning(
+            "installation:created received for unknown github account %s (id=%s) — skipping",
+            installation_data["account"]["login"],
+            github_account_id,
+        )
+        return
+
+    tenant_id = user.tenant_id
 
     # Upsert installation
     stmt = (

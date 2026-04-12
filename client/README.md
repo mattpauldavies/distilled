@@ -9,6 +9,19 @@ nvm use        # uses .nvmrc (Node 20)
 npm install
 ```
 
+## Environment variables
+
+Copy `.env.example` to `.env.local` and fill in the values:
+
+```sh
+cp .env.example .env.local
+```
+
+| Variable                     | Description                                    |
+| ---------------------------- | ---------------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)   |
+| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL |
+
 ## Run
 
 ```sh
@@ -40,7 +53,7 @@ npm run test:watch    # watch mode
 npm run test:coverage # with coverage report
 ```
 
-27 integration tests (Vitest + Testing Library + MSW) covering hooks, components, and end-to-end dashboard flows. Test infrastructure: MSW mocks HTTP, factory functions generate test data, custom render helper provides context.
+35 integration tests (Vitest + Testing Library + MSW) covering hooks, components, and end-to-end dashboard flows. Test infrastructure: MSW mocks HTTP, factory functions generate test data, Clerk mocked per test file.
 
 ## Lint and format
 
@@ -55,15 +68,19 @@ ESLint enforces TypeScript + React Hooks rules. Prettier handles code style (dou
 
 ```
 src/
-  main.tsx                        # Entry point
-  App.tsx                         # Renders Dashboard
+  main.tsx                        # Entry point — wraps app in ClerkProvider
+  App.tsx                         # Auth gate (SignedIn/SignedOut) + Dashboard
   index.css                       # Tailwind + theme vars
-  lib/utils.ts                    # cn() helper for shadcn
+  lib/
+    api.ts                        # makeApiFetch(getToken) factory
+    utils.ts                      # cn() helper for shadcn
   types/dashboard.ts              # TypeScript interfaces for API responses
   hooks/
-    useRepos.ts                   # Fetch repo list
-    useDashboard.ts               # Fetch unified dashboard metrics
+    useRepos.ts                   # Fetch repo list (Clerk-authenticated)
+    useDashboard.ts               # Fetch unified dashboard metrics (Clerk-authenticated)
   components/
+    SignInPage.tsx                 # Clerk sign-in page (GitHub OAuth)
+    OnboardingScreen.tsx          # Guides new tenants to install the GitHub App
     Dashboard.tsx                 # Main orchestrator — controls, cards, charts
     DashboardControls.tsx         # Repo selector + 7/30/90 day window toggle
     MetricCard.tsx                # Single metric card (loading/empty/value states)

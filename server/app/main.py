@@ -9,7 +9,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.auth import require_api_key
+from app.auth import require_auth
 from app.config import settings
 from app.db import dispose_db, init_db
 from app.logging import configure_logging
@@ -60,10 +60,10 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router, prefix="/api")
     app.include_router(webhooks.router, prefix="/api")
-    app.include_router(repos.router, prefix="/api", dependencies=[Depends(require_api_key)])
-    app.include_router(environments.router, prefix="/api", dependencies=[Depends(require_api_key)])
-    app.include_router(deployments.router, prefix="/api", dependencies=[Depends(require_api_key)])
-    app.include_router(pull_requests.router, prefix="/api", dependencies=[Depends(require_api_key)])
+    app.include_router(repos.router, prefix="/api", dependencies=[Depends(require_auth)])
+    app.include_router(environments.router, prefix="/api", dependencies=[Depends(require_auth)])
+    app.include_router(deployments.router, prefix="/api", dependencies=[Depends(require_auth)])
+    app.include_router(pull_requests.router, prefix="/api", dependencies=[Depends(require_auth)])
     app.include_router(metrics.router, prefix="/api")  # no router-level auth — per-route in metrics.py
     return app
 
