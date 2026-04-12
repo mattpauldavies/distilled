@@ -59,5 +59,5 @@ async def test_list_repos_requires_auth(mock_session):
         resp = await client.get("/api/repos")
 
     # 503: auth not configured (CLERK_JWKS_URL empty + production env)
-    # 403: auth configured but no Authorization header
-    assert resp.status_code in (403, 503)
+    # 401: auth configured but no Authorization header
+    assert resp.status_code in (401, 503)

@@ -1,9 +1,11 @@
+import json
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Request, Response
 
 from app.config import settings
 from app.db import async_session
+from app.rate_limit import limiter
 from app.services.webhook_service import EVENT_HANDLERS, verify_signature
 
 logger = logging.getLogger(__name__)
@@ -30,7 +32,13 @@ _MAX_WEBHOOK_BODY = 25 * 1024 * 1024  # 25 MB
 
 
 @router.post("/webhooks/github")
+@limiter.limit("60/minute")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks) -> Response:
+    # Pre-check Content-Length before reading body into memory
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > _MAX_WEBHOOK_BODY:
+        return Response(status_code=413)
+
     body = await request.body()
 
     if len(body) > _MAX_WEBHOOK_BODY:
@@ -44,7 +52,7 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks) ->
         return Response(status_code=415)
 
     try:
-        payload = await request.json()
+        payload = json.loads(body)
     except Exception:
         return Response(status_code=400)
 

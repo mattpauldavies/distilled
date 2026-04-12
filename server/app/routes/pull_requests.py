@@ -76,7 +76,10 @@ async def get_pull_request(
     dep_result = await session.execute(
         select(ProductionDeploymentEvent)
         .join(DeploymentAttribution, DeploymentAttribution.deployment_id == ProductionDeploymentEvent.id)
-        .where(DeploymentAttribution.pr_id == pr_id)
+        .where(
+            DeploymentAttribution.pr_id == pr_id,
+            ProductionDeploymentEvent.tenant_id == tenant_id,
+        )
         .order_by(ProductionDeploymentEvent.deployed_at.desc())
         .limit(1)
     )

@@ -21,13 +21,21 @@ def log_dir(tmp_path):
 
 
 def make_settings(environment: str = "development") -> Settings:
-    return Settings(
+    kwargs: dict = dict(
         environment=environment,
         database_url="postgresql+asyncpg://x:x@localhost/x",
         github_app_id=0,
         github_private_key_path="",
         github_webhook_secret="",
     )
+    if environment == "production":
+        kwargs.update(
+            github_webhook_secret="test-secret",
+            internal_cron_secret="test-secret",
+            clerk_secret_key="test-secret",
+            clerk_jwks_url="https://example.clerk.accounts.dev/.well-known/jwks.json",
+        )
+    return Settings(**kwargs)
 
 
 class TestDevelopmentMode:

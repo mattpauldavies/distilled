@@ -173,8 +173,13 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
     await session.execute(stmt)
 
 
+import re
+
+_GITHUB_URL_PATTERN = re.compile(r"^https://github\.com/[\w.\-]+/[\w.\-]+")
+
+
 def _validate_github_url(url: str) -> str:
-    if url and not url.startswith("https://github.com/"):
+    if url and not _GITHUB_URL_PATTERN.match(url):
         return ""
     return url
 

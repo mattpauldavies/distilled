@@ -2,7 +2,7 @@ import hmac
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -16,6 +16,7 @@ from app.middleware.repo import get_verified_repo
 from app.middleware.tenant import get_tenant_id
 from app.models.metrics import MetricsRefreshLog
 from app.models.repository import Repository
+from app.rate_limit import limiter
 from app.schemas.metrics import (
     AgeBucket,
     DailyCount,
@@ -58,7 +59,9 @@ def _verify_cron_secret(
 
 
 @router.post("/recompute")
+@limiter.limit("10/minute")
 async def recompute_metrics(
+    request: Request,
     body: RecomputeRequest,
     _auth: None = Depends(_verify_cron_secret),
     session: AsyncSession = Depends(get_session),

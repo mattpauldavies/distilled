@@ -76,7 +76,10 @@ async def get_deployment(
     pr_result = await session.execute(
         select(PullRequest)
         .join(DeploymentAttribution, DeploymentAttribution.pr_id == PullRequest.id)
-        .where(DeploymentAttribution.deployment_id == deployment_id)
+        .where(
+            DeploymentAttribution.deployment_id == deployment_id,
+            PullRequest.tenant_id == tenant_id,
+        )
     )
     prs = pr_result.scalars().all()
 

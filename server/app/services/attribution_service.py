@@ -23,6 +23,7 @@ async def attribute_prs_to_deployment(
         select(ProductionDeploymentEvent)
         .where(
             ProductionDeploymentEvent.repo_id == repo.id,
+            ProductionDeploymentEvent.tenant_id == deployment.tenant_id,
             ProductionDeploymentEvent.deployed_at < deployment.deployed_at,
         )
         .order_by(ProductionDeploymentEvent.deployed_at.desc())
@@ -39,6 +40,7 @@ async def attribute_prs_to_deployment(
     result = await session.execute(
         select(PullRequest).where(
             PullRequest.repo_id == repo.id,
+            PullRequest.tenant_id == deployment.tenant_id,
             PullRequest.base_ref == repo.default_branch,
             PullRequest.merged_at > window_start,
             PullRequest.merged_at <= deployment.deployed_at,

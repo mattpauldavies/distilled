@@ -5,14 +5,15 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.auth import require_auth
 from app.config import settings
 from app.db import dispose_db, init_db
 from app.logging import configure_logging
+from app.rate_limit import limiter
 from app.routes import deployments, environments, health, metrics, pull_requests, repos, webhooks
 
 logger = logging.getLogger(__name__)
@@ -20,8 +21,6 @@ logger = logging.getLogger(__name__)
 # Import services to register webhook handlers
 import app.services.deployment_service
 import app.services.installation_service
-
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 
 
 @asynccontextmanager
@@ -33,8 +32,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(lifespan=lifespan)
+    is_prod = settings.environment == "production"
+    app = FastAPI(
+        lifespan=lifespan,
+        docs_url=None if is_prod else "/docs",
+        redoc_url=None if is_prod else "/redoc",
+        openapi_url=None if is_prod else "/openapi.json",
+    )
     app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     @app.exception_handler(Exception)
@@ -46,8 +52,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     @app.middleware("http")
@@ -56,6 +62,12 @@ def create_app() -> FastAPI:
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if is_prod:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
         return response
 
     app.include_router(health.router, prefix="/api")
