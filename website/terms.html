@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Website Terms of Use — Distilled</title>
+  <meta name="description" content="Terms of use for the Distilled website." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-base:       #0a0a0b;
+      --bg-surface:    #111113;
+      --bg-elevated:   #18181c;
+      --bg-subtle:     #1e1e24;
+      --border:        rgba(255, 255, 255, 0.07);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --text-primary:  #f0f0f2;
+      --text-secondary:#9a9aaa;
+      --text-muted:    #8080a0;
+      --accent:        #c8973a;
+      --accent-light:  #e0aa50;
+      --radius-sm:     6px;
+      --radius:        10px;
+      --font:          'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      --max-width:     1120px;
+      --nav-height:    64px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: var(--nav-height);
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: var(--radius-sm);
+    }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ─── Nav ───────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: var(--nav-height);
+      display: flex;
+      align-items: center;
+      background: rgba(10, 10, 11, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .nav-logo {
+      font-family: var(--font);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-logo span {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
+      padding: 8px 16px;
+    }
+
+    .btn-secondary:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ─── Legal content ─────────────────────────────────────── */
+    .legal {
+      padding-top: calc(var(--nav-height) + 64px);
+      padding-bottom: 80px;
+    }
+
+    .legal h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .legal .effective-date {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+    }
+
+    .legal h2 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .legal p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .legal ul, .legal ol {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      padding-left: 24px;
+      line-height: 1.7;
+    }
+
+    .legal li {
+      margin-bottom: 8px;
+    }
+
+    .legal a {
+      color: var(--accent-light);
+      text-decoration: none;
+    }
+
+    .legal a:hover {
+      text-decoration: underline;
+    }
+
+    /* ─── Footer ────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .footer-logo span {
+      color: var(--accent);
+    }
+
+    .footer-tagline {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .footer-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+
+      .legal h1 { font-size: 26px; }
+      .legal h2 { font-size: 18px; }
+
+      .footer-inner {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .footer-right {
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <nav aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="Distilled home">Distilled<span>.</span></a>
+      <ul class="nav-links" role="list">
+        <li><a href="/">Home</a></li>
+      </ul>
+      <div>
+        <a href="#" class="btn btn-secondary">Sign in</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <article class="legal container">
+      <h1>Website Terms of Use</h1>
+      <p class="effective-date">Effective date: 12 April 2026</p>
+
+      <h2>1. About these terms</h2>
+      <p>These terms of use ("Terms") govern your access to and use of the website at distilled.dev (the "Website") operated by Distilled Software Ltd ("Distilled", "we", "us", "our"), a company registered in England and Wales.</p>
+      <p>By accessing the Website, you agree to be bound by these Terms. If you do not agree, please do not use the Website.</p>
+
+      <h2>2. Use of the Website</h2>
+      <p>You may use the Website for lawful purposes only. You must not:</p>
+      <ul>
+        <li>Use the Website in any way that breaches any applicable local, national, or international law or regulation.</li>
+        <li>Use the Website in any way that is unlawful or fraudulent, or has any unlawful or fraudulent purpose or effect.</li>
+        <li>Attempt to gain unauthorised access to any part of the Website, the server on which the Website is hosted, or any server, computer, or database connected to the Website.</li>
+        <li>Attack the Website via a denial-of-service attack or a distributed denial-of-service attack.</li>
+        <li>Use any automated system, including robots, spiders, or scrapers, to access the Website without our prior written consent.</li>
+      </ul>
+
+      <h2>3. Intellectual property</h2>
+      <p>The Website and its content, including but not limited to text, graphics, logos, icons, images, and software, are the property of Distilled or its licensors and are protected by UK and international copyright, trade mark, and other intellectual property laws.</p>
+      <p>You may not reproduce, distribute, modify, create derivative works of, publicly display, or otherwise exploit any content from the Website without our prior written consent, except as permitted by applicable law.</p>
+
+      <h2>4. Open source</h2>
+      <p>Certain components of Distilled are made available under open source licences. Where the Website links to or references open source code, the terms of the applicable open source licence govern your use of that code. Nothing in these Terms restricts your rights under any applicable open source licence.</p>
+
+      <h2>5. Third-party links</h2>
+      <p>The Website may contain links to third-party websites. We have no control over the content or availability of those sites and accept no responsibility for them. A link does not imply endorsement of the linked site.</p>
+
+      <h2>6. Accuracy of information</h2>
+      <p>We make reasonable efforts to ensure that the information on the Website is accurate and up to date, but we make no representations, warranties, or guarantees, whether express or implied, that the content is accurate, complete, or current.</p>
+
+      <h2>7. Limitation of liability</h2>
+      <p>To the fullest extent permitted by law:</p>
+      <ul>
+        <li>The Website is provided on an "as is" and "as available" basis without any warranties of any kind.</li>
+        <li>We exclude all implied conditions, warranties, representations, or other terms that may apply to the Website or any content on it.</li>
+        <li>We will not be liable to you for any loss or damage, whether in contract, tort (including negligence), breach of statutory duty, or otherwise, arising out of or in connection with your use of, or inability to use, the Website.</li>
+      </ul>
+      <p>Nothing in these Terms excludes or limits our liability for death or personal injury arising from our negligence, fraud or fraudulent misrepresentation, or any other liability that cannot be excluded or limited by English law.</p>
+
+      <h2>8. Privacy</h2>
+      <p>Your use of the Website is also governed by our <a href="/privacy.html">Privacy Policy</a>, which explains how we collect, use, and protect your personal data.</p>
+
+      <h2>9. Changes to these terms</h2>
+      <p>We may revise these Terms at any time by amending this page. You are expected to check this page from time to time to take notice of any changes we make, as they are binding on you. The effective date at the top of this page indicates when the Terms were last updated.</p>
+
+      <h2>10. Governing law and jurisdiction</h2>
+      <p>These Terms are governed by and construed in accordance with the laws of England and Wales. Any disputes arising out of or in connection with these Terms shall be subject to the exclusive jurisdiction of the courts of England and Wales.</p>
+
+      <h2>11. Contact us</h2>
+      <p>If you have any questions about these Terms, please contact us at:</p>
+      <p>Distilled Software Ltd<br />Email: <a href="mailto:hello@distilled.dev">hello@distilled.dev</a></p>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-logo">Distilled<span>.</span></div>
+          <div class="footer-tagline">Engineering intelligence without the noise.</div>
+        </div>
+        <div class="footer-right">
+          <ul class="footer-links" role="list">
+            <li><a href="/privacy.html">Privacy Policy</a></li>
+            <li><a href="/terms.html">Website Terms</a></li>
+            <li><a href="/app-terms.html">Application Terms</a></li>
+          </ul>
+          <div class="footer-copy">&copy; 2026 Distilled. All rights reserved.</div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
