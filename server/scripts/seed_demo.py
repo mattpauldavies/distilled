@@ -9,6 +9,7 @@ To reset:
 
 import asyncio
 import hashlib
+import os
 import random
 import uuid
 from collections import defaultdict
@@ -33,6 +34,7 @@ from app.models.metrics import (
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 from app.models.tenant import Tenant
+from app.models.user import User
 
 # ── Fixed IDs ────────────────────────────────────────────────────────────────
 
@@ -443,6 +445,21 @@ async def main() -> None:
         existing_tenant = await session.get(Tenant, TENANT_ID)
         if existing_tenant is None:
             session.add(Tenant(id=TENANT_ID, name="dev"))
+
+        # ── Pre-seed smoke test user so sign-in resolves to the seed tenant ──
+        # When CLERK_SMOKE_USER_ID is set (CI smoke tests), insert a User row that
+        # maps the Clerk test user ID → seed tenant. get_or_create_user_and_tenant
+        # will find this row on first login and return the seed tenant, giving the
+        # smoke test user access to all demo data without creating a new tenant.
+        clerk_smoke_user_id = os.environ.get("CLERK_SMOKE_USER_ID")
+        if clerk_smoke_user_id:
+            session.add(
+                User(
+                    id=uuid.uuid4(),
+                    clerk_user_id=clerk_smoke_user_id,
+                    tenant_id=TENANT_ID,
+                )
+            )
 
         # ── Infrastructure rows ───────────────────────────────────────────────
         session.add(

@@ -21,54 +21,8 @@ def make_secured_app() -> FastAPI:
 
 
 @pytest.mark.asyncio
-async def test_dev_bypass_returns_seed_tenant_when_jwks_url_not_set():
-    """When CLERK_JWKS_URL is empty and environment != production, dev bypass activates."""
-    app = make_secured_app()
-
-    mock_session = AsyncMock()
-
-    async def override_session():
-        yield mock_session
-
-    app.dependency_overrides[get_session] = override_session
-
-    with patch("app.auth.settings") as mock_settings:
-        mock_settings.clerk_jwks_url = ""
-        mock_settings.environment = "development"
-        mock_settings.seed_tenant_id = "00000000-0000-0000-0000-000000000001"
-
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.get("/protected")
-
-    assert resp.status_code == 200
-    assert resp.json()["tenant_id"] == "00000000-0000-0000-0000-000000000001"
-
-
-@pytest.mark.asyncio
-async def test_production_with_no_jwks_url_returns_503():
-    """When CLERK_JWKS_URL is empty and environment == production, returns 503."""
-    app = make_secured_app()
-
-    mock_session = AsyncMock()
-
-    async def override_session():
-        yield mock_session
-
-    app.dependency_overrides[get_session] = override_session
-
-    with patch("app.auth.settings") as mock_settings:
-        mock_settings.clerk_jwks_url = ""
-        mock_settings.environment = "production"
-
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.get("/protected")
-
-    assert resp.status_code == 503
-
-
-@pytest.mark.asyncio
 async def test_missing_auth_header_returns_403():
-    """When CLERK_JWKS_URL is set, missing Authorization header returns 403."""
+    """Missing Authorization header returns 403."""
     app = make_secured_app()
 
     mock_session = AsyncMock()
@@ -78,12 +32,8 @@ async def test_missing_auth_header_returns_403():
 
     app.dependency_overrides[get_session] = override_session
 
-    with patch("app.auth.settings") as mock_settings:
-        mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
-        mock_settings.environment = "production"
-
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.get("/protected")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/protected")
 
     assert resp.status_code == 403
 
@@ -100,13 +50,10 @@ async def test_invalid_jwt_returns_401():
 
     app.dependency_overrides[get_session] = override_session
 
-    with patch("app.auth.settings") as mock_settings, patch(
+    with patch(
         "app.auth.verifier.verify_token",
         new=AsyncMock(side_effect=__import__("fastapi").HTTPException(status_code=401, detail="Invalid token")),
     ):
-        mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
-        mock_settings.environment = "production"
-
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/protected", headers={"Authorization": "Bearer invalid.jwt"})
 
@@ -134,14 +81,11 @@ async def test_valid_jwt_injects_current_user():
 
     app.dependency_overrides[get_session] = override_session
 
-    with patch("app.auth.settings") as mock_settings, patch(
+    with patch(
         "app.auth.verifier.verify_token", new=AsyncMock(return_value={"sub": "user_test123"})
     ), patch(
         "app.auth.get_or_create_user_and_tenant", new=AsyncMock(return_value=(mock_user, mock_tenant))
     ):
-        mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
-        mock_settings.environment = "production"
-
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/protected", headers={"Authorization": "Bearer valid.jwt"})
 
