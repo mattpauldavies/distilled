@@ -7,7 +7,7 @@ class Settings(BaseSettings):
 
     app_name: str = "server"
     debug: bool = False
-    environment: str = "production"
+    environment: str = "development"
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/dbname"
     github_app_id: int = 0
     github_private_key_path: str = ""
