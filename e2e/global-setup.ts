@@ -8,31 +8,91 @@
  *   SMOKE_BASE_URL             — app base URL (default: http://localhost:5173)
  *
  * One-time Clerk Dashboard setup:
- *   1. Create a test user (any email, no GitHub OAuth required)
+ *   1. Create a test user (any name, no OAuth required)
  *   2. Note their user ID (e.g. user_abc123) → set as CLERK_SMOKE_USER_ID
+ *      (an email address is provisioned automatically if missing)
  *
  * Auth strategy:
  *   1. clerkSetup() fetches a Testing Token from the Clerk Backend API and
  *      stores it in process.env (CLERK_FAPI, CLERK_TESTING_TOKEN). These env
  *      vars are inherited by Playwright worker processes for per-test bot
  *      detection bypass via setupClerkTestingToken().
- *   2. A one-time sign-in URL is created for the smoke test user via the
- *      Clerk Backend API.
- *   3. setupClerkTestingToken() is applied to the browser context so Clerk
- *      Frontend API requests include the testing token.
- *   4. The browser navigates to the sign-in URL (with __clerk_testing_token
- *      appended for the initial server-side request). Clerk verifies the
- *      ticket server-side, sets the session, and redirects to the app.
- *   5. The resulting session is saved as storageState so all test workers
+ *   2. The smoke test user is checked for an email address. If none exists,
+ *      a verified email is created via the Backend API (required for Clerk's
+ *      client-side ticket sign-in strategy).
+ *   3. The browser navigates to the app, Clerk JS loads, and clerk.signIn()
+ *      signs in programmatically via the ticket strategy.
+ *   4. The resulting session is saved as storageState so all test workers
  *      start pre-authenticated.
  */
 
-import { clerkSetup, setupClerkTestingToken } from "@clerk/testing/playwright";
+import { clerkSetup, clerk } from "@clerk/testing/playwright";
 import { chromium, FullConfig } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
 
 export const AUTH_FILE = path.join(__dirname, ".auth/user.json");
+
+/** Clerk Backend API helper — GET/POST with Bearer auth. */
+async function clerkApi(
+  path: string,
+  secretKey: string,
+  options?: { method?: string; body?: Record<string, unknown> },
+): Promise<Response> {
+  return fetch(`https://api.clerk.com${path}`, {
+    method: options?.method ?? "GET",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      ...(options?.body ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(options?.body ? { body: JSON.stringify(options.body) } : {}),
+  });
+}
+
+/**
+ * Ensure the smoke test user has at least one verified email address.
+ * Clerk's client-side ticket sign-in strategy requires an "identification"
+ * (email/phone/username). Returns the user's email address.
+ */
+async function ensureUserEmail(
+  userId: string,
+  secretKey: string,
+): Promise<string> {
+  const resp = await clerkApi(`/v1/users/${userId}`, secretKey);
+  if (!resp.ok) {
+    throw new Error(
+      `Failed to fetch smoke test user ${userId}: ${await resp.text()}`,
+    );
+  }
+
+  const user = (await resp.json()) as {
+    email_addresses: Array<{ email_address: string }>;
+  };
+
+  if (user.email_addresses.length > 0) {
+    return user.email_addresses[0].email_address;
+  }
+
+  // No email — create a verified one so the ticket strategy works.
+  const addResp = await clerkApi(`/v1/email_addresses`, secretKey, {
+    method: "POST",
+    body: {
+      user_id: userId,
+      email_address: `smoke-test+${userId}@test.distilled.dev`,
+      verified: true,
+      primary: true,
+    },
+  });
+
+  if (!addResp.ok) {
+    throw new Error(
+      `Failed to add email to smoke test user: ${await addResp.text()}`,
+    );
+  }
+
+  const created = (await addResp.json()) as { email_address: string };
+  return created.email_address;
+}
 
 export default async function globalSetup(_config: FullConfig): Promise<void> {
   const secretKey = process.env.CLERK_SECRET_KEY;
@@ -60,51 +120,22 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
 
-  // Create a one-time sign-in URL for the test user via Clerk Backend API.
-  // We pass redirect_url so Clerk redirects back to the app after verifying
-  // the ticket server-side. This avoids the client-side signIn.create() flow
-  // which requires the user to have an identification (email/phone).
-  const tokenResponse = await fetch("https://api.clerk.com/v1/sign_in_tokens", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ user_id: userId, redirect_url: baseUrl }),
-  });
+  // Ensure the smoke test user has a verified email (required for ticket
+  // sign-in strategy which needs at least one identification).
+  const email = await ensureUserEmail(userId, secretKey);
 
-  if (!tokenResponse.ok) {
-    const body = await tokenResponse.text();
-    throw new Error(
-      `Clerk sign-in token creation failed (${tokenResponse.status}): ${body}`,
-    );
-  }
-
-  const { url: signInUrl } = (await tokenResponse.json()) as { url: string };
-
-  // Append the Testing Token to the sign-in URL so Clerk's server-side
-  // bot-detection is bypassed on the initial navigation to Clerk's domain.
-  const patchedUrl = new URL(signInUrl);
-  const testingToken = process.env.CLERK_TESTING_TOKEN;
-  if (testingToken) {
-    patchedUrl.searchParams.set("__clerk_testing_token", testingToken);
-  }
-
+  // Launch browser and navigate to the app so Clerk JS loads.
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  // Set up testing token interception on the context so that Clerk Frontend
-  // API requests (session validation etc.) after the redirect also include
-  // the testing token. This is critical for bot-detection bypass.
-  await setupClerkTestingToken({ page });
+  await page.goto(baseUrl);
 
-  // Navigate to the sign-in URL. Clerk verifies the ticket server-side,
-  // creates the session, and redirects to baseUrl.
-  await page.goto(patchedUrl.toString());
-
-  // Wait for Clerk to redirect back to the app after processing the token.
-  await page.waitForURL(`${baseUrl}**`, { timeout: 30_000 });
+  // clerk.signIn() internally calls setupClerkTestingToken() to bypass bot
+  // detection, waits for window.Clerk to load, then signs in via the ticket
+  // strategy (Backend API creates a sign-in token, client-side calls
+  // window.Clerk.signIn.create({ strategy: 'ticket', ticket })).
+  await clerk.signIn({ page, emailAddress: email });
 
   // Wait for the dashboard to be ready — confirms auth + API round-trip worked.
   await page.waitForSelector('[role="combobox"]', { timeout: 30_000 });
