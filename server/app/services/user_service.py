@@ -3,6 +3,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.tenant import Tenant
@@ -103,7 +104,16 @@ async def get_or_create_user_and_tenant(
         tenant_id=tenant.id,
     )
     session.add(user)
-    await session.flush()
-    await session.commit()
+
+    try:
+        await session.flush()
+        await session.commit()
+    except IntegrityError:
+        # Concurrent request already created this user — re-query
+        await session.rollback()
+        result = await session.execute(select(User).where(User.clerk_user_id == clerk_user_id))
+        user = result.scalar_one()
+        tenant_result = await session.execute(select(Tenant).where(Tenant.id == user.tenant_id))
+        tenant = tenant_result.scalar_one()
 
     return user, tenant

@@ -1,13 +1,14 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "server"
     debug: bool = False
     environment: str = "production"
-    database_url: str = "postgresql+asyncpg://distilled:distilled@localhost:5432/distilled"
+    database_url: str = "postgresql+asyncpg://user:password@localhost:5432/dbname"
     github_app_id: int = 0
     github_private_key_path: str = ""
     github_webhook_secret: str = ""
@@ -18,7 +19,26 @@ class Settings(BaseSettings):
     clerk_jwks_url: str = ""
     clerk_publishable_key: str = ""
     clerk_secret_key: str = ""
+    clerk_expected_audience: str = ""
+    clerk_issuer: str = ""
     github_app_slug: str = ""
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        if self.environment == "production":
+            missing = [
+                field
+                for field in [
+                    "github_webhook_secret",
+                    "internal_cron_secret",
+                    "clerk_secret_key",
+                    "clerk_jwks_url",
+                ]
+                if not getattr(self, field)
+            ]
+            if missing:
+                raise ValueError(f"Required secrets not set for production: {', '.join(missing)}")
+        return self
 
 
 settings = Settings()

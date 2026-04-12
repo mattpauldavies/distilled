@@ -23,9 +23,7 @@ class ClerkJWTVerifier:
 
     async def get_jwks(self) -> dict:
         now = time.monotonic()
-        if self._jwks_data is None or (
-            self._fetched_at is not None and now - self._fetched_at > self._ttl
-        ):
+        if self._jwks_data is None or (self._fetched_at is not None and now - self._fetched_at > self._ttl):
             async with httpx.AsyncClient() as client:
                 resp = await client.get(settings.clerk_jwks_url, timeout=10)
                 resp.raise_for_status()
@@ -46,6 +44,12 @@ class ClerkJWTVerifier:
             resp.raise_for_status()
             return resp.json()
 
+    def _find_key(self, jwks: dict, kid: str) -> RSAPublicKey | None:
+        for jwk_key in jwks.get("keys", []):
+            if jwk_key.get("kid") == kid:
+                return cast(RSAPublicKey, RSAAlgorithm.from_jwk(jwk_key))
+        return None
+
     async def verify_token(self, token: str) -> dict:
         if not settings.clerk_jwks_url:
             raise HTTPException(status_code=401, detail="Auth not configured")
@@ -54,21 +58,25 @@ class ClerkJWTVerifier:
             header = jwt.get_unverified_header(token)
             kid = header.get("kid")
 
-            key = None
-            for jwk_key in jwks.get("keys", []):
-                if jwk_key.get("kid") == kid:
-                    key = cast(RSAPublicKey, RSAAlgorithm.from_jwk(jwk_key))
-                    break
+            key = self._find_key(jwks, kid) if kid else None
+
+            # On kid miss, force a JWKS refresh and retry once (handles key rotation)
+            if key is None and kid:
+                self._jwks_data = None
+                jwks = await self.get_jwks()
+                key = self._find_key(jwks, kid)
 
             if key is None:
-                logger.warning("clerk_jwt: unknown key ID %s", kid)
+                logger.warning("clerk_jwt: token presented with unknown signing key")
                 raise HTTPException(status_code=401, detail="Unknown signing key")
 
             claims: dict = jwt.decode(
                 token,
                 key,
                 algorithms=["RS256"],
-                options={"verify_aud": False},
+                audience=settings.clerk_expected_audience or None,
+                issuer=settings.clerk_issuer or None,
+                options={"verify_aud": False} if not settings.clerk_expected_audience else None,
             )
             return claims
         except HTTPException:
@@ -76,4 +84,5 @@ class ClerkJWTVerifier:
         except jwt.ExpiredSignatureError as exc:
             raise HTTPException(status_code=401, detail="Token expired") from exc
         except jwt.InvalidTokenError as exc:
-            raise HTTPException(status_code=401, detail=f"Invalid token: {exc}") from exc
+            logger.warning("clerk_jwt: invalid token: %s", exc)
+            raise HTTPException(status_code=401, detail="Invalid token") from exc

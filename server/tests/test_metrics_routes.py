@@ -40,7 +40,7 @@ async def test_recompute_requires_auth(metrics_client):
         "/api/metrics/recompute",
         json={"repo_id": str(REPO_ID)},
     )
-    assert resp.status_code == 403  # HTTPBearer rejects missing credentials
+    assert resp.status_code == 403  # HTTPBearer rejects missing credentials (FastAPI's HTTPBearer returns 403)
 
 
 @pytest.mark.asyncio

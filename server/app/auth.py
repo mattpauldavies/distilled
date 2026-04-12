@@ -25,7 +25,7 @@ async def require_auth(
     """Verify a Clerk RS256 JWT from the Authorization header."""
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=403, detail="Not authenticated")
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     token = auth_header[7:]
     claims = await verifier.verify_token(token)

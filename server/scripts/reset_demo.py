@@ -30,6 +30,9 @@ TENANT_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
 async def main() -> None:
+    if settings.environment == "production":
+        print("FATAL: refusing to run reset script against production database")
+        return
     engine = create_async_engine(settings.database_url, echo=False)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 

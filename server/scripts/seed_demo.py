@@ -425,6 +425,9 @@ def _compute_metrics(
 
 
 async def main() -> None:
+    if settings.environment == "production":
+        print("FATAL: refusing to run seed script against production database")
+        return
     engine = create_async_engine(settings.database_url, echo=False)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 

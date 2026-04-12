@@ -55,6 +55,8 @@ class GitHubClient:
         _token_cache[installation_id] = (token, expires_at)
         return token
 
+    _MAX_REPOS = 10_000
+
     async def list_repos(self, installation_id: int) -> list[dict]:
         token = await self.get_installation_token(installation_id)
         repos = []
@@ -68,7 +70,7 @@ class GitHubClient:
             resp.raise_for_status()
             data = resp.json()
             repos.extend(data["repositories"])
-            if len(repos) >= data["total_count"]:
+            if len(repos) >= data["total_count"] or len(repos) >= self._MAX_REPOS:
                 break
             page += 1
         return repos

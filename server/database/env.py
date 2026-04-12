@@ -3,6 +3,9 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
+from dotenv import load_dotenv
+
+load_dotenv()
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
