@@ -1,0 +1,74 @@
+{% extends "base.njk" %}
+
+{% block extraStyles %}
+<style>
+  /* ─── Legal content ─────────────────────────────────────── */
+  .legal {
+    padding-top: calc(var(--nav-height) + 64px);
+    padding-bottom: 80px;
+  }
+
+  .legal h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .legal .effective-date {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 48px;
+  }
+
+  .legal h2 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+
+  .legal p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+
+  .legal ul, .legal ol {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    padding-left: 24px;
+    line-height: 1.7;
+  }
+
+  .legal li {
+    margin-bottom: 8px;
+  }
+
+  .legal a {
+    color: var(--accent-light);
+    text-decoration: none;
+  }
+
+  .legal a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .legal h1 { font-size: 26px; }
+    .legal h2 { font-size: 18px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main>
+  <article class="legal container">
+    {% block article %}{% endblock %}
+  </article>
+</main>
+{% endblock %}
