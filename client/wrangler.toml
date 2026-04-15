@@ -1,0 +1,4 @@
+"$schema" = "./node_modules/wrangler/config-schema.json"
+compatibility_date = "2026-04-14"
+name = "distilled-client"
+pages_build_output_dir = "./dist"

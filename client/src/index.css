@@ -49,6 +49,24 @@ button {
   opacity: 0.9;
 }
 
+.cl-card {
+  gap: 0 !important;
+}
+
+.cl-header {
+  padding: 2rem 2rem 1.5rem !important;
+}
+
+.cl-main {
+  padding: 0 2rem 2rem !important;
+  gap: 0 !important;
+}
+
+.cl-dividerRow,
+.cl-alternativeMethods {
+  display: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
