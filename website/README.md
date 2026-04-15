@@ -63,3 +63,5 @@ Use `{% extends "base.njk" %}` instead of `legal.njk` if the page needs a custom
 ## Deployment
 
 Deploy the contents of `_site/` to any static host. The build output is plain HTML with no runtime dependencies.
+
+We make use of Cloudflare pages which should deploy automatically on merge to the `main` branch.
