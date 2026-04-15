@@ -10,7 +10,7 @@ from app.services.clerk_service import ClerkJWTVerifier
 from app.services.user_service import get_or_create_user_and_tenant
 
 verifier = ClerkJWTVerifier()
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 @dataclass
@@ -22,10 +22,12 @@ class CurrentUser:
 
 async def require_auth(
     request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     session: AsyncSession = Depends(get_session),
 ) -> CurrentUser:
     """Verify a Clerk RS256 JWT from the Authorization header."""
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
     token = credentials.credentials
     claims = await verifier.verify_token(token)
     user, tenant = await get_or_create_user_and_tenant(claims, session, verifier)
