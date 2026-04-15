@@ -54,6 +54,12 @@ button {
   gap: 0 !important;
 }
 
+.cl-card.cl-internal {
+  font-weight: var(--font-weight-semibold) !important;
+  font-size: var(--clerk-font-size-lg, calc(var(--clerk-font-size, 0.8125rem) * 17 / 13)) !important;
+  padding: calc(var(--clerk-spacing, 1rem) * 2) calc(var(--clerk-spacing, 1rem) * 2.5) !important;
+}
+
 .cl-header {
   padding: 2rem 2rem 1.5rem !important;
 }
