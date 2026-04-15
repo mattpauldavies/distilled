@@ -56,16 +56,19 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
     )
 
+    docs_paths = {"/docs", "/redoc", "/openapi.json"}
+
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         if is_prod:
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        if request.url.path not in docs_paths:
+            response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
         return response
 
     app.include_router(health.router, prefix="/api")
