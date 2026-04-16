@@ -13,7 +13,7 @@ async def test_list_environments(client, mock_session):
         mock_result(rows=[env1, env2]),
     ]
 
-    response = await client.get("/api/environments")
+    response = await client.get("/environments")
 
     assert response.status_code == 200
     data = response.json()
@@ -30,7 +30,7 @@ async def test_list_environments_by_repo(client, mock_session):
     ]
 
     repo_id = str(make_repo().id)
-    response = await client.get(f"/api/environments?repo_id={repo_id}")
+    response = await client.get(f"/environments?repo_id={repo_id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -46,7 +46,7 @@ async def test_update_environment(client, mock_session):
     ]
 
     response = await client.patch(
-        f"/api/environments/{env.id}",
+        f"/environments/{env.id}",
         json={"is_production": True},
     )
 
@@ -62,7 +62,7 @@ async def test_update_environment_not_found(client, mock_session):
     ]
 
     response = await client.patch(
-        f"/api/environments/{uuid.uuid4()}",
+        f"/environments/{uuid.uuid4()}",
         json={"is_production": True},
     )
 

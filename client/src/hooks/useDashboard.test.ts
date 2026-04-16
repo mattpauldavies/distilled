@@ -28,7 +28,7 @@ describe("useDashboard", () => {
 
   it("handles fetch error", async () => {
     server.use(
-      http.get("/api/metrics/unified", () => {
+      http.get("/metrics/unified", () => {
         return new HttpResponse(null, { status: 500 })
       })
     )
@@ -44,7 +44,7 @@ describe("useDashboard", () => {
   it("retries on retry()", async () => {
     let callCount = 0
     server.use(
-      http.get("/api/metrics/unified", () => {
+      http.get("/metrics/unified", () => {
         callCount++
         if (callCount === 1) return new HttpResponse(null, { status: 500 })
         return HttpResponse.json({
@@ -76,7 +76,7 @@ describe("useDashboard", () => {
   it("sends Authorization header with Clerk token", async () => {
     const headers: string[] = []
     server.use(
-      http.get("/api/metrics/unified", ({ request }) => {
+      http.get("/metrics/unified", ({ request }) => {
         headers.push(request.headers.get("Authorization") ?? "")
         return HttpResponse.json(makeDashboardResponse())
       })
@@ -91,7 +91,7 @@ describe("useDashboard", () => {
   it("refetches when repoId changes", async () => {
     const urls: string[] = []
     server.use(
-      http.get("/api/metrics/unified", ({ request }) => {
+      http.get("/metrics/unified", ({ request }) => {
         urls.push(request.url)
         return HttpResponse.json({
           deployment_frequency: { status: "ok", total: 1, days: 30, daily_counts: [] },

@@ -71,13 +71,13 @@ def create_app() -> FastAPI:
             response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
         return response
 
-    app.include_router(health.router, prefix="/api")
-    app.include_router(webhooks.router, prefix="/api")
-    app.include_router(repos.router, prefix="/api", dependencies=[Depends(require_auth)])
-    app.include_router(environments.router, prefix="/api", dependencies=[Depends(require_auth)])
-    app.include_router(deployments.router, prefix="/api", dependencies=[Depends(require_auth)])
-    app.include_router(pull_requests.router, prefix="/api", dependencies=[Depends(require_auth)])
-    app.include_router(metrics.router, prefix="/api")  # no router-level auth — per-route in metrics.py
+    app.include_router(health.router)
+    app.include_router(webhooks.router)
+    app.include_router(repos.router, dependencies=[Depends(require_auth)])
+    app.include_router(environments.router, dependencies=[Depends(require_auth)])
+    app.include_router(deployments.router, dependencies=[Depends(require_auth)])
+    app.include_router(pull_requests.router, dependencies=[Depends(require_auth)])
+    app.include_router(metrics.router)  # no router-level auth — per-route in metrics.py
     return app
 
 

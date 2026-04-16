@@ -18,7 +18,7 @@ async def test_pr_ageing_returns_buckets(client, mock_session):
 
     mock_session.execute = AsyncMock(return_value=result)
 
-    resp = await client.get(f"/api/metrics/pr-ageing?repo_id={REPO_ID}")
+    resp = await client.get(f"/metrics/pr-ageing?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -34,7 +34,7 @@ async def test_pr_ageing_zero_state(client, mock_session):
 
     mock_session.execute = AsyncMock(return_value=result)
 
-    resp = await client.get(f"/api/metrics/pr-ageing?repo_id={REPO_ID}")
+    resp = await client.get(f"/metrics/pr-ageing?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()

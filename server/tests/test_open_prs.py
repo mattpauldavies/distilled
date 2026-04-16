@@ -16,7 +16,7 @@ async def test_open_prs_returns_counts(client, mock_session):
 
     mock_session.execute = AsyncMock(return_value=result)
 
-    resp = await client.get(f"/api/metrics/open-prs?repo_id={REPO_ID}")
+    resp = await client.get(f"/metrics/open-prs?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -36,7 +36,7 @@ async def test_open_prs_zero_state(client, mock_session):
 
     mock_session.execute = AsyncMock(return_value=result)
 
-    resp = await client.get(f"/api/metrics/open-prs?repo_id={REPO_ID}")
+    resp = await client.get(f"/metrics/open-prs?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()

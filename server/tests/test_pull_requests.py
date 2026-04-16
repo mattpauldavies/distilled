@@ -13,7 +13,7 @@ async def test_list_pull_requests(client, mock_session):
         mock_result(rows=[pr]),
     ]
 
-    response = await client.get(f"/api/pull-requests?repo_id={REPO_ID}")
+    response = await client.get(f"/pull-requests?repo_id={REPO_ID}")
 
     assert response.status_code == 200
     data = response.json()
@@ -31,7 +31,7 @@ async def test_list_pull_requests_empty(client, mock_session):
         mock_result(rows=[]),
     ]
 
-    response = await client.get(f"/api/pull-requests?repo_id={REPO_ID}")
+    response = await client.get(f"/pull-requests?repo_id={REPO_ID}")
 
     assert response.status_code == 200
     data = response.json()
@@ -48,7 +48,7 @@ async def test_get_pull_request_with_deployment(client, mock_session):
         mock_result(scalar_or_none=deployment),
     ]
 
-    response = await client.get(f"/api/pull-requests/{pr.id}")
+    response = await client.get(f"/pull-requests/{pr.id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -67,7 +67,7 @@ async def test_get_pull_request_without_deployment(client, mock_session):
         mock_result(scalar_or_none=None),
     ]
 
-    response = await client.get(f"/api/pull-requests/{pr.id}")
+    response = await client.get(f"/pull-requests/{pr.id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -81,6 +81,6 @@ async def test_get_pull_request_not_found(client, mock_session):
         mock_result(scalar_or_none=None),
     ]
 
-    response = await client.get(f"/api/pull-requests/{uuid.uuid4()}")
+    response = await client.get(f"/pull-requests/{uuid.uuid4()}")
 
     assert response.status_code == 404

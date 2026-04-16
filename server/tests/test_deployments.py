@@ -13,7 +13,7 @@ async def test_list_deployments(client, mock_session):
         mock_result(rows=[deployment]),
     ]
 
-    response = await client.get(f"/api/deployments?repo_id={REPO_ID}")
+    response = await client.get(f"/deployments?repo_id={REPO_ID}")
 
     assert response.status_code == 200
     data = response.json()
@@ -31,7 +31,7 @@ async def test_list_deployments_empty(client, mock_session):
         mock_result(rows=[]),
     ]
 
-    response = await client.get(f"/api/deployments?repo_id={REPO_ID}")
+    response = await client.get(f"/deployments?repo_id={REPO_ID}")
 
     assert response.status_code == 200
     data = response.json()
@@ -48,7 +48,7 @@ async def test_get_deployment(client, mock_session):
         mock_result(rows=[pr]),
     ]
 
-    response = await client.get(f"/api/deployments/{deployment.id}")
+    response = await client.get(f"/deployments/{deployment.id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -64,6 +64,6 @@ async def test_get_deployment_not_found(client, mock_session):
         mock_result(scalar_or_none=None),
     ]
 
-    response = await client.get(f"/api/deployments/{uuid.uuid4()}")
+    response = await client.get(f"/deployments/{uuid.uuid4()}")
 
     assert response.status_code == 404

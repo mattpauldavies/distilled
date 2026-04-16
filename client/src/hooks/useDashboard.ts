@@ -26,7 +26,7 @@ export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
 
     async function fetchDashboard() {
       try {
-        const res = await apiFetch(`/api/metrics/unified?repo_id=${repoId}&window=${daysWindow}`)
+        const res = await apiFetch(`/metrics/unified?repo_id=${repoId}&window=${daysWindow}`)
         if (!res.ok) throw new Error(`Failed to load metrics: ${res.status}`)
         const json: UnifiedDashboardResponse = await res.json()
         if (!cancelled) {

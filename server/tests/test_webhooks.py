@@ -32,7 +32,7 @@ class TestWebhookSignature:
         sig = sign_payload(body, SECRET)
 
         resp = await webhook_client.post(
-            "/api/webhooks/github",
+            "/webhooks/github",
             content=body,
             headers={
                 "X-Hub-Signature-256": sig,
@@ -48,7 +48,7 @@ class TestWebhookSignature:
         body = json.dumps({"action": "created"}).encode()
 
         resp = await webhook_client.post(
-            "/api/webhooks/github",
+            "/webhooks/github",
             content=body,
             headers={
                 "X-Hub-Signature-256": "sha256=invalid",
@@ -64,7 +64,7 @@ class TestWebhookSignature:
         body = json.dumps({"action": "created"}).encode()
 
         resp = await webhook_client.post(
-            "/api/webhooks/github",
+            "/webhooks/github",
             content=body,
             headers={
                 "X-GitHub-Event": "ping",
@@ -84,7 +84,7 @@ class TestWebhookDispatch:
         sig = sign_payload(body, SECRET)
 
         resp = await webhook_client.post(
-            "/api/webhooks/github",
+            "/webhooks/github",
             content=body,
             headers={
                 "X-Hub-Signature-256": sig,

@@ -29,7 +29,7 @@ async def test_deployment_frequency_returns_daily_counts(client, mock_session):
 
     mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result])
 
-    resp = await client.get(f"/api/metrics/deployment-frequency?repo_id={REPO_ID}")
+    resp = await client.get(f"/metrics/deployment-frequency?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -48,7 +48,7 @@ async def test_deployment_frequency_setup_required(client, mock_session):
     env_result.scalar_one_or_none.return_value = None
     mock_session.execute = AsyncMock(return_value=env_result)
 
-    resp = await client.get(f"/api/metrics/deployment-frequency?repo_id={REPO_ID}")
+    resp = await client.get(f"/metrics/deployment-frequency?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -70,7 +70,7 @@ async def test_deployment_frequency_zero_state(client, mock_session):
 
     mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result])
 
-    resp = await client.get(f"/api/metrics/deployment-frequency?repo_id={REPO_ID}")
+    resp = await client.get(f"/metrics/deployment-frequency?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -93,7 +93,7 @@ async def test_deployment_frequency_custom_days(client, mock_session):
 
     mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result])
 
-    resp = await client.get(f"/api/metrics/deployment-frequency?repo_id={REPO_ID}&days=90")
+    resp = await client.get(f"/metrics/deployment-frequency?repo_id={REPO_ID}&days=90")
 
     assert resp.status_code == 200
     assert resp.json()["days"] == 90
@@ -102,5 +102,5 @@ async def test_deployment_frequency_custom_days(client, mock_session):
 @pytest.mark.asyncio
 async def test_deployment_frequency_rejects_invalid_days(client, mock_session):
     """Only 30/60/90 allowed."""
-    resp = await client.get(f"/api/metrics/deployment-frequency?repo_id={REPO_ID}&days=45")
+    resp = await client.get(f"/metrics/deployment-frequency?repo_id={REPO_ID}&days=45")
     assert resp.status_code == 422

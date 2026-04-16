@@ -11,7 +11,7 @@ async def test_list_repos(client, mock_session):
         mock_result(rows=[repo]),
     ]
 
-    response = await client.get("/api/repos")
+    response = await client.get("/repos")
 
     assert response.status_code == 200
     data = response.json()
@@ -29,7 +29,7 @@ async def test_list_repos_empty(client, mock_session):
         mock_result(rows=[]),
     ]
 
-    response = await client.get("/api/repos")
+    response = await client.get("/repos")
 
     assert response.status_code == 200
     data = response.json()
@@ -56,7 +56,7 @@ async def test_list_repos_requires_auth(mock_session):
     async with AsyncClient(
         transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://test"
     ) as client:
-        resp = await client.get("/api/repos")
+        resp = await client.get("/repos")
 
     # 503: auth not configured (CLERK_JWKS_URL empty + production env)
     # 401: auth configured but no Authorization header

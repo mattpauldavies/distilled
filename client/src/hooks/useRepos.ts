@@ -18,7 +18,7 @@ export function useRepos() {
 
     async function fetchRepos() {
       try {
-        const res = await apiFetch("/api/repos?limit=100")
+        const res = await apiFetch("/repos?limit=100")
         if (!res.ok) throw new Error(`Failed to fetch repos: ${res.status}`)
         const data: PaginatedResponse<Repo> = await res.json()
         if (!cancelled) {
