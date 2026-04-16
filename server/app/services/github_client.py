@@ -32,8 +32,11 @@ class GitHubClient:
             "exp": now + (10 * 60),
             "iss": str(settings.github_app_id),
         }
-        with open(settings.github_private_key_path, "rb") as f:
-            private_key = f.read()
+        if settings.github_private_key:
+            private_key = settings.github_private_key.encode()
+        else:
+            with open(settings.github_private_key_path, "rb") as f:
+                private_key = f.read()
         return jwt.encode(payload, private_key, algorithm="RS256")
 
     async def get_installation_token(self, installation_id: int) -> str:

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     environment: str = "production"
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/dbname"
     github_app_id: int = 0
+    github_private_key: str = ""
     github_private_key_path: str = ""
     github_webhook_secret: str = ""
     seed_tenant_id: str = "00000000-0000-0000-0000-000000000001"
@@ -22,6 +23,14 @@ class Settings(BaseSettings):
     clerk_expected_audience: str = ""
     clerk_issuer: str = ""
     github_app_slug: str = ""
+
+    @model_validator(mode="after")
+    def _fix_database_url(self) -> "Settings":
+        if self.database_url.startswith("postgresql://"):
+            self.database_url = self.database_url.replace(
+                "postgresql://", "postgresql+asyncpg://", 1
+            )
+        return self
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
