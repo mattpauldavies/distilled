@@ -30,7 +30,7 @@ describe("OnboardingScreen", () => {
     const onReposDetected = vi.fn()
 
     server.use(
-      http.get("/api/repos", () => {
+      http.get("/repos", () => {
         return HttpResponse.json({
           items: [{ id: "repo-1", full_name: "org/repo", default_branch: "main" }],
           total: 1,
@@ -52,7 +52,7 @@ describe("OnboardingScreen", () => {
     const onReposDetected = vi.fn()
 
     server.use(
-      http.get("/api/repos", () => {
+      http.get("/repos", () => {
         return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 1 })
       })
     )

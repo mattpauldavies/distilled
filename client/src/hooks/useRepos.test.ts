@@ -28,7 +28,7 @@ describe("useRepos", () => {
 
   it("handles fetch error", async () => {
     server.use(
-      http.get("/api/repos", () => {
+      http.get("/repos", () => {
         return new HttpResponse(null, { status: 500 })
       })
     )
@@ -43,7 +43,7 @@ describe("useRepos", () => {
 
   it("handles empty repos", async () => {
     server.use(
-      http.get("/api/repos", () => {
+      http.get("/repos", () => {
         return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 100 })
       })
     )
@@ -59,7 +59,7 @@ describe("useRepos", () => {
   it("sends Authorization header with Clerk token", async () => {
     const headers: string[] = []
     server.use(
-      http.get("/api/repos", ({ request }) => {
+      http.get("/repos", ({ request }) => {
         headers.push(request.headers.get("Authorization") ?? "")
         return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 100 })
       })

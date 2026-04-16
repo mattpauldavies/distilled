@@ -44,7 +44,7 @@ describe("Dashboard", () => {
 
   it("shows loading state while metrics load", async () => {
     server.use(
-      http.get("/api/metrics/unified", async () => {
+      http.get("/metrics/unified", async () => {
         await delay(100)
         return HttpResponse.json({
           deployment_frequency: {
@@ -88,7 +88,7 @@ describe("Dashboard", () => {
 
   it("shows onboarding screen when no repos", async () => {
     server.use(
-      http.get("/api/repos", () => {
+      http.get("/repos", () => {
         return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 100 })
       })
     )
@@ -102,7 +102,7 @@ describe("Dashboard", () => {
 
   it("shows repos error banner", async () => {
     server.use(
-      http.get("/api/repos", () => {
+      http.get("/repos", () => {
         return new HttpResponse(null, { status: 500 })
       })
     )
@@ -116,7 +116,7 @@ describe("Dashboard", () => {
 
   it("shows metrics error with retry button", async () => {
     server.use(
-      http.get("/api/metrics/unified", () => {
+      http.get("/metrics/unified", () => {
         return new HttpResponse(null, { status: 500 })
       })
     )

@@ -14,7 +14,7 @@ async def test_cors_allows_configured_origin():
         app = create_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/health", headers={"Origin": "http://localhost:5173"})
+        resp = await client.get("/health", headers={"Origin": "http://localhost:5173"})
 
     assert resp.headers.get("access-control-allow-origin") == "http://localhost:5173"
 
@@ -27,6 +27,6 @@ async def test_cors_rejects_unknown_origin():
         app = create_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/health", headers={"Origin": "http://evil.com"})
+        resp = await client.get("/health", headers={"Origin": "http://evil.com"})
 
     assert resp.headers.get("access-control-allow-origin") is None

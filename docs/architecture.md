@@ -63,7 +63,7 @@ The **dashboard_service** acts as the composition layer, orchestrating all three
 
 ### Data flow: webhook to deployment
 
-1. GitHub sends `deployment_status` to `POST /api/webhooks/github`
+1. GitHub sends `deployment_status` to `POST /webhooks/github`
 2. HMAC signature verified against `GITHUB_WEBHOOK_SECRET`
 3. Event dispatched to handler via `BackgroundTasks` (return 200 immediately)
 4. Handler checks `state == "success"` and environment `is_production`
@@ -76,7 +76,7 @@ All tables carry `tenant_id`. Currently a hardcoded seed tenant for dev. Tenant 
 
 ## Frontend (client/)
 
-React 19 + Vite + TypeScript + Tailwind. Scaffold stage — proxies `/api` to backend via Vite dev server.
+React 19 + Vite + TypeScript + Tailwind. Calls the backend via `VITE_API_BASE_URL` (defaults to same origin in production).
 
 ## Database
 

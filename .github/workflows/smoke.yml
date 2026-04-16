@@ -18,6 +18,7 @@ jobs:
       CLERK_SMOKE_USER_ID: ${{ secrets.CLERK_SMOKE_USER_ID }}
       CLERK_SMOKE_USER_EMAIL: ${{ secrets.CLERK_SMOKE_USER_EMAIL }}
       VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_API_BASE_URL: http://localhost:8000
 
     services:
       postgres:
@@ -81,7 +82,7 @@ jobs:
         run: npm run dev &
 
       - name: Wait for services to be ready
-        run: npx wait-on http-get://localhost:8000/api/health http://localhost:5173 --timeout 60000
+        run: npx wait-on http-get://localhost:8000/health http://localhost:5173 --timeout 60000
 
       - name: Run smoke tests
         working-directory: e2e

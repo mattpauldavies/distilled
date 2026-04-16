@@ -133,7 +133,7 @@ npm install -g smee-client
 # create a channel at https://smee.io — copy the URL
 
 # forward webhooks to your local server
-smee -u https://smee.io/YOUR_CHANNEL_ID -t http://localhost:8000/api/webhooks/github
+smee -u https://smee.io/YOUR_CHANNEL_ID -t http://localhost:8000/webhooks/github
 ```
 
 ### Option B: ngrok
@@ -141,7 +141,7 @@ smee -u https://smee.io/YOUR_CHANNEL_ID -t http://localhost:8000/api/webhooks/gi
 ```sh
 ngrok http 8000
 # copy the https://xxxx.ngrok.io URL
-# set it as your GitHub App webhook URL: https://xxxx.ngrok.io/api/webhooks/github
+# set it as your GitHub App webhook URL: https://xxxx.ngrok.io/webhooks/github
 ```
 
 Keep the forwarding process running in a separate terminal.
@@ -179,7 +179,7 @@ make dev-server
 Verify:
 
 ```sh
-curl http://localhost:8000/api/health
+curl http://localhost:8000/health
 # {"status":"ok"}
 ```
 
@@ -203,7 +203,7 @@ webhook received event_type=installation action=created
 Verify the data landed:
 
 ```sh
-curl http://localhost:8000/api/repos | python3 -m json.tool
+curl http://localhost:8000/repos | python3 -m json.tool
 ```
 
 You should see your installed repos listed.
@@ -240,10 +240,10 @@ Push a commit to `main` on your test repo. This will:
 
 ```sh
 # check deployments
-curl http://localhost:8000/api/deployments | python3 -m json.tool
+curl http://localhost:8000/deployments | python3 -m json.tool
 
 # check a specific deployment's attributed PRs
-curl http://localhost:8000/api/deployments/{id} | python3 -m json.tool
+curl http://localhost:8000/deployments/{id} | python3 -m json.tool
 ```
 
 ---
@@ -260,10 +260,10 @@ curl http://localhost:8000/api/deployments/{id} | python3 -m json.tool
 
 ```sh
 # list PRs
-curl http://localhost:8000/api/pull-requests | python3 -m json.tool
+curl http://localhost:8000/pull-requests | python3 -m json.tool
 
 # check specific PR and its linked deployment
-curl http://localhost:8000/api/pull-requests/{id} | python3 -m json.tool
+curl http://localhost:8000/pull-requests/{id} | python3 -m json.tool
 ```
 
 ---
@@ -276,10 +276,10 @@ To manually toggle an environment:
 
 ```sh
 # list environments (optionally filter by repo_id)
-curl http://localhost:8000/api/environments?repo_id={repo_id} | python3 -m json.tool
+curl http://localhost:8000/environments?repo_id={repo_id} | python3 -m json.tool
 
 # toggle is_production
-curl -X PATCH http://localhost:8000/api/environments/{env_id} \
+curl -X PATCH http://localhost:8000/environments/{env_id} \
   -H "Content-Type: application/json" \
   -d '{"is_production": true}'
 ```
@@ -318,7 +318,7 @@ The suite runs 19 tests across 6 groups — page structure, repo selector, exact
 
 ### Webhooks not arriving
 
-- Verify smee/ngrok is running and pointing to `http://localhost:8000/api/webhooks/github`
+- Verify smee/ngrok is running and pointing to `http://localhost:8000/webhooks/github`
 - Check GitHub App > Advanced > Recent Deliveries for delivery status
 - Check the webhook secret matches between GitHub and your `.env`
 
@@ -336,7 +336,7 @@ The suite runs 19 tests across 6 groups — page structure, repo selector, exact
 ### Deployments not detected
 
 - Confirm the repo has a GitHub Environment named `production` (or matching `prod|live`)
-- Check that `is_production` is `true` for the environment: `GET /api/environments?repo_id={id}`
+- Check that `is_production` is `true` for the environment: `GET /environments?repo_id={id}`
 - Verify the GitHub Actions workflow targets the environment with `environment: production`
 
 ### Database issues

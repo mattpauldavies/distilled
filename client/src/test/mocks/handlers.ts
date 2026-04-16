@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw"
 import { makeDashboardResponse, makeRepo } from "../factories"
 
 export const handlers = [
-  http.get("/api/repos", () => {
+  http.get("/repos", () => {
     return HttpResponse.json({
       items: [makeRepo(), makeRepo({ id: "repo-2", full_name: "org/other-repo" })],
       total: 2,
@@ -11,7 +11,7 @@ export const handlers = [
     })
   }),
 
-  http.get("/api/metrics/unified", () => {
+  http.get("/metrics/unified", () => {
     return HttpResponse.json(makeDashboardResponse())
   }),
 ]

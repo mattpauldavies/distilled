@@ -37,7 +37,7 @@ def metrics_client(mock_session):
 @pytest.mark.asyncio
 async def test_recompute_requires_auth(metrics_client):
     resp = await metrics_client.post(
-        "/api/metrics/recompute",
+        "/metrics/recompute",
         json={"repo_id": str(REPO_ID)},
     )
     assert resp.status_code == 403  # HTTPBearer rejects missing credentials (FastAPI's HTTPBearer returns 403)
@@ -46,7 +46,7 @@ async def test_recompute_requires_auth(metrics_client):
 @pytest.mark.asyncio
 async def test_recompute_rejects_bad_token(metrics_client):
     resp = await metrics_client.post(
-        "/api/metrics/recompute",
+        "/metrics/recompute",
         json={"repo_id": str(REPO_ID)},
         headers={"Authorization": "Bearer wrong-secret"},
     )
@@ -72,7 +72,7 @@ async def test_recompute_success(metrics_client, mock_session):
         mock_recompute.return_value = RecomputeResult(status="success")
 
         resp = await metrics_client.post(
-            "/api/metrics/recompute",
+            "/metrics/recompute",
             json={"repo_id": str(REPO_ID), "tenant_id": str(TENANT_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
@@ -91,7 +91,7 @@ async def test_recompute_repo_not_found(metrics_client, mock_session):
         mock_settings.internal_cron_secret = "test-secret"
 
         resp = await metrics_client.post(
-            "/api/metrics/recompute",
+            "/metrics/recompute",
             json={"repo_id": str(REPO_ID), "tenant_id": str(TENANT_ID)},
             headers={"Authorization": "Bearer test-secret"},
         )
@@ -117,7 +117,7 @@ async def test_unified_endpoint_returns_full_dashboard(client, mock_session):
 
     with patch("app.routes.metrics.dashboard_service.get_unified_dashboard", new_callable=AsyncMock) as mock_unified:
         mock_unified.return_value = mock_response
-        resp = await client.get("/api/metrics/unified?window=30")
+        resp = await client.get("/metrics/unified?window=30")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -144,7 +144,7 @@ async def test_unified_endpoint_accepts_180_day_window(client, mock_session):
 
     with patch("app.routes.metrics.dashboard_service.get_unified_dashboard", new_callable=AsyncMock) as mock_unified:
         mock_unified.return_value = mock_response
-        resp = await client.get("/api/metrics/unified?window=180")
+        resp = await client.get("/metrics/unified?window=180")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -153,5 +153,5 @@ async def test_unified_endpoint_accepts_180_day_window(client, mock_session):
 
 @pytest.mark.asyncio
 async def test_unified_endpoint_rejects_7_day_window(client, mock_session):
-    resp = await client.get("/api/metrics/unified?window=7")
+    resp = await client.get("/metrics/unified?window=7")
     assert resp.status_code == 422

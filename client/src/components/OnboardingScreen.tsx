@@ -23,7 +23,7 @@ export function OnboardingScreen({
 
     const intervalId = setInterval(async () => {
       try {
-        const res = await apiFetch("/api/repos?limit=1")
+        const res = await apiFetch("/repos?limit=1")
         if (!res.ok) return
         const data: PaginatedResponse<Repo> = await res.json()
         if (data.items.length > 0) {

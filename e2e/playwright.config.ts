@@ -1,5 +1,8 @@
+import { config } from "dotenv";
 import { defineConfig, devices } from "@playwright/test";
 import { AUTH_FILE } from "./global-setup";
+
+config({ path: ".env" });
 
 /**
  * Base URL defaults to local dev client. Override for pre/post-deploy checks:
