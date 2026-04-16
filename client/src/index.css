@@ -44,6 +44,7 @@ button {
   border: 1px solid var(--color-primary) !important;
   color: var(--color-secondary) !important;
   border-radius: 0.5rem !important;
+  padding: calc(var(--clerk-spacing, 1rem) * 0.375) calc(var(--clerk-spacing, 1rem) * 0.75) !important;
 }
 
 .cl-socialButtonsBlockButton:hover {
@@ -52,9 +53,6 @@ button {
 
 .cl-card {
   gap: 0 !important;
-}
-
-.cl-card.cl-internal {
   font-weight: var(--font-weight-semibold) !important;
   font-size: var(
     --clerk-font-size-lg,
@@ -65,6 +63,11 @@ button {
 
 .cl-header {
   padding: 2rem 2rem 1.5rem !important;
+}
+
+.cl-headerTitle {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--clerk-font-size-lg, calc(var(--clerk-font-size, 0.8125rem) * 17 / 13));
 }
 
 .cl-main {
