@@ -92,7 +92,7 @@ INTERNAL_CRON_SECRET=<secret> \
 PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
 ```
 
-In production the script is invoked by a Railway cron service (config in [`railway.toml`](railway.toml)) on the schedule `0 * * * *` (UTC).
+In production the script is invoked by a dedicated Railway cron service (configured in the Railway dashboard, separate from the `server` web service) on the schedule `0 * * * *` (UTC).
 
 Optional tuning env vars (script-only): `RECOMPUTE_CONCURRENCY` (default `3`), `RECOMPUTE_JITTER_MS` (default `2000`), `RECOMPUTE_TIMEOUT_S` (default `120`). See [RFC 018](../docs/rfcs/018-batch-metrics-scheduling.md) for the full design.
 

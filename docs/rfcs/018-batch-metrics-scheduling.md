@@ -69,7 +69,7 @@ The new enumeration endpoint shares the `INTERNAL_CRON_SECRET` privilege boundar
 In scope:
 - New enumeration endpoint `GET /metrics/recompute-targets`.
 - New scheduler script `server/scripts/run_hourly_recompute.py`.
-- Railway configuration (`railway.toml`) defining the cron service and its start command.
+- Railway cron service (configured via the Railway dashboard, **not** a `railway.toml` in the repo — see "Railway Configuration" below for why).
 - `API_BASE_URL` config value so the script knows which deployment to target.
 - Tests for the enumeration endpoint and the scheduler's fan-out loop (mocked HTTP).
 - Documentation updates: `server/README.md`, `docs/prds/012 - Scheduled Infrastructure.md` cross-link, ADR if we capture the "fan-out lives outside the web process" decision.
@@ -153,17 +153,14 @@ Create a **new Railway service** in the existing project, pointed at the same re
 - Services configured as cron jobs must exit cleanly (no lingering DB connections, no long-lived event loops).
 - If a previous run is still executing when the next is due, Railway skips the new run — overlap is not an issue we need to handle in the script.
 
-**Config file:** add `server/railway.toml` for the cron service (the web service keeps its dashboard-managed config):
+**Configuration lives in the Railway dashboard, not in the repo.** The existing `server` web service already deploys from this repository; a `railway.toml` inside `server/` would be picked up by **both** services in the Railway project and override the web service's start command. To avoid that clash, the cron service is configured via the Railway dashboard only:
 
-```toml
-[deploy]
-startCommand = "poetry run python scripts/run_hourly_recompute.py"
-cronSchedule = "0 * * * *"
-restartPolicyType = "never"
-```
+- **Service type:** new service in the existing Railway project, pointing at this repo's `server/` root.
+- **Start command:** `poetry run python scripts/run_hourly_recompute.py`
+- **Cron schedule:** `0 * * * *` — top of every hour, UTC.
+- **Restart policy:** `never` — scheduler-level failures surface once; the next hourly tick retries naturally. We do not want Railway looping the script on non-zero exit.
 
-- `cronSchedule = "0 * * * *"` runs at the top of every hour (UTC).
-- `restartPolicyType = "never"` keeps Railway from looping the script on non-zero exit — a scheduler-level failure surfaces once, gets logged, and the next hourly tick retries naturally.
+If we later want this as config-as-code, the path is a `railway.json` in a cron-specific subdirectory (or a separate Railway project) — not a `railway.toml` alongside the web service.
 
 **Env vars (set on the cron service only):**
 
@@ -197,10 +194,10 @@ The cron service does **not** need `DATABASE_URL` — it only talks to the web A
 
 No staging environment exists yet, and we have no real customers, so risk is low. The plan is:
 
-1. Merge endpoint + script + `railway.toml` + tests. The script is dormant in production until the cron service is provisioned.
+1. Merge endpoint + script + tests. The script is dormant in production until the Railway cron service is provisioned via the dashboard.
 2. **Local smoke test:** run the web server locally against the demo seed, then run `poetry run python scripts/run_hourly_recompute.py` with `API_BASE_URL=http://localhost:8000` and a local cron secret. Verify `metrics_refresh_log` rows appear for every seeded repo and the dashboard reflects fresh numbers.
 3. **Production smoke test:** invoke the script once manually against the production URL (e.g. via `railway run` or a local shell with prod env vars) **before** enabling the schedule. Confirm one full clean run.
-4. Provision the Railway cron service from `server/railway.toml`. Let one hourly tick land and verify in the Railway run history and `metrics_refresh_log`.
+4. Provision the Railway cron service via the dashboard (new service pointing at `server/`, start command + `0 * * * *` schedule + `restartPolicyType = never`). Let one hourly tick land and verify in the Railway run history and `metrics_refresh_log`.
 5. Keep an eye on Railway's run history for the first 48h. If exit codes start failing, treat as a bug and fix forward.
 
 ## Resolved Questions
@@ -702,29 +699,15 @@ git commit -m "feat: implement hourly batch metrics recompute scheduler"
 
 ## Chunk 3: Railway Config & Docs
 
-### Task 5: Add Railway cron config
+### Task 5: Configure Railway cron service (dashboard)
 
-**Files:**
-- Create: `server/railway.toml`
+No repo file is created for this. A `railway.toml` inside `server/` would be applied to the existing web service deployment too — we explicitly do not want that. Configuration lives in the Railway dashboard.
 
-- [ ] **Step 1: Create `server/railway.toml`**
-
-```toml
-[build]
-builder = "NIXPACKS"
-
-[deploy]
-startCommand = "poetry run python scripts/run_hourly_recompute.py"
-cronSchedule = "0 * * * *"
-restartPolicyType = "never"
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add server/railway.toml
-git commit -m "chore: add Railway cron config for hourly metrics recompute"
-```
+- [ ] **Step 1:** In the existing Railway project, create a **new service** pointing at this repository's `server/` root.
+- [ ] **Step 2:** Set the service's start command to `poetry run python scripts/run_hourly_recompute.py`.
+- [ ] **Step 3:** Set `Cron Schedule` to `0 * * * *`.
+- [ ] **Step 4:** Set `Restart Policy` to `never`.
+- [ ] **Step 5:** Add env vars on the cron service: `API_BASE_URL` (internal URL of the web service) and `INTERNAL_CRON_SECRET` (matching the web service's value). Optionally `RECOMPUTE_CONCURRENCY` / `RECOMPUTE_JITTER_MS` / `RECOMPUTE_TIMEOUT_S`.
 
 ---
 
@@ -813,7 +796,7 @@ Open the client at `http://localhost:5173`, confirm deployment frequency / lead 
 Manual steps — **do not put these in code**.
 
 - [ ] **Step 1:** With production `API_BASE_URL` and `INTERNAL_CRON_SECRET` (via `railway run` or a scoped shell), invoke the script once manually against production. Confirm exit 0 and the `metrics_refresh_log` rows appear.
-- [ ] **Step 2:** Create the new Railway cron service pointed at the `server/` directory. Verify Railway picks up `railway.toml` (cron schedule visible in the service dashboard).
+- [ ] **Step 2:** Create the new Railway cron service via the dashboard (pointed at the `server/` directory, start command + `0 * * * *` schedule + `restartPolicyType = never`). Verify the cron schedule is visible in the service dashboard.
 - [ ] **Step 3:** Set `API_BASE_URL` and `INTERNAL_CRON_SECRET` as service env vars.
 - [ ] **Step 4:** Wait for the next hourly tick. Confirm the Railway run history shows a successful run, and `metrics_refresh_log` has matching entries.
 - [ ] **Step 5:** Observe for 48h. If exit codes start failing, open a follow-up fix.
