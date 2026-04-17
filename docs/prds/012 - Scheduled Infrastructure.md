@@ -45,3 +45,7 @@ curl -X POST https://app/api/metrics/recompute \
 - Staggered timing avoids resource spikes
 - No in-process scheduler
 - Horizontal scaling safe
+
+---
+
+**Implemented by:** [RFC 018 — Batch Metrics Scheduling](../rfcs/018-batch-metrics-scheduling.md)

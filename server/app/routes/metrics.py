@@ -118,6 +118,23 @@ async def recompute_metrics(
     return {"status": result.status, "error_message": result.error_message}
 
 
+@router.get("/recompute-targets")
+@limiter.limit("10/minute")
+async def list_recompute_targets(
+    request: Request,
+    _auth: None = Depends(_verify_cron_secret),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    result = await session.execute(
+        select(Repository.tenant_id, Repository.id).order_by(Repository.tenant_id, Repository.id)
+    )
+    rows = result.all()
+    targets = [
+        {"tenant_id": str(tenant_id), "repo_id": str(repo_id)} for tenant_id, repo_id in rows
+    ]
+    return {"targets": targets, "count": len(targets)}
+
+
 @router.get("/deployment-frequency", dependencies=[Depends(require_auth)])
 async def get_deployment_frequency_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
