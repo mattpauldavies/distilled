@@ -75,6 +75,27 @@ database/          # Alembic migrations
 | GET    | `/api/metrics/open-prs`             | Open PR counts (total, live, draft)                             |
 | GET    | `/api/metrics/pr-ageing`            | PR age distribution (<2d, 2-7d, 7-14d, >14d buckets)            |
 
+## Scheduled metrics
+
+Metric aggregation runs hourly for every `(tenant, repo)` pair. The server exposes two internal endpoints (Bearer-authenticated with `INTERNAL_CRON_SECRET`):
+
+- `GET /metrics/recompute-targets` — returns every `(tenant_id, repo_id)` pair.
+- `POST /metrics/recompute` — recomputes all four metrics for one repo; idempotent per hour.
+
+A standalone script, [`scripts/run_hourly_recompute.py`](scripts/run_hourly_recompute.py), enumerates targets and fans out per-repo recompute calls with bounded concurrency and small jitter. It exits `1` on scheduler-level failure (missing config, enumeration unreachable) and `0` otherwise — per-repo failures are surfaced in `metrics_refresh_log`.
+
+Run locally against a dev server:
+
+```sh
+APP_BASE_URL=http://localhost:8000 \
+INTERNAL_CRON_SECRET=<secret> \
+PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
+```
+
+In production the script is invoked by a Railway cron service (config in [`railway.toml`](railway.toml)) on the schedule `0 * * * *` (UTC).
+
+Optional tuning env vars (script-only): `RECOMPUTE_CONCURRENCY` (default `3`), `RECOMPUTE_JITTER_MS` (default `2000`), `RECOMPUTE_TIMEOUT_S` (default `120`). See [RFC 018](../docs/rfcs/018-batch-metrics-scheduling.md) for the full design.
+
 ## Local dev logging
 
 When `ENVIRONMENT=development` (set in `.env`), logs are written to `logs/dev.log` in addition to stdout.
