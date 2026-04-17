@@ -87,7 +87,7 @@ A standalone script, [`scripts/run_hourly_recompute.py`](scripts/run_hourly_reco
 Run locally against a dev server:
 
 ```sh
-APP_BASE_URL=http://localhost:8000 \
+API_BASE_URL=http://localhost:8000 \
 INTERNAL_CRON_SECRET=<secret> \
 PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
 ```

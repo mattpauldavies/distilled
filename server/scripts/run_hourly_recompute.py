@@ -4,7 +4,7 @@ Enumerates all (tenant_id, repo_id) pairs via the server's internal API, then
 fans out per-repo recompute calls with bounded concurrency and small jitter.
 
 Usage:
-    cd server && APP_BASE_URL=http://localhost:8000 \
+    cd server && API_BASE_URL=http://localhost:8000 \
         INTERNAL_CRON_SECRET=... \
         PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
 
@@ -68,7 +68,7 @@ async def _with_jitter(
 
 
 async def run() -> RunSummary:
-    base_url = os.environ["APP_BASE_URL"]
+    base_url = os.environ["API_BASE_URL"]
     secret = os.environ["INTERNAL_CRON_SECRET"]
 
     started = time.monotonic()
@@ -93,8 +93,8 @@ async def run() -> RunSummary:
 
 
 def main() -> int:
-    if not os.environ.get("APP_BASE_URL") or not os.environ.get("INTERNAL_CRON_SECRET"):
-        print("APP_BASE_URL and INTERNAL_CRON_SECRET must be set", file=sys.stderr)
+    if not os.environ.get("API_BASE_URL") or not os.environ.get("INTERNAL_CRON_SECRET"):
+        print("API_BASE_URL and INTERNAL_CRON_SECRET must be set", file=sys.stderr)
         return 1
     try:
         summary = asyncio.run(run())

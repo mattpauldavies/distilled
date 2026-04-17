@@ -97,7 +97,7 @@ async def test_recompute_one_gives_up_after_one_retry():
 
 @pytest.mark.asyncio
 async def test_run_fans_out_for_every_target(monkeypatch):
-    monkeypatch.setenv("APP_BASE_URL", "http://test")
+    monkeypatch.setenv("API_BASE_URL", "http://test")
     monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
     monkeypatch.setenv("RECOMPUTE_JITTER_MS", "0")
     monkeypatch.setenv("RECOMPUTE_CONCURRENCY", "2")
@@ -130,13 +130,13 @@ async def test_run_fans_out_for_every_target(monkeypatch):
 
 
 def test_main_exits_1_when_env_missing(monkeypatch):
-    monkeypatch.delenv("APP_BASE_URL", raising=False)
+    monkeypatch.delenv("API_BASE_URL", raising=False)
     monkeypatch.delenv("INTERNAL_CRON_SECRET", raising=False)
     assert sut.main() == 1
 
 
 def test_main_exits_1_on_enumeration_failure(monkeypatch):
-    monkeypatch.setenv("APP_BASE_URL", "http://test")
+    monkeypatch.setenv("API_BASE_URL", "http://test")
     monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -147,7 +147,7 @@ def test_main_exits_1_on_enumeration_failure(monkeypatch):
 
 
 def test_main_exits_0_on_partial_per_repo_failure(monkeypatch):
-    monkeypatch.setenv("APP_BASE_URL", "http://test")
+    monkeypatch.setenv("API_BASE_URL", "http://test")
     monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
     monkeypatch.setenv("RECOMPUTE_JITTER_MS", "0")
 

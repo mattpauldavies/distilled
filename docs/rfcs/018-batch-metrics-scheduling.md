@@ -70,7 +70,7 @@ In scope:
 - New enumeration endpoint `GET /metrics/recompute-targets`.
 - New scheduler script `server/scripts/run_hourly_recompute.py`.
 - Railway configuration (`railway.toml`) defining the cron service and its start command.
-- `APP_BASE_URL` config value so the script knows which deployment to target.
+- `API_BASE_URL` config value so the script knows which deployment to target.
 - Tests for the enumeration endpoint and the scheduler's fan-out loop (mocked HTTP).
 - Documentation updates: `server/README.md`, `docs/prds/012 - Scheduled Infrastructure.md` cross-link, ADR if we capture the "fan-out lives outside the web process" decision.
 
@@ -115,7 +115,7 @@ Reads from env:
 
 | Var                      | Purpose                                           |
 | ------------------------ | ------------------------------------------------- |
-| `APP_BASE_URL`           | e.g. `https://distilled.up.railway.app`           |
+| `API_BASE_URL`           | e.g. `https://distilled.up.railway.app`           |
 | `INTERNAL_CRON_SECRET`   | Shared secret for the two internal endpoints      |
 | `RECOMPUTE_CONCURRENCY`  | Worker count (default `3`)                        |
 | `RECOMPUTE_JITTER_MS`    | Max jitter per call in ms (default `2000`)        |
@@ -124,7 +124,7 @@ Reads from env:
 ### Flow
 
 ```
-1. Load config; fail fast if APP_BASE_URL or INTERNAL_CRON_SECRET missing.
+1. Load config; fail fast if API_BASE_URL or INTERNAL_CRON_SECRET missing.
 2. GET /api/metrics/recompute-targets  → list of {tenant_id, repo_id}
 3. Fan out with asyncio.Semaphore(RECOMPUTE_CONCURRENCY):
      for each target:
@@ -169,7 +169,7 @@ restartPolicyType = "never"
 
 | Var                     | Value                                         |
 | ----------------------- | --------------------------------------------- |
-| `APP_BASE_URL`          | Internal Railway URL of the web service       |
+| `API_BASE_URL`          | Internal Railway URL of the web service       |
 | `INTERNAL_CRON_SECRET`  | Same secret the web service validates against |
 | `RECOMPUTE_CONCURRENCY` | Optional; defaults to `3`                     |
 
@@ -179,7 +179,7 @@ The cron service does **not** need `DATABASE_URL` — it only talks to the web A
 
 - Add `app_base_url: str = ""` to `server/app/config.py` (only used by scripts, but belongs in one place).
 - Validate at script entry that it is non-empty — the web app itself does not require it.
-- Add to `server/.env.example`: `APP_BASE_URL=`.
+- Add to `server/.env.example`: `API_BASE_URL=`.
 
 ## Testing Strategy
 
@@ -198,7 +198,7 @@ The cron service does **not** need `DATABASE_URL` — it only talks to the web A
 No staging environment exists yet, and we have no real customers, so risk is low. The plan is:
 
 1. Merge endpoint + script + `railway.toml` + tests. The script is dormant in production until the cron service is provisioned.
-2. **Local smoke test:** run the web server locally against the demo seed, then run `poetry run python scripts/run_hourly_recompute.py` with `APP_BASE_URL=http://localhost:8000` and a local cron secret. Verify `metrics_refresh_log` rows appear for every seeded repo and the dashboard reflects fresh numbers.
+2. **Local smoke test:** run the web server locally against the demo seed, then run `poetry run python scripts/run_hourly_recompute.py` with `API_BASE_URL=http://localhost:8000` and a local cron secret. Verify `metrics_refresh_log` rows appear for every seeded repo and the dashboard reflects fresh numbers.
 3. **Production smoke test:** invoke the script once manually against the production URL (e.g. via `railway run` or a local shell with prod env vars) **before** enabling the schedule. Confirm one full clean run.
 4. Provision the Railway cron service from `server/railway.toml`. Let one hourly tick land and verify in the Railway run history and `metrics_refresh_log`.
 5. Keep an eye on Railway's run history for the first 48h. If exit codes start failing, treat as a bug and fix forward.
@@ -359,7 +359,7 @@ Create `server/scripts/run_hourly_recompute.py` with only the imports, a module 
 """Hourly batch metrics recompute.
 
 Usage:
-    cd server && APP_BASE_URL=http://localhost:8000 \
+    cd server && API_BASE_URL=http://localhost:8000 \
         INTERNAL_CRON_SECRET=... \
         PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
 """
@@ -497,7 +497,7 @@ async def test_recompute_one_gives_up_after_one_retry():
 
 @pytest.mark.asyncio
 async def test_run_fans_out_for_every_target(monkeypatch):
-    monkeypatch.setenv("APP_BASE_URL", "http://test")
+    monkeypatch.setenv("API_BASE_URL", "http://test")
     monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
     monkeypatch.setenv("RECOMPUTE_JITTER_MS", "0")
     monkeypatch.setenv("RECOMPUTE_CONCURRENCY", "2")
@@ -528,7 +528,7 @@ async def test_run_fans_out_for_every_target(monkeypatch):
 
 
 def test_main_exits_1_on_enumeration_failure(monkeypatch):
-    monkeypatch.setenv("APP_BASE_URL", "http://test")
+    monkeypatch.setenv("API_BASE_URL", "http://test")
     monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -541,7 +541,7 @@ def test_main_exits_1_on_enumeration_failure(monkeypatch):
 
 
 def test_main_exits_0_on_partial_per_repo_failure(monkeypatch):
-    monkeypatch.setenv("APP_BASE_URL", "http://test")
+    monkeypatch.setenv("API_BASE_URL", "http://test")
     monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
     monkeypatch.setenv("RECOMPUTE_JITTER_MS", "0")
 
@@ -622,7 +622,7 @@ async def _with_jitter(target: dict, client: httpx.AsyncClient, sem: asyncio.Sem
 
 
 async def run() -> RunSummary:
-    base_url = os.environ["APP_BASE_URL"]
+    base_url = os.environ["API_BASE_URL"]
     secret = os.environ["INTERNAL_CRON_SECRET"]
 
     started = time.monotonic()
@@ -648,8 +648,8 @@ async def run() -> RunSummary:
 
 
 def main() -> int:
-    if not os.environ.get("APP_BASE_URL") or not os.environ.get("INTERNAL_CRON_SECRET"):
-        print("APP_BASE_URL and INTERNAL_CRON_SECRET must be set", file=sys.stderr)
+    if not os.environ.get("API_BASE_URL") or not os.environ.get("INTERNAL_CRON_SECRET"):
+        print("API_BASE_URL and INTERNAL_CRON_SECRET must be set", file=sys.stderr)
         return 1
     try:
         summary = asyncio.run(run())
@@ -665,7 +665,7 @@ def main() -> int:
 
 Note the two distinct failure modes:
 
-- **Scheduler-level failure** (no `APP_BASE_URL`, enumeration raises) → `exit 1`.
+- **Scheduler-level failure** (no `API_BASE_URL`, enumeration raises) → `exit 1`.
 - **Per-repo failure** (non-2xx on `/metrics/recompute`) → logged in `failed` count, `exit 0`.
 
 - [ ] **Step 2: Run tests to verify they pass**
@@ -786,7 +786,7 @@ cd server && INTERNAL_CRON_SECRET=local-cron-secret poetry run uvicorn app.main:
 
 ```bash
 cd server && \
-  APP_BASE_URL=http://localhost:8000 \
+  API_BASE_URL=http://localhost:8000 \
   INTERNAL_CRON_SECRET=local-cron-secret \
   PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
 ```
@@ -812,8 +812,8 @@ Open the client at `http://localhost:5173`, confirm deployment frequency / lead 
 
 Manual steps — **do not put these in code**.
 
-- [ ] **Step 1:** With production `APP_BASE_URL` and `INTERNAL_CRON_SECRET` (via `railway run` or a scoped shell), invoke the script once manually against production. Confirm exit 0 and the `metrics_refresh_log` rows appear.
+- [ ] **Step 1:** With production `API_BASE_URL` and `INTERNAL_CRON_SECRET` (via `railway run` or a scoped shell), invoke the script once manually against production. Confirm exit 0 and the `metrics_refresh_log` rows appear.
 - [ ] **Step 2:** Create the new Railway cron service pointed at the `server/` directory. Verify Railway picks up `railway.toml` (cron schedule visible in the service dashboard).
-- [ ] **Step 3:** Set `APP_BASE_URL` and `INTERNAL_CRON_SECRET` as service env vars.
+- [ ] **Step 3:** Set `API_BASE_URL` and `INTERNAL_CRON_SECRET` as service env vars.
 - [ ] **Step 4:** Wait for the next hourly tick. Confirm the Railway run history shows a successful run, and `metrics_refresh_log` has matching entries.
 - [ ] **Step 5:** Observe for 48h. If exit codes start failing, open a follow-up fix.
