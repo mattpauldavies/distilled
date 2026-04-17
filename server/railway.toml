@@ -1,0 +1,7 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "poetry run python scripts/run_hourly_recompute.py"
+cronSchedule = "0 * * * *"
+restartPolicyType = "never"
