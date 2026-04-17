@@ -1,14 +1,23 @@
-import asyncio
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 
 from scripts import run_hourly_recompute as sut
 
+_RealAsyncClient = httpx.AsyncClient
+
 
 def _mock_transport(handler):
     return httpx.MockTransport(handler)
+
+
+def _patched_client_factory(handler):
+    def factory(**kw):
+        kw.pop("transport", None)
+        return _RealAsyncClient(transport=_mock_transport(handler), **kw)
+
+    return factory
 
 
 @pytest.mark.asyncio
@@ -63,7 +72,7 @@ async def test_recompute_one_retries_once_on_5xx():
         return httpx.Response(200, json={"status": "success"})
 
     async with httpx.AsyncClient(transport=_mock_transport(handler), base_url="http://test") as client:
-        with patch.object(sut.asyncio, "sleep", new=lambda _s: asyncio.sleep(0)):
+        with patch.object(sut.asyncio, "sleep", new=AsyncMock()):
             ok = await sut.recompute_one(client, {"tenant_id": "t1", "repo_id": "r1"})
 
     assert ok is True
@@ -79,7 +88,7 @@ async def test_recompute_one_gives_up_after_one_retry():
         return httpx.Response(503)
 
     async with httpx.AsyncClient(transport=_mock_transport(handler), base_url="http://test") as client:
-        with patch.object(sut.asyncio, "sleep", new=lambda _s: asyncio.sleep(0)):
+        with patch.object(sut.asyncio, "sleep", new=AsyncMock()):
             ok = await sut.recompute_one(client, {"tenant_id": "t1", "repo_id": "r1"})
 
     assert ok is False
@@ -111,10 +120,7 @@ async def test_run_fans_out_for_every_target(monkeypatch):
             )
         return httpx.Response(200, json={"status": "success"})
 
-    def make_client(**kw):
-        return httpx.AsyncClient(transport=_mock_transport(handler), **kw)
-
-    with patch.object(sut.httpx, "AsyncClient", make_client):
+    with patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)):
         summary = await sut.run()
 
     assert summary.total == 3
@@ -136,10 +142,7 @@ def test_main_exits_1_on_enumeration_failure(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500)
 
-    def make_client(**kw):
-        return httpx.AsyncClient(transport=_mock_transport(handler), **kw)
-
-    with patch.object(sut.httpx, "AsyncClient", make_client):
+    with patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)):
         assert sut.main() == 1
 
 
@@ -156,11 +159,8 @@ def test_main_exits_0_on_partial_per_repo_failure(monkeypatch):
             )
         return httpx.Response(500)
 
-    def make_client(**kw):
-        return httpx.AsyncClient(transport=_mock_transport(handler), **kw)
-
-    with patch.object(sut.httpx, "AsyncClient", make_client), patch.object(
-        sut.asyncio, "sleep", new=lambda _s: asyncio.sleep(0)
+    with patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)), patch.object(
+        sut.asyncio, "sleep", new=AsyncMock()
     ):
         # Per-repo failures are NOT a scheduler-level failure.
         assert sut.main() == 0
