@@ -51,7 +51,7 @@ Metrics are split across three services by **computation pattern**, not data sou
 | Metrics Freshness    | data_quality | live query          | MetricsRefreshLog |
 | Attribution Coverage | data_quality | live query          | PRs + deployments |
 
-The **dashboard_service** acts as the composition layer, orchestrating all three into a unified response.
+The **dashboard_service** exposes one helper per section; each of the `/api/metrics/*` endpoints delegates to its corresponding helper. The client fetches all sections in parallel, so one slow query never blocks the rest of the dashboard.
 
 ### Scheduled jobs
 

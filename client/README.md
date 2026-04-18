@@ -53,7 +53,7 @@ npm run test:watch    # watch mode
 npm run test:coverage # with coverage report
 ```
 
-35 integration tests (Vitest + Testing Library + MSW) covering hooks, components, and end-to-end dashboard flows. Test infrastructure: MSW mocks HTTP, factory functions generate test data, Clerk mocked per test file.
+Vitest + Testing Library + MSW cover hooks, components, and end-to-end dashboard flows. Test infrastructure: MSW mocks HTTP, factory functions generate test data, Clerk mocked per test file.
 
 ## Lint and format
 
@@ -69,7 +69,7 @@ ESLint enforces TypeScript + React Hooks rules. Prettier handles code style (dou
 ```
 src/
   main.tsx                        # Entry point — wraps app in ClerkProvider
-  App.tsx                         # Auth gate (SignedIn/SignedOut) + Dashboard
+  App.tsx                         # Auth gate + initialising/error/onboarding/dashboard branch
   index.css                       # Tailwind + theme vars
   lib/
     api.ts                        # makeApiFetch(getToken) factory
@@ -77,12 +77,22 @@ src/
   types/dashboard.ts              # TypeScript interfaces for API responses
   hooks/
     useRepos.ts                   # Fetch repo list (Clerk-authenticated)
-    useDashboard.ts               # Fetch unified dashboard metrics (Clerk-authenticated)
+    useMetricSection.ts           # Generic fetch/loading/error/retry primitive for /metrics/*
+    useDeploymentFrequency.ts     # Per-section hooks — each owns one /metrics endpoint
+    useLeadTime.ts                #   so individual tiles load and error independently
+    usePRCycleTime.ts
+    useThroughput.ts
+    useOpenPRs.ts
+    usePRAgeing.ts
+    useDataQuality.ts
   components/
-    SignInPage.tsx                 # Clerk sign-in page (GitHub OAuth)
+    SignInPage.tsx                # Clerk sign-in page (GitHub OAuth)
+    InitialisingScreen.tsx        # Full-screen "Initialising…" state while repos load
+    ReposErrorScreen.tsx          # Full-screen error + retry when /repos fails
     OnboardingScreen.tsx          # Guides new tenants to install the GitHub App
     Dashboard.tsx                 # Main orchestrator — controls, cards, charts
-    DashboardControls.tsx         # Repo selector + 7/30/90 day window toggle
+    NoMetricsYetDialog.tsx        # Cold-start dialog when a repo has no metrics yet
+    DashboardControls.tsx         # Repo selector + 30/90/180 day window toggle
     MetricCard.tsx                # Single metric card (loading/empty/value states)
     ChartPanel.tsx                # Chart wrapper (loading/empty/chart states)
     charts/
