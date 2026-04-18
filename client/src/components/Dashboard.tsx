@@ -14,6 +14,7 @@ import { DeploymentChart } from "@/components/charts/DeploymentChart"
 import { LeadTimeChart } from "@/components/charts/LeadTimeChart"
 import { CycleTimeChart } from "@/components/charts/CycleTimeChart"
 import { PRAgeingChart } from "@/components/charts/PRAgeingChart"
+import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
 import { Button } from "@/components/ui/button"
 import type { DaysWindow, Repo } from "@/types/dashboard"
 
@@ -235,6 +236,10 @@ export function Dashboard({ repos }: DashboardProps) {
           {prAgeing.data && <PRAgeingChart buckets={prAgeing.data.buckets} />}
         </ChartPanel>
       </div>
+
+      {selectedRepoId && (
+        <NoMetricsYetDialog repoId={selectedRepoId} lastRefreshAt={freshness?.last_refresh_at} />
+      )}
     </main>
   )
 }
