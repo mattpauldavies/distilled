@@ -30,7 +30,7 @@ This RFC proposes: an app-level "initialising…" gate, per-section parallel dat
 
 ### 1. App-level `Initialising…` gate
 
-Hoist the `reposLoading` check out of `Dashboard.tsx` and into a new top-level branch inside `App.tsx` (or a thin `AppShell` wrapper). Three terminal states, one loading state:
+Hoist the `reposLoading` check out of `Dashboard.tsx` and into a new top-level branch inside `App.tsx`. Three terminal states, one loading state:
 
 ```
 SignedIn
@@ -62,7 +62,7 @@ GET /api/metrics/data-quality?repo_id=
 
 Four already exist (`deployment-frequency`, `lead-time`, `open-prs`, `pr-ageing`) but return different shapes. We change them to return the exact unified sub-shape (`DeploymentFrequencySection`, etc.) and add the three missing ones (`pr-cycle-time`, `throughput`, `data-quality`). The underlying metric service functions already exist and are what `/metrics/unified` calls today — we're just exposing them.
 
-Keep `/metrics/unified` for now as a fallback and for any external consumer; mark it for deprecation in a follow-up once the client has migrated.
+Delete `/metrics/unified` in the same change. We're pre-live customers — no external consumers to worry about — so there's no reason to carry a second code path. One less endpoint, one less schema, one less test file.
 
 **Client side.** Replace `useDashboard` with seven narrow hooks, one per section, each with its own `{ data, loading, error, retry }`. They fire in parallel because `useEffect` runs are independent:
 
@@ -137,7 +137,7 @@ server/app/routes/metrics.py
 ├── /open-prs                          # CHANGE shape → OpenPRsSection
 ├── /pr-ageing                         # CHANGE shape → PRAgeingSection
 ├── /data-quality                      # NEW
-└── /unified                           # UNCHANGED (deprecation candidate)
+└── /unified                           # DELETED
 ```
 
 Shape-change impact: the four existing per-metric endpoints are not consumed by the current UI (which uses `/unified`). A quick `rg` confirms no client caller. Safe to change; no deprecation window needed.
@@ -158,7 +158,6 @@ Shape-change impact: the four existing per-metric endpoints are not consumed by 
 
 - **Request volume**: 7 parallel requests on every repo/window change vs 1 today. For a single tenant this is negligible; HTTP/2 multiplexing handles it. Rate limiting is per-tenant and generous. No action needed but worth flagging.
 - **Perceived "flicker" of tiles appearing one-by-one**: intended. The brief states "Graphs and metrics should indicate that they are loading" — progressive reveal with skeletons satisfies this and matches Linear/Raycast feel.
-- **Should we keep `/metrics/unified`?** I propose keeping it for now; deprecate in a follow-up RFC once we're confident no one else depends on it. No code cost beyond one extra test file.
 - **Should the cold-start modal re-trigger on repo switch?** Proposed: yes for a repo not yet dismissed, no for one already dismissed in this session. Reasonable alternative: never auto-reopen once dismissed anywhere. Happy to defer to reviewer.
 
 ---
@@ -166,5 +165,4 @@ Shape-change impact: the four existing per-metric endpoints are not consumed by 
 ## Out of Scope
 
 - Auto-polling the dashboard for new metrics after the modal appears (no server push channel yet; manual refresh is fine for v1).
-- Deprecating `/metrics/unified` — separate RFC.
 - Skeleton visual redesign — current shadcn `Skeleton` is fine.
