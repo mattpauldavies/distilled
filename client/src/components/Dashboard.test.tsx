@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse, delay } from "msw"
 import { server } from "@/test/mocks/server"
-import { makeOpenPRs, makeDeploymentFrequency } from "@/test/factories"
+import { makeOpenPRs, makeDeploymentFrequency, makeRepo } from "@/test/factories"
 import { Dashboard } from "./Dashboard"
 
 vi.mock("@clerk/clerk-react", () => ({
@@ -22,9 +22,11 @@ vi.mock("./charts/PRAgeingChart", () => ({
   PRAgeingChart: () => <div data-testid="pr-ageing-chart" />,
 }))
 
+const defaultRepos = [makeRepo(), makeRepo({ id: "repo-2", full_name: "org/other-repo" })]
+
 describe("Dashboard", () => {
   it("renders metric cards with data from per-section endpoints", async () => {
-    render(<Dashboard />)
+    render(<Dashboard repos={defaultRepos} />)
 
     await waitFor(() => {
       expect(screen.getByText("4.2")).toBeInTheDocument()
@@ -48,7 +50,7 @@ describe("Dashboard", () => {
       })
     )
 
-    render(<Dashboard />)
+    render(<Dashboard repos={defaultRepos} />)
 
     // Open PRs resolves immediately
     await waitFor(() => {
@@ -65,34 +67,6 @@ describe("Dashboard", () => {
     })
   })
 
-  it("shows onboarding screen when no repos", async () => {
-    server.use(
-      http.get("/repos", () => {
-        return HttpResponse.json({ items: [], total: 0, offset: 0, limit: 100 })
-      })
-    )
-
-    render(<Dashboard />)
-
-    await waitFor(() => {
-      expect(screen.getByText("Welcome to Distilled")).toBeInTheDocument()
-    })
-  })
-
-  it("shows repos error banner", async () => {
-    server.use(
-      http.get("/repos", () => {
-        return new HttpResponse(null, { status: 500 })
-      })
-    )
-
-    render(<Dashboard />)
-
-    await waitFor(() => {
-      expect(screen.getByText("Failed to fetch repos: 500")).toBeInTheDocument()
-    })
-  })
-
   it("shows a single error banner only when all sections fail", async () => {
     server.use(
       http.get("/metrics/deployment-frequency", () => new HttpResponse(null, { status: 500 })),
@@ -104,7 +78,7 @@ describe("Dashboard", () => {
       http.get("/metrics/data-quality", () => new HttpResponse(null, { status: 500 }))
     )
 
-    render(<Dashboard />)
+    render(<Dashboard repos={defaultRepos} />)
 
     await waitFor(() => {
       expect(screen.getByText("Retry")).toBeInTheDocument()
@@ -114,7 +88,7 @@ describe("Dashboard", () => {
   it("does not show the global error banner when only one section fails", async () => {
     server.use(http.get("/metrics/open-prs", () => new HttpResponse(null, { status: 500 })))
 
-    render(<Dashboard />)
+    render(<Dashboard repos={defaultRepos} />)
 
     await waitFor(() => {
       expect(screen.getByText("4.2")).toBeInTheDocument()
@@ -124,7 +98,7 @@ describe("Dashboard", () => {
   })
 
   it("shows sign out button", async () => {
-    render(<Dashboard />)
+    render(<Dashboard repos={defaultRepos} />)
 
     await waitFor(() => {
       expect(screen.getByText("Sign out")).toBeInTheDocument()

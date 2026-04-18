@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { useClerk } from "@clerk/clerk-react"
-import { useRepos } from "@/hooks/useRepos"
 import { useDeploymentFrequency } from "@/hooks/useDeploymentFrequency"
 import { useLeadTime } from "@/hooks/useLeadTime"
 import { usePRCycleTime } from "@/hooks/usePRCycleTime"
@@ -15,9 +14,8 @@ import { DeploymentChart } from "@/components/charts/DeploymentChart"
 import { LeadTimeChart } from "@/components/charts/LeadTimeChart"
 import { CycleTimeChart } from "@/components/charts/CycleTimeChart"
 import { PRAgeingChart } from "@/components/charts/PRAgeingChart"
-import { OnboardingScreen } from "@/components/OnboardingScreen"
 import { Button } from "@/components/ui/button"
-import type { DaysWindow } from "@/types/dashboard"
+import type { DaysWindow, Repo } from "@/types/dashboard"
 
 function SignOutButton() {
   const { signOut } = useClerk()
@@ -44,12 +42,15 @@ function timeAgo(isoString: string | null): string {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-export function Dashboard() {
-  const { repos, loading: reposLoading, error: reposError, refetch: refetchRepos } = useRepos()
+interface DashboardProps {
+  repos: Repo[]
+}
+
+export function Dashboard({ repos }: DashboardProps) {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
-  const selectedRepoId = userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null)
+  const selectedRepoId = userSelectedRepoId ?? repos[0].id
   const selectedRepo = repos.find((r) => r.id === selectedRepoId)
 
   const depFreq = useDeploymentFrequency(selectedRepoId, daysWindow)
@@ -59,10 +60,6 @@ export function Dashboard() {
   const openPrs = useOpenPRs(selectedRepoId)
   const prAgeing = usePRAgeing(selectedRepoId)
   const dataQuality = useDataQuality(selectedRepoId, daysWindow)
-
-  if (!reposLoading && !reposError && repos.length === 0) {
-    return <OnboardingScreen onReposDetected={refetchRepos} />
-  }
 
   const sections = [depFreq, leadTime, cycleTime, throughput, openPrs, prAgeing, dataQuality]
   const allErrored = sections.every((s) => s.error !== null)
@@ -103,15 +100,6 @@ export function Dashboard() {
           <SignOutButton />
         </div>
       </div>
-
-      {reposError && (
-        <div
-          role="alert"
-          className="flex items-center gap-3 rounded-md border border-error-border bg-error-surface p-4 text-sm text-error"
-        >
-          <span>{reposError}</span>
-        </div>
-      )}
 
       {allErrored && firstError && (
         <div
