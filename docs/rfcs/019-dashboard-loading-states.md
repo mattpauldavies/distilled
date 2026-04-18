@@ -98,7 +98,7 @@ UI: shadcn `Dialog` component (add via `npx shadcn@latest add dialog`). Single s
 Behaviour:
 
 - Opens automatically when the trigger condition first resolves.
-- Dismiss via the button or `Esc`. Once dismissed in a session, don't reappear for that repo — store dismissal in `sessionStorage` keyed by `repoId` so switching repos doesn't re-trigger for one the user has already acknowledged, but a fresh page load re-checks.
+- Dismiss via the button or `Esc`. Once dismissed for a given repo, never reappear for that repo — store dismissal in `localStorage` keyed by `repoId` so it persists across sessions and page reloads.
 - Behind the modal: render the dashboard with its normal empty/loading states. The modal is informational, not blocking critical UI. We do **not** poll the server from the client — the scheduled recompute (RFC 018) will populate data, and users see it on next render / navigation. A follow-up could add an auto-refetch on visibility change, but that's out of scope.
 
 ---
@@ -149,7 +149,7 @@ Shape-change impact: the four existing per-metric endpoints are not consumed by 
 - **`InitialisingScreen`**: snapshot + a11y smoke (live region).
 - **`App` gating**: test that `repos` loading state renders `InitialisingScreen`, error renders `ReposErrorScreen`, empty renders `OnboardingScreen`, populated renders `Dashboard`. MSW drives the states.
 - **Per-section hooks**: one hook-level test each, plus a `Dashboard` integration test that uses MSW to resolve endpoints at different times and asserts that fast tiles finish their skeleton before slow ones (time-travel with `vi.useFakeTimers`).
-- **`NoMetricsYetDialog`**: renders on `freshness.last_refresh_at === null`, doesn't render when set, dismiss state persists across re-renders in the same session.
+- **`NoMetricsYetDialog`**: renders on `freshness.last_refresh_at === null`, doesn't render when set, dismissal persists in `localStorage` per repo across reloads.
 - **Server**: one pytest per new/changed endpoint verifying shape parity with the `unified` section it replaces (the metric service functions are already covered).
 
 ---
@@ -158,7 +158,6 @@ Shape-change impact: the four existing per-metric endpoints are not consumed by 
 
 - **Request volume**: 7 parallel requests on every repo/window change vs 1 today. For a single tenant this is negligible; HTTP/2 multiplexing handles it. Rate limiting is per-tenant and generous. No action needed but worth flagging.
 - **Perceived "flicker" of tiles appearing one-by-one**: intended. The brief states "Graphs and metrics should indicate that they are loading" — progressive reveal with skeletons satisfies this and matches Linear/Raycast feel.
-- **Should the cold-start modal re-trigger on repo switch?** Proposed: yes for a repo not yet dismissed, no for one already dismissed in this session. Reasonable alternative: never auto-reopen once dismissed anywhere. Happy to defer to reviewer.
 
 ---
 
