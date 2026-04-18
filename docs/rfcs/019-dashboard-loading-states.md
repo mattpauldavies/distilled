@@ -268,9 +268,12 @@ Commit: `docs: update for RFC 019 changes`
 
 ### Verification checklist (before "done")
 
-- [ ] `npm test` passes in `/client`
-- [ ] `pytest` passes in `/server`
-- [ ] `npm run lint` clean
+- [ ] `make test` passes (both `/client` and `/server`)
+- [ ] `make lint` clean (ruff + mypy on server, ESLint + Prettier on client)
+- [ ] `make smoke-test` passes end-to-end against the running stack with demo seed data. Review `e2e/smoke.spec.ts` for selectors that may need updating:
+  - `loadDashboard()` currently waits for the repo combobox — still valid after the gate, but may need a short wait for `InitialisingScreen` to disappear first
+  - With demo data, `last_refresh_at` is non-null so the cold-start modal must **not** appear — add an assertion that it is absent
+  - If any existing assertion relied on all tiles revealing simultaneously, relax it to "eventually visible" to account for progressive reveal
 - [ ] Manual: fresh tenant → install flow still works; repos appear; no flash
 - [ ] Manual: signed in tenant with repos → individual tiles skeleton-then-reveal at different speeds (check Network tab shows 7 parallel requests)
 - [ ] Manual: seed a tenant with repos but `last_refresh_at = NULL` → modal appears; dismiss; reload → stays dismissed; switch repo to an undismissed one → modal appears again
