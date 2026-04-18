@@ -26,7 +26,6 @@ from app.schemas.metrics import (
     PRAgeingSection,
     PRCycleTimeSection,
     ThroughputSection,
-    UnifiedDashboardResponse,
 )
 from app.services import dashboard_service
 from app.services.metrics_service import recompute_repo
@@ -196,13 +195,3 @@ async def get_data_quality_endpoint(
     window: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> DataQuality:
     return await dashboard_service.get_data_quality_section(tenant_id, repo, session, int(window))
-
-
-@router.get("/unified", dependencies=[Depends(require_auth)])
-async def get_unified_dashboard_endpoint(
-    tenant_id: uuid.UUID = Depends(get_tenant_id),
-    repo: Repository = Depends(get_verified_repo),
-    session: AsyncSession = Depends(get_session),
-    window: DaysWindow = Query(DaysWindow.THIRTY),
-) -> UnifiedDashboardResponse:
-    return await dashboard_service.get_unified_dashboard(tenant_id, repo, session, int(window))

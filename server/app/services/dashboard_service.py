@@ -15,7 +15,6 @@ from app.schemas.metrics import (
     PRCycleTimeSection,
     SetupInfo,
     ThroughputSection,
-    UnifiedDashboardResponse,
     WeeklyPercentiles,
     WeeklyThroughput,
 )
@@ -150,21 +149,4 @@ async def get_data_quality_section(
             has_production_environment=len(prod_envs) > 0,
             production_environments=prod_envs,
         ),
-    )
-
-
-async def get_unified_dashboard(
-    tenant_id: uuid.UUID,
-    repo: Repository,
-    session: AsyncSession,
-    days: int = 30,
-) -> UnifiedDashboardResponse:
-    return UnifiedDashboardResponse(
-        deployment_frequency=await get_deployment_frequency_section(tenant_id, repo, session, days),
-        lead_time=await get_lead_time_section(tenant_id, repo, session, days),
-        pr_cycle_time=await get_pr_cycle_time_section(tenant_id, repo, session, days),
-        throughput=await get_throughput_section(tenant_id, repo, session, days),
-        open_prs=await get_open_prs_section(tenant_id, repo, session),
-        pr_ageing=await get_pr_ageing_section(tenant_id, repo, session),
-        data_quality=await get_data_quality_section(tenant_id, repo, session, days),
     )

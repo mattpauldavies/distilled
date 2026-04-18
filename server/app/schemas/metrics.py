@@ -32,9 +32,6 @@ class WeeklyThroughput(BaseModel):
     pr_count: int
 
 
-# --- Unified dashboard response types ---
-
-
 class DeploymentFrequencySection(BaseModel):
     status: str
     total: int | None = None
@@ -86,13 +83,3 @@ class DataQuality(BaseModel):
     attribution_coverage_percent: float | None
     freshness: FreshnessInfo
     setup: SetupInfo
-
-
-class UnifiedDashboardResponse(BaseModel):
-    deployment_frequency: DeploymentFrequencySection
-    lead_time: LeadTimeSection
-    pr_cycle_time: PRCycleTimeSection
-    throughput: ThroughputSection
-    open_prs: OpenPRsSection
-    pr_ageing: PRAgeingSection
-    data_quality: DataQuality

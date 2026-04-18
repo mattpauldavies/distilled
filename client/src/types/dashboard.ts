@@ -73,16 +73,6 @@ export interface DataQuality {
   setup: SetupInfo
 }
 
-export interface UnifiedDashboardResponse {
-  deployment_frequency: DeploymentFrequencySection
-  lead_time: LeadTimeSection
-  pr_cycle_time: PRCycleTimeSection
-  throughput: ThroughputSection
-  open_prs: OpenPRsSection
-  pr_ageing: PRAgeingSection
-  data_quality: DataQuality
-}
-
 export interface Repo {
   id: string
   github_id: number
