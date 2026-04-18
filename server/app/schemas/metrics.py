@@ -15,15 +15,6 @@ class DailyCount(BaseModel):
     count: int
 
 
-class DeploymentFrequencyResponse(BaseModel):
-    status: str
-    message: str | None = None
-    total: int | None = None
-    days: int | None = None
-    daily_counts: list[DailyCount] | None = None
-
-
-# Shared shape for lead time + cycle time weekly percentiles
 class WeeklyPercentiles(BaseModel):
     week_start: date
     median_seconds: float
@@ -31,31 +22,9 @@ class WeeklyPercentiles(BaseModel):
     sample_size: int
 
 
-# Backwards compat alias for existing lead-time endpoint
-WeeklyLeadTime = WeeklyPercentiles
-
-
-class LeadTimeResponse(BaseModel):
-    status: str
-    message: str | None = None
-    days: int | None = None
-    coverage_percent: float | None = None
-    weekly: list[WeeklyPercentiles] | None = None
-
-
-class OpenPRsResponse(BaseModel):
-    total: int
-    live: int
-    draft: int
-
-
 class AgeBucket(BaseModel):
     bucket: str
     count: int
-
-
-class PRAgeingResponse(BaseModel):
-    buckets: list[AgeBucket]
 
 
 class WeeklyThroughput(BaseModel):
