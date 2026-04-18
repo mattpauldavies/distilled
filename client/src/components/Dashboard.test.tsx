@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse, delay } from "msw"
 import { server } from "@/test/mocks/server"
+import { makeOpenPRs, makeDeploymentFrequency } from "@/test/factories"
 import { Dashboard } from "./Dashboard"
 
 vi.mock("@clerk/clerk-react", () => ({
@@ -8,7 +9,6 @@ vi.mock("@clerk/clerk-react", () => ({
   useClerk: () => ({ signOut: vi.fn() }),
 }))
 
-// Mock chart components — Canvas doesn't work in jsdom
 vi.mock("./charts/DeploymentChart", () => ({
   DeploymentChart: () => <div data-testid="deployment-chart" />,
 }))
@@ -23,66 +23,45 @@ vi.mock("./charts/PRAgeingChart", () => ({
 }))
 
 describe("Dashboard", () => {
-  it("renders metric cards with data", async () => {
+  it("renders metric cards with data from per-section endpoints", async () => {
     render(<Dashboard />)
 
-    // Deployment frequency: deploys_per_week 4.2 → "4.2"
     await waitFor(() => {
       expect(screen.getByText("4.2")).toBeInTheDocument()
     })
 
-    // Lead time: median_seconds 7200 = 2h
     expect(screen.getByText("2h")).toBeInTheDocument()
-    // Cycle time: median_seconds 3600 = 1h
     expect(screen.getByText("1h")).toBeInTheDocument()
-    // Throughput: prs_per_engineer_per_month 5.0 → "5.0"
     expect(screen.getByText("5.0")).toBeInTheDocument()
-    // Open PRs
     expect(screen.getByText("7")).toBeInTheDocument()
     expect(screen.getByText("5 live · 2 draft")).toBeInTheDocument()
   })
 
-  it("shows loading state while metrics load", async () => {
+  it("reveals fast tiles before slow ones (progressive loading)", async () => {
     server.use(
-      http.get("/metrics/unified", async () => {
-        await delay(100)
-        return HttpResponse.json({
-          deployment_frequency: {
-            status: "ok",
-            total: 1,
-            days: 30,
-            daily_counts: [],
-            deploys_per_week: 1.0,
-          },
-          lead_time: { status: "ok", weekly: [], median_seconds: null },
-          pr_cycle_time: { status: "ok", weekly: [], median_seconds: null },
-          throughput: {
-            weekly: [],
-            total_prs: null,
-            unique_authors: null,
-            prs_per_engineer_per_month: null,
-          },
-          open_prs: { total: 0, live: 0, draft: 0 },
-          pr_ageing: { buckets: [] },
-          data_quality: {
-            attribution_coverage_percent: null,
-            freshness: { status: "ok", last_refresh_at: null },
-            setup: { has_production_environment: false, production_environments: [] },
-          },
-        })
+      http.get("/metrics/open-prs", () =>
+        HttpResponse.json(makeOpenPRs({ total: 9, live: 6, draft: 3 }))
+      ),
+      http.get("/metrics/deployment-frequency", async () => {
+        await delay(80)
+        return HttpResponse.json(makeDeploymentFrequency({ deploys_per_week: 9.9 }))
       })
     )
 
     render(<Dashboard />)
 
-    // Wait for repos to load, which triggers metrics fetch with loading=true
+    // Open PRs resolves immediately
     await waitFor(() => {
-      expect(screen.getByText("Deployment Frequency")).toBeInTheDocument()
+      expect(screen.getByText("6 live · 3 draft")).toBeInTheDocument()
     })
 
-    // Once metrics resolve, deployment frequency appears as deploys_per_week
+    // At this point, deployment frequency should still be loading (skeleton shown,
+    // so the "9.9" value isn't rendered yet)
+    expect(screen.queryByText("9.9")).not.toBeInTheDocument()
+
+    // Eventually it catches up
     await waitFor(() => {
-      expect(screen.getByText("1.0")).toBeInTheDocument()
+      expect(screen.getByText("9.9")).toBeInTheDocument()
     })
   })
 
@@ -114,19 +93,34 @@ describe("Dashboard", () => {
     })
   })
 
-  it("shows metrics error with retry button", async () => {
+  it("shows a single error banner only when all sections fail", async () => {
     server.use(
-      http.get("/metrics/unified", () => {
-        return new HttpResponse(null, { status: 500 })
-      })
+      http.get("/metrics/deployment-frequency", () => new HttpResponse(null, { status: 500 })),
+      http.get("/metrics/lead-time", () => new HttpResponse(null, { status: 500 })),
+      http.get("/metrics/pr-cycle-time", () => new HttpResponse(null, { status: 500 })),
+      http.get("/metrics/throughput", () => new HttpResponse(null, { status: 500 })),
+      http.get("/metrics/open-prs", () => new HttpResponse(null, { status: 500 })),
+      http.get("/metrics/pr-ageing", () => new HttpResponse(null, { status: 500 })),
+      http.get("/metrics/data-quality", () => new HttpResponse(null, { status: 500 }))
     )
 
     render(<Dashboard />)
 
     await waitFor(() => {
-      expect(screen.getByText("Failed to load metrics: 500")).toBeInTheDocument()
+      expect(screen.getByText("Retry")).toBeInTheDocument()
     })
-    expect(screen.getByText("Retry")).toBeInTheDocument()
+  })
+
+  it("does not show the global error banner when only one section fails", async () => {
+    server.use(http.get("/metrics/open-prs", () => new HttpResponse(null, { status: 500 })))
+
+    render(<Dashboard />)
+
+    await waitFor(() => {
+      expect(screen.getByText("4.2")).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText("Retry")).not.toBeInTheDocument()
   })
 
   it("shows sign out button", async () => {
