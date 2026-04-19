@@ -21,7 +21,7 @@ function Home() {
         dsn: SENTRY_DSN,
       })
     }
-  })
+  }, [])
 
   if (loading) return <InitialisingScreen />
   if (error) return <ReposErrorScreen error={error} onRetry={refetch} />
