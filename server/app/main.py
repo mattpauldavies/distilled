@@ -26,6 +26,11 @@ import app.services.installation_service
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging(settings)
+    if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+    )
     await init_db()
     yield
     await dispose_db()
