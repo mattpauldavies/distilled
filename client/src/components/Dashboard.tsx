@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { useClerk } from "@clerk/clerk-react"
 import { useDataQuality } from "@/hooks/useDataQuality"
 import { DashboardControls } from "@/components/DashboardControls"
 import { DeploymentFrequencyCard } from "@/components/metrics/DeploymentFrequencyCard"
@@ -12,17 +11,8 @@ import { LeadTimeChartPanel } from "@/components/metrics/LeadTimeChartPanel"
 import { PRCycleTimeChartPanel } from "@/components/metrics/PRCycleTimeChartPanel"
 import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
 import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
-import { Button } from "@/components/ui/button"
+import { SignOutButton } from "@/components/SignOutButton"
 import type { DaysWindow, Repo } from "@/types/dashboard"
-
-function SignOutButton() {
-  const { signOut } = useClerk()
-  return (
-    <Button variant="outline" size="sm" onClick={() => signOut()}>
-      Sign out
-    </Button>
-  )
-}
 
 function timeAgo(isoString: string | null): string {
   if (!isoString) return "never"
