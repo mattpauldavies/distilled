@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { sentryVitePlugin } from "@sentry/vite-plugin"
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
@@ -6,10 +6,14 @@ import tailwindcss from "@tailwindcss/vite"
 import path from "path"
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), sentryVitePlugin({
-    org: "distilled-metrics",
-    project: "distilled-client"
-  })],
+  plugins: [
+    react(),
+    tailwindcss(),
+    sentryVitePlugin({
+      org: "distilled-metrics",
+      project: "distilled-client",
+    }),
+  ],
 
   resolve: {
     alias: {
@@ -28,6 +32,6 @@ export default defineConfig({
   },
 
   build: {
-    sourcemap: true
-  }
+    sourcemap: true,
+  },
 })

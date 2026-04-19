@@ -1,6 +1,6 @@
 import "@/lib/chartSetup"
-import { useEffect } from "react";
-import * as Sentry from "@sentry/react";
+import { useEffect } from "react"
+import * as Sentry from "@sentry/react"
 import { SignedIn, SignedOut } from "@clerk/clerk-react"
 import { Dashboard } from "@/components/Dashboard"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
@@ -19,7 +19,7 @@ function Home() {
     if (SENTRY_DSN) {
       Sentry.init({
         dsn: SENTRY_DSN,
-      });
+      })
     }
   })
 

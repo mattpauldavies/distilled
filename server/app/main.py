@@ -2,6 +2,7 @@ import logging
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -27,10 +28,10 @@ import app.services.installation_service
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging(settings)
     if settings.sentry_dsn:
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        environment=settings.environment,
-    )
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+        )
     await init_db()
     yield
     await dispose_db()
