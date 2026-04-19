@@ -1,31 +1,18 @@
 import { useState } from "react"
-import { useClerk } from "@clerk/clerk-react"
-
-function SignOutButton() {
-  const { signOut } = useClerk()
-  return (
-    <Button variant="outline" size="sm" onClick={() => signOut()}>
-      Sign out
-    </Button>
-  )
-}
-import { useRepos } from "@/hooks/useRepos"
-import { useDashboard } from "@/hooks/useDashboard"
+import { useDataQuality } from "@/hooks/useDataQuality"
 import { DashboardControls } from "@/components/DashboardControls"
-import { MetricCard } from "@/components/MetricCard"
-import { ChartPanel } from "@/components/ChartPanel"
-import { DeploymentChart } from "@/components/charts/DeploymentChart"
-import { LeadTimeChart } from "@/components/charts/LeadTimeChart"
-import { CycleTimeChart } from "@/components/charts/CycleTimeChart"
-import { PRAgeingChart } from "@/components/charts/PRAgeingChart"
-import { OnboardingScreen } from "@/components/OnboardingScreen"
-import { Button } from "@/components/ui/button"
-import type { DaysWindow } from "@/types/dashboard"
-
-function formatDuration(seconds: number): string {
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m`
-  return `${Math.round((seconds / 3600) * 10) / 10}h`
-}
+import { DeploymentFrequencyCard } from "@/components/metrics/DeploymentFrequencyCard"
+import { LeadTimeCard } from "@/components/metrics/LeadTimeCard"
+import { PRCycleTimeCard } from "@/components/metrics/PRCycleTimeCard"
+import { ThroughputCard } from "@/components/metrics/ThroughputCard"
+import { OpenPRsCard } from "@/components/metrics/OpenPRsCard"
+import { DeploymentFrequencyChartPanel } from "@/components/metrics/DeploymentFrequencyChartPanel"
+import { LeadTimeChartPanel } from "@/components/metrics/LeadTimeChartPanel"
+import { PRCycleTimeChartPanel } from "@/components/metrics/PRCycleTimeChartPanel"
+import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
+import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
+import { SignOutButton } from "@/components/SignOutButton"
+import type { DaysWindow, Repo } from "@/types/dashboard"
 
 function timeAgo(isoString: string | null): string {
   if (!isoString) return "never"
@@ -38,25 +25,19 @@ function timeAgo(isoString: string | null): string {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-export function Dashboard() {
-  const { repos, loading: reposLoading, error: reposError, refetch: refetchRepos } = useRepos()
+interface DashboardProps {
+  repos: Repo[]
+}
+
+export function Dashboard({ repos }: DashboardProps) {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [daysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
-  const selectedRepoId = userSelectedRepoId ?? (repos.length > 0 ? repos[0].id : null)
+  const selectedRepoId = userSelectedRepoId ?? repos[0].id
   const selectedRepo = repos.find((r) => r.id === selectedRepoId)
-  const { data, loading, error, retry } = useDashboard(selectedRepoId, daysWindow)
 
-  if (!reposLoading && !reposError && repos.length === 0) {
-    return <OnboardingScreen onReposDetected={refetchRepos} />
-  }
-
-  const depFreq = data?.deployment_frequency
-  const leadTime = data?.lead_time
-  const cycleTime = data?.pr_cycle_time
-  const throughput = data?.throughput
-  const openPrs = data?.open_prs
-  const freshness = data?.data_quality?.freshness
+  const { data: dataQuality } = useDataQuality(selectedRepoId, daysWindow)
+  const freshness = dataQuality?.freshness
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
@@ -92,27 +73,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {reposError && (
-        <div
-          role="alert"
-          className="flex items-center gap-3 rounded-md border border-error-border bg-error-surface p-4 text-sm text-error"
-        >
-          <span>{reposError}</span>
-        </div>
-      )}
-
-      {error && (
-        <div
-          role="alert"
-          className="flex items-center gap-3 rounded-md border border-error-border bg-error-surface p-4 text-sm text-error"
-        >
-          <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={retry}>
-            Retry
-          </Button>
-        </div>
-      )}
-
       <div className="flex items-center gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-primary">
           Key Metrics
@@ -121,43 +81,11 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <MetricCard
-          title="Deployment Frequency"
-          value={depFreq?.deploys_per_week != null ? depFreq.deploys_per_week.toFixed(1) : "—"}
-          caption="deploys / week"
-          loading={loading}
-          setupRequired={depFreq?.status === "setup_required"}
-        />
-        <MetricCard
-          title="Lead Time"
-          value={leadTime?.median_seconds != null ? formatDuration(leadTime.median_seconds) : "—"}
-          caption="Median: merge to production"
-          loading={loading}
-          setupRequired={leadTime?.status === "setup_required"}
-        />
-        <MetricCard
-          title="PR Cycle Time"
-          value={cycleTime?.median_seconds != null ? formatDuration(cycleTime.median_seconds) : "—"}
-          caption="Median: PR open to merge"
-          loading={loading}
-          setupRequired={cycleTime?.status === "setup_required"}
-        />
-        <MetricCard
-          title="Throughput"
-          value={
-            throughput?.prs_per_engineer_per_month != null
-              ? throughput.prs_per_engineer_per_month.toFixed(1)
-              : "—"
-          }
-          caption="PRs / engineer / month"
-          loading={loading}
-        />
-        <MetricCard
-          title="Open PRs"
-          value={openPrs ? String(openPrs.total) : "—"}
-          caption={openPrs ? `${openPrs.live} live · ${openPrs.draft} draft` : "Open pull requests"}
-          loading={loading}
-        />
+        <DeploymentFrequencyCard repoId={selectedRepoId} daysWindow={daysWindow} />
+        <LeadTimeCard repoId={selectedRepoId} daysWindow={daysWindow} />
+        <PRCycleTimeCard repoId={selectedRepoId} daysWindow={daysWindow} />
+        <ThroughputCard repoId={selectedRepoId} daysWindow={daysWindow} />
+        <OpenPRsCard repoId={selectedRepoId} />
       </div>
 
       <div className="flex items-center gap-3">
@@ -166,59 +94,15 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartPanel
-          title="Deployments"
-          caption="Deployments per day"
-          info="The number of deployments to production per day. A core DORA metric — higher frequency means smaller, safer changes shipped more often."
-          loading={loading}
-          empty={depFreq?.status === "setup_required" || !depFreq?.daily_counts?.length}
-          emptyMessage={
-            depFreq?.status === "setup_required"
-              ? "Connect a production environment to track deployments"
-              : "No deployments in this period"
-          }
-        >
-          {depFreq?.daily_counts && <DeploymentChart dailyCounts={depFreq.daily_counts} />}
-        </ChartPanel>
-        <ChartPanel
-          title="Lead Time"
-          caption="Median and 75th percentile by week (hours)"
-          info="Time from first commit to production deploy, shown as median and 75th percentile (P75). Lower lead time means faster delivery and shorter feedback loops."
-          loading={loading}
-          empty={leadTime?.status === "setup_required" || !leadTime?.weekly?.length}
-          emptyMessage={
-            leadTime?.status === "setup_required"
-              ? "Connect a production environment to track lead time"
-              : "No lead time data for this period"
-          }
-        >
-          {leadTime?.weekly && <LeadTimeChart weekly={leadTime.weekly} />}
-        </ChartPanel>
-        <ChartPanel
-          title="PR Cycle Time"
-          caption="Median and 75th percentile by week (hours)"
-          info="Time from PR opened to merged, shown as median and 75th percentile (P75). High cycle time often indicates bottlenecks in the review process."
-          loading={loading}
-          empty={cycleTime?.status === "setup_required" || !cycleTime?.weekly?.length}
-          emptyMessage={
-            cycleTime?.status === "setup_required"
-              ? "Connect a production environment to track cycle time"
-              : "No cycle time data for this period"
-          }
-        >
-          {cycleTime?.weekly && <CycleTimeChart weekly={cycleTime.weekly} />}
-        </ChartPanel>
-        <ChartPanel
-          title="PR Ageing"
-          caption="Age distribution of open PRs"
-          info="Age distribution of currently open PRs. A healthy team keeps most PRs in the green bucket — older PRs signal review delays or blocked work."
-          loading={loading}
-          empty={!data?.pr_ageing?.buckets?.length}
-          emptyMessage="No open pull requests"
-        >
-          {data?.pr_ageing && <PRAgeingChart buckets={data.pr_ageing.buckets} />}
-        </ChartPanel>
+        <DeploymentFrequencyChartPanel repoId={selectedRepoId} daysWindow={daysWindow} />
+        <LeadTimeChartPanel repoId={selectedRepoId} daysWindow={daysWindow} />
+        <PRCycleTimeChartPanel repoId={selectedRepoId} daysWindow={daysWindow} />
+        <PRAgeingChartPanel repoId={selectedRepoId} />
       </div>
+
+      {selectedRepoId && (
+        <NoMetricsYetDialog repoId={selectedRepoId} lastRefreshAt={freshness?.last_refresh_at} />
+      )}
     </main>
   )
 }

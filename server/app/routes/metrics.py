@@ -18,25 +18,17 @@ from app.models.metrics import MetricsRefreshLog
 from app.models.repository import Repository
 from app.rate_limit import limiter
 from app.schemas.metrics import (
-    AgeBucket,
-    DailyCount,
+    DataQuality,
     DaysWindow,
-    DeploymentFrequencyResponse,
-    LeadTimeResponse,
-    OpenPRsResponse,
-    PRAgeingResponse,
-    UnifiedDashboardResponse,
-    WeeklyPercentiles,
+    DeploymentFrequencySection,
+    LeadTimeSection,
+    OpenPRsSection,
+    PRAgeingSection,
+    PRCycleTimeSection,
+    ThroughputSection,
 )
 from app.services import dashboard_service
-from app.services.data_quality_service import get_attribution_coverage
-from app.services.environment_service import has_production_environment
-from app.services.metrics_service import (
-    get_deployment_frequency,
-    get_lead_time_summary,
-    recompute_repo,
-)
-from app.services.pull_request_service import get_open_pr_count, get_pr_ageing
+from app.services.metrics_service import recompute_repo
 
 router = APIRouter(prefix="/metrics")
 
@@ -140,19 +132,10 @@ async def get_deployment_frequency_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
-    days: DaysWindow = Query(DaysWindow.THIRTY),
-) -> DeploymentFrequencyResponse:
-    if not await has_production_environment(tenant_id, repo.id, session):
-        return DeploymentFrequencyResponse(
-            status="setup_required",
-            message="no production environment configured",
-        )
-    result = await get_deployment_frequency(tenant_id, repo, session, int(days))
-    return DeploymentFrequencyResponse(
-        status="ok",
-        total=result["total"],
-        days=int(days),
-        daily_counts=[DailyCount(**dc) for dc in result["daily_counts"]],
+    window: DaysWindow = Query(DaysWindow.THIRTY),
+) -> DeploymentFrequencySection:
+    return await dashboard_service.get_deployment_frequency_section(
+        tenant_id, repo, session, int(window)
     )
 
 
@@ -161,27 +144,29 @@ async def get_lead_time_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
-    days: DaysWindow = Query(DaysWindow.THIRTY),
-) -> LeadTimeResponse:
-    if not await has_production_environment(tenant_id, repo.id, session):
-        return LeadTimeResponse(
-            status="setup_required",
-            message="no production environment configured",
-        )
-    weekly = await get_lead_time_summary(tenant_id, repo, session, int(days))
-    coverage = await get_attribution_coverage(
-        tenant_id,
-        repo.id,
-        repo.default_branch,
-        session,
-        int(days),
-    )
-    return LeadTimeResponse(
-        status="ok",
-        days=int(days),
-        coverage_percent=coverage,
-        weekly=[WeeklyPercentiles(**w) for w in weekly],
-    )
+    window: DaysWindow = Query(DaysWindow.THIRTY),
+) -> LeadTimeSection:
+    return await dashboard_service.get_lead_time_section(tenant_id, repo, session, int(window))
+
+
+@router.get("/pr-cycle-time", dependencies=[Depends(require_auth)])
+async def get_pr_cycle_time_endpoint(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
+    session: AsyncSession = Depends(get_session),
+    window: DaysWindow = Query(DaysWindow.THIRTY),
+) -> PRCycleTimeSection:
+    return await dashboard_service.get_pr_cycle_time_section(tenant_id, repo, session, int(window))
+
+
+@router.get("/throughput", dependencies=[Depends(require_auth)])
+async def get_throughput_endpoint(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    repo: Repository = Depends(get_verified_repo),
+    session: AsyncSession = Depends(get_session),
+    window: DaysWindow = Query(DaysWindow.THIRTY),
+) -> ThroughputSection:
+    return await dashboard_service.get_throughput_section(tenant_id, repo, session, int(window))
 
 
 @router.get("/open-prs", dependencies=[Depends(require_auth)])
@@ -189,9 +174,8 @@ async def get_open_prs_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
-) -> OpenPRsResponse:
-    result = await get_open_pr_count(tenant_id, repo, session)
-    return OpenPRsResponse(**result)
+) -> OpenPRsSection:
+    return await dashboard_service.get_open_prs_section(tenant_id, repo, session)
 
 
 @router.get("/pr-ageing", dependencies=[Depends(require_auth)])
@@ -199,16 +183,15 @@ async def get_pr_ageing_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
-) -> PRAgeingResponse:
-    result = await get_pr_ageing(tenant_id, repo, session)
-    return PRAgeingResponse(buckets=[AgeBucket(**b) for b in result])
+) -> PRAgeingSection:
+    return await dashboard_service.get_pr_ageing_section(tenant_id, repo, session)
 
 
-@router.get("/unified", dependencies=[Depends(require_auth)])
-async def get_unified_dashboard_endpoint(
+@router.get("/data-quality", dependencies=[Depends(require_auth)])
+async def get_data_quality_endpoint(
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
     window: DaysWindow = Query(DaysWindow.THIRTY),
-) -> UnifiedDashboardResponse:
-    return await dashboard_service.get_unified_dashboard(tenant_id, repo, session, int(window))
+) -> DataQuality:
+    return await dashboard_service.get_data_quality_section(tenant_id, repo, session, int(window))

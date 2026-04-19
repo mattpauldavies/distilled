@@ -1,6 +1,5 @@
 import type {
   Repo,
-  UnifiedDashboardResponse,
   DataQuality,
   DeploymentFrequencySection,
   LeadTimeSection,
@@ -93,21 +92,6 @@ export function makeDataQuality(overrides?: Partial<DataQuality>): DataQuality {
     attribution_coverage_percent: 85.5,
     freshness: { status: "ok", last_refresh_at: new Date().toISOString() },
     setup: { has_production_environment: true, production_environments: ["production"] },
-    ...overrides,
-  }
-}
-
-export function makeDashboardResponse(
-  overrides?: Partial<UnifiedDashboardResponse>
-): UnifiedDashboardResponse {
-  return {
-    deployment_frequency: makeDeploymentFrequency(),
-    lead_time: makeLeadTime(),
-    pr_cycle_time: makeCycleTime(),
-    throughput: makeThroughput(),
-    open_prs: makeOpenPRs(),
-    pr_ageing: makePRAgeing(),
-    data_quality: makeDataQuality(),
     ...overrides,
   }
 }

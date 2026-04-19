@@ -22,28 +22,24 @@ async def test_lead_time_returns_weekly_data(client, mock_session):
     m2 = _make_weekly_metric(date(2025, 1, 6), 1800.0, 3600.0, 3)
 
     env_result = MagicMock()
-    env_result.scalar_one_or_none.return_value = env
+    env_result.scalars.return_value.all.return_value = [env]
 
     metrics_result = MagicMock()
     scalars_mock = MagicMock()
     scalars_mock.all.return_value = [m1, m2]
     metrics_result.scalars.return_value = scalars_mock
 
-    total_prs_result = MagicMock()
-    total_prs_result.scalar_one.return_value = 10
+    agg_result = MagicMock()
+    agg_result.all.return_value = []
 
-    attributed_prs_result = MagicMock()
-    attributed_prs_result.scalar_one.return_value = 8
-
-    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result])
+    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, agg_result])
 
     resp = await client.get(f"/metrics/lead-time?repo_id={REPO_ID}")
 
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "ok"
-    assert data["days"] == 30
-    assert data["coverage_percent"] == 80.0
+    assert data["median_seconds"] is None  # no attributed deploys in aggregate rows
     assert len(data["weekly"]) == 2
     assert data["weekly"][0]["week_start"] == "2025-01-13"
     assert data["weekly"][0]["median_seconds"] == 3600.0
@@ -54,7 +50,7 @@ async def test_lead_time_returns_weekly_data(client, mock_session):
 @pytest.mark.asyncio
 async def test_lead_time_setup_required(client, mock_session):
     env_result = MagicMock()
-    env_result.scalar_one_or_none.return_value = None
+    env_result.scalars.return_value.all.return_value = []
     mock_session.execute = AsyncMock(return_value=env_result)
 
     resp = await client.get(f"/metrics/lead-time?repo_id={REPO_ID}")
@@ -69,20 +65,20 @@ async def test_lead_time_setup_required(client, mock_session):
 async def test_lead_time_zero_state(client, mock_session):
     env = make_environment(repo_id=REPO_ID, is_production=True)
     env_result = MagicMock()
-    env_result.scalar_one_or_none.return_value = env
+    env_result.scalars.return_value.all.return_value = [env]
 
     metrics_result = MagicMock()
     scalars_mock = MagicMock()
     scalars_mock.all.return_value = []
     metrics_result.scalars.return_value = scalars_mock
 
-    total_prs_result = MagicMock()
-    total_prs_result.scalar_one.return_value = 0
+    agg_result = MagicMock()
+    agg_row = MagicMock()
+    agg_row.median_seconds = None
+    agg_row.sample_size = 0
+    agg_result.one.return_value = agg_row
 
-    attributed_prs_result = MagicMock()
-    attributed_prs_result.scalar_one.return_value = 0
-
-    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result])
+    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, agg_result])
 
     resp = await client.get(f"/metrics/lead-time?repo_id={REPO_ID}")
 
@@ -90,35 +86,34 @@ async def test_lead_time_zero_state(client, mock_session):
     data = resp.json()
     assert data["status"] == "ok"
     assert data["weekly"] == []
-    assert data["coverage_percent"] is None
+    assert data["median_seconds"] is None
 
 
 @pytest.mark.asyncio
-async def test_lead_time_custom_days(client, mock_session):
+async def test_lead_time_custom_window(client, mock_session):
     env = make_environment(repo_id=REPO_ID, is_production=True)
     env_result = MagicMock()
-    env_result.scalar_one_or_none.return_value = env
+    env_result.scalars.return_value.all.return_value = [env]
 
     metrics_result = MagicMock()
     scalars_mock = MagicMock()
     scalars_mock.all.return_value = []
     metrics_result.scalars.return_value = scalars_mock
 
-    total_prs_result = MagicMock()
-    total_prs_result.scalar_one.return_value = 0
+    agg_result = MagicMock()
+    agg_row = MagicMock()
+    agg_row.median_seconds = None
+    agg_row.sample_size = 0
+    agg_result.one.return_value = agg_row
 
-    attributed_prs_result = MagicMock()
-    attributed_prs_result.scalar_one.return_value = 0
+    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, agg_result])
 
-    mock_session.execute = AsyncMock(side_effect=[env_result, metrics_result, total_prs_result, attributed_prs_result])
-
-    resp = await client.get(f"/metrics/lead-time?repo_id={REPO_ID}&days=90")
+    resp = await client.get(f"/metrics/lead-time?repo_id={REPO_ID}&window=90")
 
     assert resp.status_code == 200
-    assert resp.json()["days"] == 90
 
 
 @pytest.mark.asyncio
-async def test_lead_time_rejects_invalid_days(client, mock_session):
-    resp = await client.get(f"/metrics/lead-time?repo_id={REPO_ID}&days=45")
+async def test_lead_time_rejects_invalid_window(client, mock_session):
+    resp = await client.get(f"/metrics/lead-time?repo_id={REPO_ID}&window=45")
     assert resp.status_code == 422

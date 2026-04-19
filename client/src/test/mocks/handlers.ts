@@ -1,5 +1,14 @@
 import { http, HttpResponse } from "msw"
-import { makeDashboardResponse, makeRepo } from "../factories"
+import {
+  makeCycleTime,
+  makeDataQuality,
+  makeDeploymentFrequency,
+  makeLeadTime,
+  makeOpenPRs,
+  makePRAgeing,
+  makeRepo,
+  makeThroughput,
+} from "../factories"
 
 export const handlers = [
   http.get("/repos", () => {
@@ -11,7 +20,25 @@ export const handlers = [
     })
   }),
 
-  http.get("/metrics/unified", () => {
-    return HttpResponse.json(makeDashboardResponse())
+  http.get("/metrics/deployment-frequency", () => {
+    return HttpResponse.json(makeDeploymentFrequency())
+  }),
+  http.get("/metrics/lead-time", () => {
+    return HttpResponse.json(makeLeadTime())
+  }),
+  http.get("/metrics/pr-cycle-time", () => {
+    return HttpResponse.json(makeCycleTime())
+  }),
+  http.get("/metrics/throughput", () => {
+    return HttpResponse.json(makeThroughput())
+  }),
+  http.get("/metrics/open-prs", () => {
+    return HttpResponse.json(makeOpenPRs())
+  }),
+  http.get("/metrics/pr-ageing", () => {
+    return HttpResponse.json(makePRAgeing())
+  }),
+  http.get("/metrics/data-quality", () => {
+    return HttpResponse.json(makeDataQuality())
   }),
 ]

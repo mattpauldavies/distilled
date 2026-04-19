@@ -28,6 +28,7 @@ from app.models.github_installation import GitHubInstallation
 from app.models.metrics import (
     DeploymentDailyMetric,
     LeadTimeWeeklyMetric,
+    MetricsRefreshLog,
     PRCycleTimeWeeklyMetric,
     PRThroughputWeeklyMetric,
 )
@@ -617,6 +618,22 @@ async def main() -> None:
             session.add(metric)
         for metric in _compute_metrics(TENANT_ID, API_REPO_ID, api_prs, api_deployments, api_attributions):
             session.add(metric)
+
+        # ── Metrics refresh log ───────────────────────────────────────────────
+        # Mark both repos as freshly refreshed so the dashboard freshness
+        # indicator shows "Data current" and the cold-start modal stays hidden.
+        refresh_hour = now.replace(minute=0, second=0, microsecond=0)
+        for repo_id in (WEB_REPO_ID, API_REPO_ID):
+            session.add(
+                MetricsRefreshLog(
+                    tenant_id=TENANT_ID,
+                    repo_id=repo_id,
+                    hour=refresh_hour,
+                    started_at=now - timedelta(minutes=1),
+                    completed_at=now,
+                    status="success",
+                )
+            )
 
         await session.commit()
         open_pr_count = len(web_open_prs + api_open_prs)

@@ -1,19 +1,34 @@
 import { useCallback, useEffect, useState } from "react"
-import type { UnifiedDashboardResponse, DaysWindow } from "@/types/dashboard"
 import { makeApiFetch } from "@/lib/api"
 import { useGetToken } from "@/lib/auth"
 
-export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
+export interface MetricSection<T> {
+  data: T | null
+  loading: boolean
+  error: string | null
+  retry: () => void
+}
+
+export function useMetricSection<T>(
+  path: string | null,
+  searchParams?: Record<string, string | number>
+): MetricSection<T> {
   const getToken = useGetToken()
-  const [data, setData] = useState<UnifiedDashboardResponse | null>(null)
+  const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fetchKey, setFetchKey] = useState(0)
 
   const retry = useCallback(() => setFetchKey((k) => k + 1), [])
 
+  const paramsKey = searchParams
+    ? Object.entries(searchParams)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("&")
+    : ""
+
   useEffect(() => {
-    if (!repoId) {
+    if (!path) {
       setData(null)
       setLoading(false)
       return
@@ -24,11 +39,12 @@ export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
     setError(null)
     const apiFetch = makeApiFetch(getToken)
 
-    async function fetchDashboard() {
+    async function fetchSection() {
       try {
-        const res = await apiFetch(`/metrics/unified?repo_id=${repoId}&window=${daysWindow}`)
-        if (!res.ok) throw new Error(`Failed to load metrics: ${res.status}`)
-        const json: UnifiedDashboardResponse = await res.json()
+        const query = paramsKey ? `?${paramsKey}` : ""
+        const res = await apiFetch(`${path}${query}`)
+        if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`)
+        const json: T = await res.json()
         if (!cancelled) {
           setData(json)
           setError(null)
@@ -43,12 +59,12 @@ export function useDashboard(repoId: string | null, daysWindow: DaysWindow) {
       }
     }
 
-    fetchDashboard()
+    fetchSection()
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoId, daysWindow, fetchKey])
+  }, [path, paramsKey, fetchKey])
 
   return { data, loading, error, retry }
 }
