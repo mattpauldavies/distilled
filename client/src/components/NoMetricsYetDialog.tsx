@@ -43,7 +43,7 @@ export function NoMetricsYetDialog({ repoId, lastRefreshAt }: NoMetricsYetDialog
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Your data is on its way!</DialogTitle>
           <DialogDescription>
