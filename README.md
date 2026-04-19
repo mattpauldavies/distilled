@@ -84,3 +84,5 @@ Find all documentation in `/docs` key highlights are:
 - [Architecture](docs/architecture.md)
 - [Metrics](docs/metrics.md)
 - [Local Setup Runbook](docs/runbooks/local-setup.md) — full setup guide including GitHub integration
+
+> Delivery metrics for this repository are tracked with Distilled.
