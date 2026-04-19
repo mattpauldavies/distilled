@@ -67,34 +67,19 @@ describe("Dashboard", () => {
     })
   })
 
-  it("shows a single error banner only when all sections fail", async () => {
-    server.use(
-      http.get("/metrics/deployment-frequency", () => new HttpResponse(null, { status: 500 })),
-      http.get("/metrics/lead-time", () => new HttpResponse(null, { status: 500 })),
-      http.get("/metrics/pr-cycle-time", () => new HttpResponse(null, { status: 500 })),
-      http.get("/metrics/throughput", () => new HttpResponse(null, { status: 500 })),
-      http.get("/metrics/open-prs", () => new HttpResponse(null, { status: 500 })),
-      http.get("/metrics/pr-ageing", () => new HttpResponse(null, { status: 500 })),
-      http.get("/metrics/data-quality", () => new HttpResponse(null, { status: 500 }))
-    )
-
-    render(<Dashboard repos={defaultRepos} />)
-
-    await waitFor(() => {
-      expect(screen.getByText("Retry")).toBeInTheDocument()
-    })
-  })
-
-  it("does not show the global error banner when only one section fails", async () => {
+  it("shows a per-card error state with retry when that section fails", async () => {
     server.use(http.get("/metrics/open-prs", () => new HttpResponse(null, { status: 500 })))
 
     render(<Dashboard repos={defaultRepos} />)
 
+    // Other cards still render successfully
     await waitFor(() => {
       expect(screen.getByText("4.2")).toBeInTheDocument()
     })
 
-    expect(screen.queryByText("Retry")).not.toBeInTheDocument()
+    // Failed card shows its own error + retry
+    expect(screen.getByText("Failed to load")).toBeInTheDocument()
+    expect(screen.getByText("Retry")).toBeInTheDocument()
   })
 
   it("shows sign out button", async () => {

@@ -8,7 +8,7 @@ import { ReposErrorScreen } from "@/components/ReposErrorScreen"
 import { SignInPage } from "@/components/SignInPage"
 import { useRepos } from "@/hooks/useRepos"
 
-function AuthedRoot() {
+function Home() {
   const { repos, loading, error, refetch } = useRepos()
 
   if (loading) return <InitialisingScreen />
@@ -24,7 +24,7 @@ export default function App() {
         <SignInPage />
       </SignedOut>
       <SignedIn>
-        <AuthedRoot />
+        <Home />
       </SignedIn>
     </ErrorBoundary>
   )
