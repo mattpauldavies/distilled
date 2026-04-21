@@ -353,11 +353,15 @@ permalink: /getting-started.html
             <div class="callout">
               <p><strong>Read-only access.</strong> Distilled never writes to your repositories. We ask for the minimum permissions needed to read pull requests, deployments, and repository metadata — nothing else, and never your source code.</p>
             </div>
+
+            <div class="callout">
+              <p><strong>Forward-looking, not backfilled.</strong> Distilled tracks delivery from the moment you install the app onward. We don't read historical pull requests or deployments — metrics build up as new GitHub events arrive, so the richness of the dashboard grows with your team's activity.</p>
+            </div>
           </section>
 
           <section id="setup">
             <h2>Setup</h2>
-            <p>The whole setup takes about two minutes. You'll sign in, install the GitHub App, and wait a few seconds while Distilled ingests your history.</p>
+            <p>The whole setup takes about two minutes. You'll sign in, install the GitHub App, and start capturing delivery data from your next pull request or deployment onward.</p>
 
             <ol class="guide-steps">
               <li class="guide-step">
@@ -371,18 +375,18 @@ permalink: /getting-started.html
               </li>
 
               <li class="guide-step">
-                <h3>Let Distilled import your history</h3>
-                <p>As soon as the install completes, Distilled begins syncing your repositories, recent pull requests, and deployment history. Your first metrics usually appear within a few seconds; deeper trends build up over the first few days of activity.</p>
+                <h3>Wait for your next GitHub event</h3>
+                <p>Distilled doesn't backfill history. It captures delivery data from GitHub webhooks as events happen — so the first metric appears on your next pull request or deployment. Depending on how active your repositories are, that can be minutes, hours, or days.</p>
               </li>
 
               <li class="guide-step">
                 <h3>Open the dashboard</h3>
-                <p>Once repositories are detected, the onboarding screen hands off to the dashboard. Pick a repository and a time window to see Deployment Frequency, Lead Time, PR Cycle Time, and the rest of your delivery metrics side by side.</p>
+                <p>As soon as the first events arrive, the onboarding screen hands off to the dashboard. Pick a repository and a time window to see Deployment Frequency, Lead Time, PR Cycle Time, and the rest of your delivery metrics side by side. Trends fill in as your team continues to ship.</p>
               </li>
             </ol>
 
             <div class="callout">
-              <p><strong>Adding or removing repositories later?</strong> You can update the Distilled GitHub App's access at any time from your GitHub organisation settings. Metrics for newly added repositories appear within seconds.</p>
+              <p><strong>Adding or removing repositories later?</strong> You can update the Distilled GitHub App's access at any time from your GitHub organisation settings. A newly added repository will start contributing metrics on its next pull request or deployment event.</p>
             </div>
           </section>
 
@@ -475,7 +479,11 @@ permalink: /getting-started.html
             <h2>Troubleshooting</h2>
 
             <h3>The onboarding screen says "Waiting for data" but nothing appears</h3>
-            <p>Double-check that the GitHub App installation completed and that at least one repository was selected. If the install landed on the wrong organisation, reinstall the app from <a href="https://github.com/settings/installations">GitHub's installed apps page</a> and choose the right one.</p>
+            <p>This is expected until GitHub sends Distilled an event for one of the connected repositories. Because we don't backfill history, the dashboard only unlocks once your team opens a pull request, merges one, or ships a deployment on a connected repository. If activity is quiet, the wait can be hours or days.</p>
+            <p>If you're sure the repositories are active, double-check that the GitHub App installation completed and that the right repositories were selected. If the install landed on the wrong organisation, reinstall the app from <a href="https://github.com/settings/installations">GitHub's installed apps page</a> and choose the right one.</p>
+
+            <h3>Where's my past activity?</h3>
+            <p>Distilled doesn't import historical pull requests or deployments when you install. It begins tracking from your next GitHub event onward. Trends and averages build up as your team continues to ship — a few weeks of activity is usually enough for a clear picture.</p>
 
             <h3>I can see pull requests but no deployments</h3>
             <p>Distilled only records deployments that arrive as successful <code>deployment_status</code> events tagged with a production-looking environment. Check that your deployment tool creates GitHub Deployments and sets the environment to something like <code>production</code>. The data-quality panel will flag repositories with missing production environments.</p>
@@ -489,7 +497,7 @@ permalink: /getting-started.html
 
           <div class="guide-cta">
             <h2>Ready to see your delivery?</h2>
-            <p>Sign in with GitHub, install the app, and you'll have metrics within minutes.</p>
+            <p>Sign in with GitHub, install the app, and Distilled starts tracking from your next pull request or deployment.</p>
             <a href="https://app.distilledmetrics.com" class="btn btn-primary btn-lg">Get started for free</a>
           </div>
 
