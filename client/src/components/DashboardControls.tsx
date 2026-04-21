@@ -15,7 +15,7 @@ interface Props {
   onRepoChange: (repoId: string) => void
   daysWindow: DaysWindow
   onDaysWindowChange: (daysWindow: DaysWindow) => void
-  daysOfData: number | null
+  daysOfData: number
 }
 
 export function DashboardControls({

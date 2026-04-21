@@ -16,7 +16,7 @@ STALE_THRESHOLD = timedelta(hours=2)
 class MetricsFreshness:
     status: str  # "ok" | "stale" | "no_data"
     last_refresh_at: datetime | None
-    days_of_data: int | None
+    days_of_data: int
 
 
 async def get_metrics_freshness(
@@ -58,7 +58,7 @@ async def get_days_of_data(
     session: AsyncSession,
     *,
     now: datetime | None = None,
-) -> int | None:
+) -> int:
     result = await session.execute(
         select(func.min(PullRequest.opened_at)).where(
             PullRequest.tenant_id == tenant_id,
@@ -68,7 +68,7 @@ async def get_days_of_data(
     oldest = result.scalar_one_or_none()
 
     if oldest is None:
-        return None
+        return 0
 
     span = (now or datetime.now(UTC)) - oldest
     return max(span.days, 0)

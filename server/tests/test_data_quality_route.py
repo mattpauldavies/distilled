@@ -63,7 +63,7 @@ async def test_data_quality_no_production(client, mock_session):
     ):
         mock_envs.return_value = []
         mock_fresh.return_value = MetricsFreshness(
-            status="no_data", last_refresh_at=None, days_of_data=None
+            status="no_data", last_refresh_at=None, days_of_data=0
         )
         mock_cov.return_value = None
 
@@ -74,5 +74,5 @@ async def test_data_quality_no_production(client, mock_session):
     assert data["attribution_coverage_percent"] is None
     assert data["freshness"]["status"] == "no_data"
     assert data["freshness"]["last_refresh_at"] is None
-    assert data["freshness"]["days_of_data"] is None
+    assert data["freshness"]["days_of_data"] == 0
     assert data["setup"]["has_production_environment"] is False

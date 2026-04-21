@@ -6,7 +6,7 @@ import type { DaysWindow } from "@/types/dashboard"
 interface Props {
   window: DaysWindow
   selected: DaysWindow
-  daysOfData: number | null
+  daysOfData: number
   onSelect: (window: DaysWindow) => void
 }
 

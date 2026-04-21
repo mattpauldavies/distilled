@@ -39,7 +39,7 @@ export function Dashboard({ repos }: DashboardProps) {
 
   const { data: dataQuality } = useDataQuality(selectedRepoId, selectedDaysWindow)
   const freshness = dataQuality?.freshness
-  const daysOfData = freshness?.days_of_data ?? null
+  const daysOfData = freshness?.days_of_data ?? 0
   const daysWindow: DaysWindow = isWindowAvailable(selectedDaysWindow, daysOfData)
     ? selectedDaysWindow
     : 30
@@ -62,7 +62,7 @@ export function Dashboard({ repos }: DashboardProps) {
               <span className="text-xs text-muted-foreground">
                 {freshness.status === "ok" ? "Data current" : "Data stale"} · updated{" "}
                 {timeAgo(freshness.last_refresh_at)}
-                {daysOfData != null && (
+                {daysOfData > 0 && (
                   <>
                     {" · "}
                     {daysOfData} {daysOfData === 1 ? "day" : "days"} of data

@@ -125,21 +125,4 @@ describe("DashboardControls", () => {
     const tooltip = await screen.findByRole("tooltip")
     expect(tooltip.textContent).toContain("Only 12 days of data available")
   })
-
-  it("enables all windows when days of data is unknown", () => {
-    render(
-      <DashboardControls
-        repos={repos}
-        selectedRepoId="repo-1"
-        onRepoChange={() => {}}
-        daysWindow={30}
-        onDaysWindowChange={() => {}}
-        daysOfData={null}
-      />
-    )
-
-    expect(screen.getByRole("button", { name: "30d" })).not.toBeDisabled()
-    expect(screen.getByRole("button", { name: "60d" })).not.toBeDisabled()
-    expect(screen.getByRole("button", { name: "90d" })).not.toBeDisabled()
-  })
 })

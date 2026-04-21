@@ -29,7 +29,7 @@ async def test_freshness_returns_no_data_when_no_records(mock_session):
 
     assert result.status == "no_data"
     assert result.last_refresh_at is None
-    assert result.days_of_data is None
+    assert result.days_of_data == 0
 
 
 @pytest.mark.asyncio
@@ -109,14 +109,14 @@ async def test_freshness_includes_days_of_data(mock_session):
 
 
 @pytest.mark.asyncio
-async def test_days_of_data_returns_none_when_no_prs(mock_session):
+async def test_days_of_data_returns_zero_when_no_prs(mock_session):
     from app.services.data_quality_service import get_days_of_data
 
     mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
 
     result = await get_days_of_data(TENANT_ID, REPO_ID, mock_session)
 
-    assert result is None
+    assert result == 0
 
 
 @pytest.mark.asyncio
