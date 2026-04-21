@@ -1,0 +1,501 @@
+---
+title: Getting Started — Distilled
+description: Set up Distilled in a few minutes. Install the GitHub App, choose your repositories, and start tracking deployments, pull requests, and the rest of your delivery metrics.
+permalink: /getting-started.html
+---
+{% extends "base.njk" %}
+
+{% block extraStyles %}
+<style>
+  /* ─── Page shell ────────────────────────────────────────── */
+  .guide {
+    padding: calc(var(--nav-height) + 64px) 0 96px;
+  }
+
+  .guide-header {
+    max-width: 720px;
+    margin: 0 auto 56px;
+    text-align: center;
+  }
+
+  .guide-eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(200, 151, 58, 0.25);
+    padding: 4px 12px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+  }
+
+  .guide-header h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  .guide-header p {
+    font-size: 17px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  /* ─── Layout ────────────────────────────────────────────── */
+  .guide-body {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 64px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .guide-toc {
+    position: sticky;
+    top: calc(var(--nav-height) + 24px);
+    align-self: start;
+  }
+
+  .guide-toc h2 {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .guide-toc ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .guide-toc a {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 4px 0;
+    border-left: 1px solid transparent;
+    padding-left: 12px;
+    margin-left: -12px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .guide-toc a:hover {
+    color: var(--text-primary);
+    border-left-color: var(--accent);
+  }
+
+  .guide-content > section {
+    margin-bottom: 56px;
+  }
+
+  .guide-content h2 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    scroll-margin-top: calc(var(--nav-height) + 16px);
+  }
+
+  .guide-content h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 28px 0 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .guide-content p,
+  .guide-content li {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .guide-content p {
+    margin-bottom: 14px;
+  }
+
+  .guide-content ul,
+  .guide-content ol {
+    margin: 0 0 16px 20px;
+    padding: 0;
+  }
+
+  .guide-content li {
+    margin-bottom: 8px;
+  }
+
+  .guide-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .guide-content code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--text-primary);
+  }
+
+  .guide-content a {
+    color: var(--accent-light);
+    text-decoration: none;
+  }
+
+  .guide-content a:hover {
+    text-decoration: underline;
+  }
+
+  /* ─── Callouts ──────────────────────────────────────────── */
+  .callout {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+
+  .callout p:last-child {
+    margin-bottom: 0;
+  }
+
+  .callout strong {
+    color: var(--accent-light);
+  }
+
+  /* ─── Steps ─────────────────────────────────────────────── */
+  .guide-steps {
+    list-style: none;
+    counter-reset: step;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .guide-step {
+    counter-increment: step;
+    position: relative;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 24px 20px 68px;
+  }
+
+  .guide-step::before {
+    content: counter(step);
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .guide-step h3 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    font-size: 16px;
+  }
+
+  .guide-step p {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .guide-step p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ─── Metric list ───────────────────────────────────────── */
+  .metric-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+
+  .metric-row {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+  }
+
+  .metric-row strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 14px;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .metric-row p {
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* ─── CTA ───────────────────────────────────────────────── */
+  .guide-cta {
+    margin-top: 64px;
+    padding: 40px 32px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+
+  .guide-cta h2 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .guide-cta p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  /* ─── Responsive ────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .guide-body {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+
+    .guide-toc {
+      position: static;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .guide-step {
+      padding: 20px 20px 18px 20px;
+    }
+
+    .guide-step::before {
+      position: static;
+      display: inline-flex;
+      margin-bottom: 12px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main>
+  <article class="guide">
+    <div class="container">
+
+      <header class="guide-header">
+        <span class="guide-eyebrow">Getting Started</span>
+        <h1>Up and running in minutes.</h1>
+        <p>Connect Distilled to your GitHub organisation and start tracking how your team ships. No code changes, no manual data entry — just install the app and we'll do the rest.</p>
+      </header>
+
+      <div class="guide-body">
+
+        <!-- ─── TOC ───────────────────────────────────────── -->
+        <nav class="guide-toc" aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#before-you-begin">Before you begin</a></li>
+            <li><a href="#setup">Setup</a></li>
+            <li><a href="#deployments">How deployments are tracked</a></li>
+            <li><a href="#pull-requests">How pull requests are tracked</a></li>
+            <li><a href="#metrics">What you'll see</a></li>
+            <li><a href="#data-quality">Data quality</a></li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+          </ul>
+        </nav>
+
+        <!-- ─── Body ──────────────────────────────────────── -->
+        <div class="guide-content">
+
+          <section id="before-you-begin">
+            <h2>Before you begin</h2>
+            <p>Distilled reads directly from GitHub, so there's very little to prepare. You'll need:</p>
+            <ul>
+              <li>A <strong>GitHub organisation</strong> (or a personal account) where you can install GitHub Apps.</li>
+              <li>Permission to <strong>authorise the Distilled GitHub App</strong> on the repositories you want to track. Organisation owners can install directly; others may need to request approval.</li>
+              <li>At least one repository that <strong>deploys to a production environment</strong> via GitHub Deployments. If you already use GitHub Actions, Vercel, Netlify, Railway, Heroku, or any deployment tool that writes deployment events to GitHub, you're good to go.</li>
+            </ul>
+
+            <div class="callout">
+              <p><strong>Read-only access.</strong> Distilled never writes to your repositories. We ask for the minimum permissions needed to read pull requests, deployments, and repository metadata — nothing else, and never your source code.</p>
+            </div>
+          </section>
+
+          <section id="setup">
+            <h2>Setup</h2>
+            <p>The whole setup takes about two minutes. You'll sign in, install the GitHub App, and wait a few seconds while Distilled ingests your history.</p>
+
+            <ol class="guide-steps">
+              <li class="guide-step">
+                <h3>Create your Distilled account</h3>
+                <p>Head to <a href="https://app.distilledmetrics.com">app.distilledmetrics.com</a> and sign in with GitHub. Your account is provisioned automatically the first time you sign in.</p>
+              </li>
+
+              <li class="guide-step">
+                <h3>Install the Distilled GitHub App</h3>
+                <p>From the onboarding screen, click <strong>Install GitHub App</strong>. You'll be taken to GitHub to choose the organisation and repositories to connect. You can grant access to all repositories or a specific list — whichever works for you.</p>
+              </li>
+
+              <li class="guide-step">
+                <h3>Let Distilled import your history</h3>
+                <p>As soon as the install completes, Distilled begins syncing your repositories, recent pull requests, and deployment history. Your first metrics usually appear within a few seconds; deeper trends build up over the first few days of activity.</p>
+              </li>
+
+              <li class="guide-step">
+                <h3>Open the dashboard</h3>
+                <p>Once repositories are detected, the onboarding screen hands off to the dashboard. Pick a repository and a time window to see Deployment Frequency, Lead Time, PR Cycle Time, and the rest of your delivery metrics side by side.</p>
+              </li>
+            </ol>
+
+            <div class="callout">
+              <p><strong>Adding or removing repositories later?</strong> You can update the Distilled GitHub App's access at any time from your GitHub organisation settings. Metrics for newly added repositories appear within seconds.</p>
+            </div>
+          </section>
+
+          <section id="deployments">
+            <h2>How deployments are tracked</h2>
+            <p>Distilled treats a <strong>successful deployment to production</strong> as the ground truth for when code ships. We listen to GitHub's <code>deployment_status</code> webhook, which nearly every modern deployment tool emits automatically.</p>
+
+            <h3>What counts as a production deployment</h3>
+            <p>When GitHub sends a <code>deployment_status</code> event, Distilled records it as a production deployment if:</p>
+            <ul>
+              <li>Its <strong>state is <code>success</code></strong> — failed or in-progress deployments are ignored until they resolve.</li>
+              <li>Its <strong>environment is recognised as production</strong>. Distilled auto-detects production environments by name — e.g. <code>production</code>, <code>prod</code>, <code>live</code>. If your setup uses a different convention, tell us once and we'll remember it for your tenant.</li>
+            </ul>
+
+            <h3>If you don't use GitHub Deployments</h3>
+            <p>You can create deployment events from any CI pipeline with a single API call to GitHub. Our recommendation is to add a step at the end of your production deploy that posts a <code>deployment_status</code> with <code>state: success</code> and <code>environment: production</code>. That's all Distilled needs.</p>
+
+            <div class="callout">
+              <p><strong>No production environment yet?</strong> Distilled will tell you. The onboarding screen and the data-quality panel both flag repositories where we can't find a production environment, so you always know what's missing.</p>
+            </div>
+          </section>
+
+          <section id="pull-requests">
+            <h2>How pull requests are tracked</h2>
+            <p>Distilled receives <strong>pull request webhooks</strong> from every connected repository and uses them to compute flow and review-cycle metrics in real time.</p>
+
+            <h3>Events we listen to</h3>
+            <ul>
+              <li><strong>Pull request opened</strong> — starts the cycle-time clock.</li>
+              <li><strong>Pull request merged</strong> — stops the cycle-time clock and marks the PR as complete.</li>
+              <li><strong>Pull request closed without merge</strong> — excluded from throughput, surfaced only in operational views.</li>
+              <li><strong>Draft / ready-for-review transitions</strong> — used to distinguish live work from early-stage work in the Open PR panel.</li>
+            </ul>
+
+            <h3>Linking PRs to deployments</h3>
+            <p>When a production deployment arrives, Distilled's attribution service links every pull request merged since the previous production deployment on the same branch. That's what lets us compute <strong>Lead Time for Changes</strong> — the gap between merge and "in production" — without any manual tagging.</p>
+
+            <p>If a merge can't be attributed to a deployment within a reasonable window, we don't guess. The PR is reported as unattributed in the data-quality panel so you always know when lead-time data should be trusted.</p>
+          </section>
+
+          <section id="metrics">
+            <h2>What you'll see</h2>
+            <p>The dashboard is organised by what an engineering leader actually needs to know: are we shipping, how fast is it flowing through review, and how much is in flight right now?</p>
+
+            <h3>Delivery metrics</h3>
+            <div class="metric-rows">
+              <div class="metric-row">
+                <strong>Deployment Frequency</strong>
+                <p>How often code ships to production. Daily deployment counts plotted over time to reveal cadence and consistency.</p>
+              </div>
+              <div class="metric-row">
+                <strong>Lead Time for Changes</strong>
+                <p>How long merged code waits before reaching users. Measured from PR merge to production deployment, reported as a median and p75.</p>
+              </div>
+              <div class="metric-row">
+                <strong>PR Cycle Time</strong>
+                <p>How long work takes from open to merge. The full review-and-iterate loop, reported as a median and p75, to surface bottlenecks in review.</p>
+              </div>
+              <div class="metric-row">
+                <strong>PR Throughput</strong>
+                <p>How much work the team completes per week. A weekly count of merged PRs that shows real delivery volume over time.</p>
+              </div>
+            </div>
+
+            <h3>Work in progress</h3>
+            <div class="metric-rows">
+              <div class="metric-row">
+                <strong>Open PR Count</strong>
+                <p>How much work is in flight right now, broken down into live vs. draft so active review is clearly distinguished from early-stage work.</p>
+              </div>
+              <div class="metric-row">
+                <strong>PR Ageing</strong>
+                <p>How long open PRs have been waiting, bucketed by age (&lt;2d, 2–7d, 7–14d, &gt;14d) so stale work rises to the top.</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="data-quality">
+            <h2>Data quality</h2>
+            <p>Numbers without context are noise. Distilled includes a data-quality panel on every dashboard so you always know whether to trust what you're looking at.</p>
+
+            <ul>
+              <li><strong>Attribution coverage</strong> — the percentage of merged PRs successfully linked to a production deployment. Low coverage means lead-time data should be treated with care.</li>
+              <li><strong>Metrics freshness</strong> — a simple <code>ok</code>, <code>stale</code>, or <code>no_data</code> signal based on when metrics were last recomputed (threshold: 2 hours).</li>
+              <li><strong>Setup configuration</strong> — a quick check that each repository has a production environment configured, which is required for deployment-based metrics.</li>
+            </ul>
+          </section>
+
+          <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+
+            <h3>The onboarding screen says "Waiting for data" but nothing appears</h3>
+            <p>Double-check that the GitHub App installation completed and that at least one repository was selected. If the install landed on the wrong organisation, reinstall the app from <a href="https://github.com/settings/installations">GitHub's installed apps page</a> and choose the right one.</p>
+
+            <h3>I can see pull requests but no deployments</h3>
+            <p>Distilled only records deployments that arrive as successful <code>deployment_status</code> events tagged with a production-looking environment. Check that your deployment tool creates GitHub Deployments and sets the environment to something like <code>production</code>. The data-quality panel will flag repositories with missing production environments.</p>
+
+            <h3>Lead Time looks wrong</h3>
+            <p>Lead Time depends on being able to link each merged PR to a production deployment. If attribution coverage is low, lead-time numbers are unreliable — fix the underlying deployment signal first and the metric will recover on the next recompute.</p>
+
+            <h3>Still stuck?</h3>
+            <p>Email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a> with your GitHub organisation name and a brief description of what you're seeing. We read every message.</p>
+          </section>
+
+          <div class="guide-cta">
+            <h2>Ready to see your delivery?</h2>
+            <p>Sign in with GitHub, install the app, and you'll have metrics within minutes.</p>
+            <a href="https://app.distilledmetrics.com" class="btn btn-primary btn-lg">Get started for free</a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </article>
+</main>
+{% endblock %}

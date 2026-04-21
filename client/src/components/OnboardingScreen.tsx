@@ -74,6 +74,19 @@ export function OnboardingScreen({
             Repos appear here within a few seconds of completing the GitHub App installation.
           </p>
         </div>
+
+        <p className="text-sm text-muted-foreground">
+          Need help?{" "}
+          <a
+            href="https://distilledmetrics.com/getting-started.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground underline underline-offset-4 hover:opacity-80"
+          >
+            Read the Getting Started guide
+          </a>{" "}
+          to learn how Distilled tracks deployments, pull requests, and your delivery metrics.
+        </p>
       </div>
     </main>
   )
