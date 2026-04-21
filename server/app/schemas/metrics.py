@@ -6,8 +6,8 @@ from pydantic import BaseModel
 
 class DaysWindow(IntEnum):
     THIRTY = 30
+    SIXTY = 60
     NINETY = 90
-    SIX_MONTHS = 180
 
 
 class DailyCount(BaseModel):

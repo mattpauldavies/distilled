@@ -5,9 +5,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { WINDOWS, WINDOW_LABELS, isWindowAvailable } from "@/lib/daysWindow"
+import { DaysSelectorButton } from "@/components/DaysSelectorButton"
+import { WINDOWS } from "@/lib/daysWindow"
 import type { Repo, DaysWindow } from "@/types/dashboard"
 
 interface Props {
@@ -43,35 +42,15 @@ export function DashboardControls({
       </Select>
 
       <div role="group" aria-label="Time window" className="flex rounded-md border border-border">
-        {WINDOWS.map((w) => {
-          const available = isWindowAvailable(w, daysOfData)
-          const button = (
-            <Button
-              variant={w === daysWindow ? "default" : "ghost"}
-              size="sm"
-              aria-pressed={w === daysWindow}
-              disabled={!available}
-              onClick={() => onDaysWindowChange(w)}
-              className="rounded-none first:rounded-l-md last:rounded-r-md"
-            >
-              {WINDOW_LABELS[w]}
-            </Button>
-          )
-
-          if (available) return <span key={w}>{button}</span>
-
-          return (
-            <Tooltip key={w}>
-              <TooltipTrigger asChild>
-                <span className="inline-flex cursor-not-allowed">{button}</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                Only {daysOfData} {daysOfData === 1 ? "day" : "days"} of data available — {w} days
-                requires more history.
-              </TooltipContent>
-            </Tooltip>
-          )
-        })}
+        {WINDOWS.map((w) => (
+          <DaysSelectorButton
+            key={w}
+            window={w}
+            selected={daysWindow}
+            daysOfData={daysOfData}
+            onSelect={onDaysWindowChange}
+          />
+        ))}
       </div>
     </div>
   )

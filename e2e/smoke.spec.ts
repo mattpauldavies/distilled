@@ -203,18 +203,18 @@ test.describe("Chart panels — data rendered, no empty states", () => {
 });
 
 test.describe("Time window toggle", () => {
-  test("switching to 30d shows a higher deployment frequency than 6m", async ({ page }) => {
+  test("switching to 30d shows a higher deployment frequency than 90d", async ({ page }) => {
     await loadDashboard(page);
 
-    // Read the deployment count at 6m
-    await page.getByRole("button", { name: "6m" }).click();
-    await expect(page.getByRole("button", { name: "6m" })).toHaveAttribute(
+    // Read the deployment count at 90d
+    await page.getByRole("button", { name: "90d" }).click();
+    await expect(page.getByRole("button", { name: "90d" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
     // Wait for chart to update
     await page.waitForTimeout(500);
-    const count180 = parseFloat(
+    const count90 = parseFloat(
       await metricCard(page, "Deployment Frequency")
         .locator("p.text-5xl")
         .innerText(),
@@ -233,7 +233,7 @@ test.describe("Time window toggle", () => {
         .innerText(),
     );
 
-    expect(count30).toBeGreaterThanOrEqual(count180);
+    expect(count30).toBeGreaterThanOrEqual(count90);
   });
 
   test("active window button has aria-pressed=true", async ({ page }) => {

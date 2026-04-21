@@ -18,8 +18,8 @@ describe("DashboardControls", () => {
       />
     )
     expect(screen.getByText("30d")).toBeInTheDocument()
+    expect(screen.getByText("60d")).toBeInTheDocument()
     expect(screen.getByText("90d")).toBeInTheDocument()
-    expect(screen.getByText("6m")).toBeInTheDocument()
   })
 
   it("calls onDaysWindowChange when clicking a window button", async () => {
@@ -31,14 +31,14 @@ describe("DashboardControls", () => {
         repos={repos}
         selectedRepoId="repo-1"
         onRepoChange={() => {}}
-        daysWindow={90}
+        daysWindow={30}
         onDaysWindowChange={onDaysWindowChange}
         daysOfData={200}
       />
     )
 
-    await user.click(screen.getByText("6m"))
-    expect(onDaysWindowChange).toHaveBeenCalledWith(180)
+    await user.click(screen.getByText("90d"))
+    expect(onDaysWindowChange).toHaveBeenCalledWith(90)
   })
 
   it("renders repo names in the select", () => {
@@ -56,7 +56,7 @@ describe("DashboardControls", () => {
     expect(container.textContent).toContain("org/my-repo")
   })
 
-  it("disables 90d and 6m when only 30 days of data are available", () => {
+  it("disables 60d and 90d when only 30 days of data are available", () => {
     render(
       <DashboardControls
         repos={repos}
@@ -69,11 +69,11 @@ describe("DashboardControls", () => {
     )
 
     expect(screen.getByRole("button", { name: "30d" })).not.toBeDisabled()
+    expect(screen.getByRole("button", { name: "60d" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "90d" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "6m" })).toBeDisabled()
   })
 
-  it("enables 30d and 90d when more than 30 days but not more than 90 are available", () => {
+  it("enables 30d and 60d when more than 30 days but not more than 60 are available", () => {
     render(
       <DashboardControls
         repos={repos}
@@ -81,16 +81,16 @@ describe("DashboardControls", () => {
         onRepoChange={() => {}}
         daysWindow={30}
         onDaysWindowChange={() => {}}
-        daysOfData={60}
+        daysOfData={45}
       />
     )
 
     expect(screen.getByRole("button", { name: "30d" })).not.toBeDisabled()
-    expect(screen.getByRole("button", { name: "90d" })).not.toBeDisabled()
-    expect(screen.getByRole("button", { name: "6m" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "60d" })).not.toBeDisabled()
+    expect(screen.getByRole("button", { name: "90d" })).toBeDisabled()
   })
 
-  it("enables all windows when more than 90 days are available", () => {
+  it("enables all windows when more than 60 days are available", () => {
     render(
       <DashboardControls
         repos={repos}
@@ -98,13 +98,13 @@ describe("DashboardControls", () => {
         onRepoChange={() => {}}
         daysWindow={30}
         onDaysWindowChange={() => {}}
-        daysOfData={120}
+        daysOfData={75}
       />
     )
 
     expect(screen.getByRole("button", { name: "30d" })).not.toBeDisabled()
+    expect(screen.getByRole("button", { name: "60d" })).not.toBeDisabled()
     expect(screen.getByRole("button", { name: "90d" })).not.toBeDisabled()
-    expect(screen.getByRole("button", { name: "6m" })).not.toBeDisabled()
   })
 
   it("shows a tooltip explaining why a disabled window is unavailable", async () => {
@@ -120,7 +120,7 @@ describe("DashboardControls", () => {
       />
     )
 
-    await user.hover(screen.getByRole("button", { name: "90d" }).parentElement!)
+    await user.hover(screen.getByRole("button", { name: "60d" }).parentElement!)
 
     const tooltip = await screen.findByRole("tooltip")
     expect(tooltip.textContent).toContain("Only 12 days of data available")
@@ -139,7 +139,7 @@ describe("DashboardControls", () => {
     )
 
     expect(screen.getByRole("button", { name: "30d" })).not.toBeDisabled()
+    expect(screen.getByRole("button", { name: "60d" })).not.toBeDisabled()
     expect(screen.getByRole("button", { name: "90d" })).not.toBeDisabled()
-    expect(screen.getByRole("button", { name: "6m" })).not.toBeDisabled()
   })
 })

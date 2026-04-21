@@ -103,6 +103,6 @@ async def test_deployment_frequency_custom_window(client, mock_session):
 
 @pytest.mark.asyncio
 async def test_deployment_frequency_rejects_invalid_window(client, mock_session):
-    """Only 30/90/180 allowed."""
+    """Only 30/60/90 allowed."""
     resp = await client.get(f"/metrics/deployment-frequency?repo_id={REPO_ID}&window=45")
     assert resp.status_code == 422
