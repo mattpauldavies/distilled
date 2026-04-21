@@ -60,6 +60,7 @@ export interface PRAgeingSection {
 export interface FreshnessInfo {
   status: string
   last_refresh_at: string | null
+  days_of_data: number | null
 }
 
 export interface SetupInfo {

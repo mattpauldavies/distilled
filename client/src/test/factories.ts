@@ -90,7 +90,11 @@ export function makePRAgeing(overrides?: Partial<PRAgeingSection>): PRAgeingSect
 export function makeDataQuality(overrides?: Partial<DataQuality>): DataQuality {
   return {
     attribution_coverage_percent: 85.5,
-    freshness: { status: "ok", last_refresh_at: new Date().toISOString() },
+    freshness: {
+      status: "ok",
+      last_refresh_at: new Date().toISOString(),
+      days_of_data: 200,
+    },
     setup: { has_production_environment: true, production_environments: ["production"] },
     ...overrides,
   }

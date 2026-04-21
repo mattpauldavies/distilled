@@ -144,6 +144,7 @@ async def get_data_quality_section(
         freshness=FreshnessInfo(
             status=freshness.status,
             last_refresh_at=freshness.last_refresh_at,
+            days_of_data=freshness.days_of_data,
         ),
         setup=SetupInfo(
             has_production_environment=len(prod_envs) > 0,
