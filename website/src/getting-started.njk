@@ -51,15 +51,16 @@ permalink: /getting-started.html
 
   /* ─── Layout ────────────────────────────────────────────── */
   .guide-body {
-    display: grid;
-    grid-template-columns: 220px minmax(0, 1fr);
-    gap: 64px;
-    max-width: 960px;
+    max-width: 720px;
     margin: 0 auto;
   }
 
   .guide-toc {
-    align-self: start;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 56px;
   }
 
   .guide-toc h2 {
@@ -73,14 +74,14 @@ permalink: /getting-started.html
 
   .guide-toc ul {
     list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 32px;
   }
 
   .guide-toc a {
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-secondary);
     text-decoration: none;
     padding: 4px 0;
@@ -284,14 +285,12 @@ permalink: /getting-started.html
   }
 
   /* ─── Responsive ────────────────────────────────────────── */
-  @media (max-width: 900px) {
-    .guide-body {
-      grid-template-columns: 1fr;
-      gap: 40px;
-    }
-  }
-
   @media (max-width: 640px) {
+    .guide-toc ul {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
     .guide-step {
       padding: 20px 20px 18px 20px;
     }
