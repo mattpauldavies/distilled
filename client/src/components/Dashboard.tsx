@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useDataQuality } from "@/hooks/useDataQuality"
 import { DashboardControls } from "@/components/DashboardControls"
+import { isWindowAvailable } from "@/lib/daysWindow"
 import { DeploymentFrequencyCard } from "@/components/metrics/DeploymentFrequencyCard"
 import { LeadTimeCard } from "@/components/metrics/LeadTimeCard"
 import { PRCycleTimeCard } from "@/components/metrics/PRCycleTimeCard"
@@ -31,13 +32,17 @@ interface DashboardProps {
 
 export function Dashboard({ repos }: DashboardProps) {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
-  const [daysWindow, setDaysWindow] = useState<DaysWindow>(90)
+  const [selectedDaysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
   const selectedRepoId = userSelectedRepoId ?? repos[0].id
   const selectedRepo = repos.find((r) => r.id === selectedRepoId)
 
-  const { data: dataQuality } = useDataQuality(selectedRepoId, daysWindow)
+  const { data: dataQuality } = useDataQuality(selectedRepoId, selectedDaysWindow)
   const freshness = dataQuality?.freshness
+  const daysOfData = freshness?.days_of_data ?? 0
+  const daysWindow: DaysWindow = isWindowAvailable(selectedDaysWindow, daysOfData)
+    ? selectedDaysWindow
+    : 30
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
@@ -57,6 +62,12 @@ export function Dashboard({ repos }: DashboardProps) {
               <span className="text-xs text-muted-foreground">
                 {freshness.status === "ok" ? "Data current" : "Data stale"} · updated{" "}
                 {timeAgo(freshness.last_refresh_at)}
+                {daysOfData > 0 && (
+                  <>
+                    {" · "}
+                    {daysOfData} {daysOfData === 1 ? "day" : "days"} of data
+                  </>
+                )}
               </span>
             </div>
           )}
@@ -68,6 +79,7 @@ export function Dashboard({ repos }: DashboardProps) {
             onRepoChange={setUserSelectedRepoId}
             daysWindow={daysWindow}
             onDaysWindowChange={setDaysWindow}
+            daysOfData={daysOfData}
           />
           <SignOutButton />
         </div>

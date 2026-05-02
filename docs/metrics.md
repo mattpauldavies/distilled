@@ -15,5 +15,5 @@
 ## Data Quality
 
 - **Attribution Coverage** — How complete our deploy tracking is. Percentage of merged PRs that are linked to a deployment — low coverage means lead time data is unreliable.
-- **Metrics Freshness** — Whether our numbers are current. Reports `ok`, `stale`, or `no_data` based on how recently metrics were recomputed (threshold: 2 hours).
+- **Metrics Freshness** — Whether our numbers are current. Reports `ok`, `stale`, or `no_data` based on how recently metrics were recomputed (threshold: 2 hours). Also reports `days_of_data` — the span (in days) between today and the oldest synced pull request.
 - **Setup Configuration** — Whether the pipeline is ready. Checks if a production environment is configured, which is required for deployment-based metrics.
