@@ -17,10 +17,10 @@ Copy `.env.example` to `.env.local` and fill in the values:
 cp .env.example .env.local
 ```
 
-| Variable                     | Description                                    |
-| ---------------------------- | ---------------------------------------------- |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)   |
-| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL |
+| Variable                     | Description                                     |
+| ---------------------------- | ----------------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)    |
+| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL  |
 | `VITE_API_BASE_URL`          | Backend base URL (e.g. `http://localhost:8000`) |
 
 ## Run
