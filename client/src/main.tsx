@@ -1,7 +1,7 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { ClerkProvider } from "@clerk/clerk-react"
-import { shadcn } from "@clerk/ui/themes"
+import { shadcn } from "./lib/clerkTheme"
 import "./index.css"
 import App from "./App"
 
