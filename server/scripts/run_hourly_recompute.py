@@ -58,9 +58,7 @@ async def recompute_one(client: httpx.AsyncClient, target: dict) -> bool:
     return False
 
 
-async def _with_jitter(
-    target: dict, client: httpx.AsyncClient, sem: asyncio.Semaphore
-) -> bool:
+async def _with_jitter(target: dict, client: httpx.AsyncClient, sem: asyncio.Semaphore) -> bool:
     async with sem:
         if JITTER_MS > 0:
             await asyncio.sleep(random.uniform(0, JITTER_MS / 1000))
