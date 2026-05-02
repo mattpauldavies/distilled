@@ -67,8 +67,9 @@ export function OnboardingScreen({
 
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Already installed?</span> Then we're just waiting for
-            data…<br />
+            <span className="font-medium text-foreground">Already installed?</span> Then we're just
+            waiting for data…
+            <br />
             Repos appear here within a few seconds of completing the GitHub App installation.
           </p>
         </div>

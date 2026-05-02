@@ -39,9 +39,7 @@ async def main(clerk_user_id: str) -> None:
             sys.exit(1)
 
         # Look up existing user
-        result = await session.execute(
-            select(User).where(User.clerk_user_id == clerk_user_id)
-        )
+        result = await session.execute(select(User).where(User.clerk_user_id == clerk_user_id))
         user = result.scalar_one_or_none()
 
         if user is not None:

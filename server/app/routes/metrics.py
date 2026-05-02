@@ -121,9 +121,7 @@ async def list_recompute_targets(
         select(Repository.tenant_id, Repository.id).order_by(Repository.tenant_id, Repository.id)
     )
     rows = result.all()
-    targets = [
-        {"tenant_id": str(tenant_id), "repo_id": str(repo_id)} for tenant_id, repo_id in rows
-    ]
+    targets = [{"tenant_id": str(tenant_id), "repo_id": str(repo_id)} for tenant_id, repo_id in rows]
     return {"targets": targets, "count": len(targets)}
 
 
@@ -134,9 +132,7 @@ async def get_deployment_frequency_endpoint(
     session: AsyncSession = Depends(get_session),
     window: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> DeploymentFrequencySection:
-    return await dashboard_service.get_deployment_frequency_section(
-        tenant_id, repo, session, int(window)
-    )
+    return await dashboard_service.get_deployment_frequency_section(tenant_id, repo, session, int(window))
 
 
 @router.get("/lead-time", dependencies=[Depends(require_auth)])
