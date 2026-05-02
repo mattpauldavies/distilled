@@ -159,8 +159,9 @@ def test_main_exits_0_on_partial_per_repo_failure(monkeypatch):
             )
         return httpx.Response(500)
 
-    with patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)), patch.object(
-        sut.asyncio, "sleep", new=AsyncMock()
+    with (
+        patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)),
+        patch.object(sut.asyncio, "sleep", new=AsyncMock()),
     ):
         # Per-repo failures are NOT a scheduler-level failure.
         assert sut.main() == 0

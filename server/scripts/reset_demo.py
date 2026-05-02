@@ -89,9 +89,7 @@ async def main() -> None:
         await session.execute(delete(GitHubInstallation).where(GitHubInstallation.id == installation_uuid))
 
         # Remove any users linked to the seed tenant (smoke test user, claimed users)
-        user_result = await session.execute(
-            delete(User).where(User.tenant_id == TENANT_ID)
-        )
+        user_result = await session.execute(delete(User).where(User.tenant_id == TENANT_ID))
         users_removed = user_result.rowcount
 
         await session.commit()
