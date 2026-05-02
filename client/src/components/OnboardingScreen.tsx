@@ -67,7 +67,7 @@ export function OnboardingScreen({
 
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Already installed?</span> Waiting for
+            <span className="font-medium text-foreground">Already installed?</span> Then we're just waiting for
             data…
           </p>
           <p className="text-sm text-muted-foreground">
@@ -76,14 +76,14 @@ export function OnboardingScreen({
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Need help?{" "}
+          Need help? Read the{" "}
           <a
             href="https://distilledmetrics.com/getting-started.html"
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-foreground underline underline-offset-4 hover:opacity-80"
           >
-            Read the Getting Started guide
+            Getting Started Guide
           </a>{" "}
           to learn how Distilled tracks deployments, pull requests, and your delivery metrics.
         </p>
