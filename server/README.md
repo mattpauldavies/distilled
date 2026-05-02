@@ -55,25 +55,25 @@ database/          # Alembic migrations
 
 ## API endpoints
 
-| Method | Path                                | Description                                                     |
-| ------ | ----------------------------------- | --------------------------------------------------------------- |
-| GET    | `/api/health`                       | Health check                                                    |
-| POST   | `/api/webhooks/github`              | GitHub webhook receiver (HMAC verified)                         |
-| GET    | `/api/repos`                        | List repos for tenant (paginated)                               |
-| GET    | `/api/environments`                 | List environments (optional `?repo_id=`)                        |
-| PATCH  | `/api/environments/{env_id}`        | Toggle `is_production`                                          |
-| GET    | `/api/deployments`                  | List deployments (requires `repo_id`, filter: env, date range)  |
-| GET    | `/api/deployments/{id}`             | Deployment detail + attributed PRs                              |
-| GET    | `/api/pull-requests`                | List PRs (requires `repo_id`, filter: date range)               |
-| GET    | `/api/pull-requests/{id}`           | PR detail + linked deployment                                   |
-| POST   | `/api/metrics/recompute`            | Trigger per-repo metric recompute (Bearer auth)                 |
-| GET    | `/api/metrics/deployment-frequency` | Deployment frequency (daily counts, 30/90/180 day window)      |
-| GET    | `/api/metrics/lead-time`            | Lead time percentiles (weekly, 30/90/180 day window)           |
-| GET    | `/api/metrics/pr-cycle-time`        | PR cycle time percentiles (weekly, 30/90/180 day window)       |
-| GET    | `/api/metrics/throughput`           | PR merge throughput (weekly counts, 30/90/180 day window)      |
-| GET    | `/api/metrics/open-prs`             | Open PR counts (total, live, draft)                             |
-| GET    | `/api/metrics/pr-ageing`            | PR age distribution (<2d, 2-7d, 7-14d, >14d buckets)            |
-| GET    | `/api/metrics/data-quality`         | Attribution coverage + freshness + production-env setup         |
+| Method | Path                            | Description                                                     |
+| ------ | ------------------------------- | --------------------------------------------------------------- |
+| GET    | `/health`                       | Health check                                                    |
+| POST   | `/webhooks/github`              | GitHub webhook receiver (HMAC verified)                         |
+| GET    | `/repos`                        | List repos for tenant (paginated)                               |
+| GET    | `/environments`                 | List environments (optional `?repo_id=`)                        |
+| PATCH  | `/environments/{env_id}`        | Toggle `is_production`                                          |
+| GET    | `/deployments`                  | List deployments (requires `repo_id`, filter: env, date range)  |
+| GET    | `/deployments/{id}`             | Deployment detail + attributed PRs                              |
+| GET    | `/pull-requests`                | List PRs (requires `repo_id`, filter: date range)               |
+| GET    | `/pull-requests/{id}`           | PR detail + linked deployment                                   |
+| POST   | `/metrics/recompute`            | Trigger per-repo metric recompute (Bearer auth)                 |
+| GET    | `/metrics/deployment-frequency` | Deployment frequency (daily counts, 30/90/180 day window)       |
+| GET    | `/metrics/lead-time`            | Lead time percentiles (weekly, 30/90/180 day window)            |
+| GET    | `/metrics/pr-cycle-time`        | PR cycle time percentiles (weekly, 30/90/180 day window)        |
+| GET    | `/metrics/throughput`           | PR merge throughput (weekly counts, 30/90/180 day window)       |
+| GET    | `/metrics/open-prs`             | Open PR counts (total, live, draft)                             |
+| GET    | `/metrics/pr-ageing`            | PR age distribution (<2d, 2-7d, 7-14d, >14d buckets)            |
+| GET    | `/metrics/data-quality`         | Attribution coverage + freshness + production-env setup         |
 
 ## Scheduled metrics
 
