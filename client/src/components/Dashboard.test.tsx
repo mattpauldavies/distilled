@@ -133,7 +133,7 @@ describe("Dashboard", () => {
       expect(screen.getByRole("button", { name: "30d" })).toHaveAttribute("aria-pressed", "true")
     })
 
-    expect(screen.getByRole("button", { name: "60d" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "90d" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "6m" })).toBeDisabled()
   })
 })

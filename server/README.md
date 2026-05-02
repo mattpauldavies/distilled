@@ -67,10 +67,10 @@ database/          # Alembic migrations
 | GET    | `/api/pull-requests`                | List PRs (requires `repo_id`, filter: date range)               |
 | GET    | `/api/pull-requests/{id}`           | PR detail + linked deployment                                   |
 | POST   | `/api/metrics/recompute`            | Trigger per-repo metric recompute (Bearer auth)                 |
-| GET    | `/api/metrics/deployment-frequency` | Deployment frequency (daily counts, 30/60/90 day window)       |
-| GET    | `/api/metrics/lead-time`            | Lead time percentiles (weekly, 30/60/90 day window)            |
-| GET    | `/api/metrics/pr-cycle-time`        | PR cycle time percentiles (weekly, 30/60/90 day window)        |
-| GET    | `/api/metrics/throughput`           | PR merge throughput (weekly counts, 30/60/90 day window)       |
+| GET    | `/api/metrics/deployment-frequency` | Deployment frequency (daily counts, 30/90/180 day window)      |
+| GET    | `/api/metrics/lead-time`            | Lead time percentiles (weekly, 30/90/180 day window)           |
+| GET    | `/api/metrics/pr-cycle-time`        | PR cycle time percentiles (weekly, 30/90/180 day window)       |
+| GET    | `/api/metrics/throughput`           | PR merge throughput (weekly counts, 30/90/180 day window)      |
 | GET    | `/api/metrics/open-prs`             | Open PR counts (total, live, draft)                             |
 | GET    | `/api/metrics/pr-ageing`            | PR age distribution (<2d, 2-7d, 7-14d, >14d buckets)            |
 | GET    | `/api/metrics/data-quality`         | Attribution coverage + freshness + production-env setup         |

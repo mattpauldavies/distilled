@@ -92,7 +92,7 @@ src/
     OnboardingScreen.tsx          # Guides new tenants to install the GitHub App
     Dashboard.tsx                 # Main orchestrator — controls, cards, charts
     NoMetricsYetDialog.tsx        # Cold-start dialog when a repo has no metrics yet
-    DashboardControls.tsx         # Repo selector + 30/60/90 day window toggle
+    DashboardControls.tsx         # Repo selector + 30/90/180 day window toggle
     MetricCard.tsx                # Single metric card (loading/empty/value states)
     ChartPanel.tsx                # Chart wrapper (loading/empty/chart states)
     charts/
