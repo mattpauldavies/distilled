@@ -29,7 +29,7 @@ async def test_recompute_requires_auth(metrics_client):
         "/metrics/recompute",
         json={"repo_id": str(REPO_ID)},
     )
-    assert resp.status_code == 403  # HTTPBearer rejects missing credentials (FastAPI's HTTPBearer returns 403)
+    assert resp.status_code == 401  # HTTPBearer returns 401 when Authorization header is missing
 
 
 @pytest.mark.asyncio
@@ -91,7 +91,7 @@ async def test_recompute_repo_not_found(metrics_client, mock_session):
 @pytest.mark.asyncio
 async def test_recompute_targets_requires_auth(metrics_client):
     resp = await metrics_client.get("/metrics/recompute-targets")
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
