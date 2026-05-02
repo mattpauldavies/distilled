@@ -55,47 +55,6 @@ permalink: /getting-started.html
     margin: 0 auto;
   }
 
-  .guide-toc {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px 28px;
-    margin-bottom: 56px;
-  }
-
-  .guide-toc h2 {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-  }
-
-  .guide-toc ul {
-    list-style: none;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px 32px;
-  }
-
-  .guide-toc a {
-    display: block;
-    font-size: 14px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    padding: 4px 0;
-    border-left: 1px solid transparent;
-    padding-left: 12px;
-    margin-left: -12px;
-    transition: color 0.15s ease, border-color 0.15s ease;
-  }
-
-  .guide-toc a:hover {
-    color: var(--text-primary);
-    border-left-color: var(--accent);
-  }
-
   .guide-content > section {
     margin-bottom: 56px;
   }
@@ -153,7 +112,7 @@ permalink: /getting-started.html
     color: var(--text-primary);
   }
 
-  .guide-content a {
+  .guide-content p a {
     color: var(--accent-light);
     text-decoration: none;
   }
@@ -312,26 +271,11 @@ permalink: /getting-started.html
       <header class="guide-header">
         <span class="guide-eyebrow">Getting Started</span>
         <h1>Up and running in minutes.</h1>
-        <p>Connect Distilled to your GitHub organisation and start tracking how your team ships. No code changes, no manual data entry — just install the app and we'll do the rest.</p>
+        <p>Connect Distilled to your GitHub organisation and start tracking how your team ships. No code changes, no manual data entry, just install the app and we'll do the rest.</p>
       </header>
 
       <div class="guide-body">
 
-        <!-- ─── TOC ───────────────────────────────────────── -->
-        <nav class="guide-toc" aria-label="On this page">
-          <h2>On this page</h2>
-          <ul>
-            <li><a href="#before-you-begin">Before you begin</a></li>
-            <li><a href="#setup">Setup</a></li>
-            <li><a href="#deployments">How deployments are tracked</a></li>
-            <li><a href="#pull-requests">How pull requests are tracked</a></li>
-            <li><a href="#metrics">What you'll see</a></li>
-            <li><a href="#data-quality">Data quality</a></li>
-            <li><a href="#troubleshooting">Troubleshooting</a></li>
-          </ul>
-        </nav>
-
-        <!-- ─── Body ──────────────────────────────────────── -->
         <div class="guide-content">
 
           <section id="before-you-begin">
@@ -347,9 +291,6 @@ permalink: /getting-started.html
               <p><strong>Read-only access.</strong> Distilled never writes to your repositories. We ask for the minimum permissions needed to read pull requests, deployments, and repository metadata — nothing else, and never your source code.</p>
             </div>
 
-            <div class="callout">
-              <p><strong>Forward-looking, not backfilled.</strong> Distilled tracks delivery from the moment you install the app onward. We don't read historical pull requests or deployments — metrics build up as new GitHub events arrive, so the richness of the dashboard grows with your team's activity.</p>
-            </div>
           </section>
 
           <section id="setup">
@@ -364,12 +305,12 @@ permalink: /getting-started.html
 
               <li class="guide-step">
                 <h3>Install the Distilled GitHub App</h3>
-                <p>From the onboarding screen, click <strong>Install GitHub App</strong>. You'll be taken to GitHub to choose the organisation and repositories to connect. You can grant access to all repositories or a specific list — whichever works for you.</p>
+                <p>From the onboarding screen, click <strong>Install GitHub App</strong>. You'll be taken to GitHub to choose the organisation and repositories to connect. You can grant access to all repositories or a specific list; whichever works for you.</p>
               </li>
 
               <li class="guide-step">
                 <h3>Wait for your next GitHub event</h3>
-                <p>Distilled doesn't backfill history. It captures delivery data from GitHub webhooks as events happen — so the first metric appears on your next pull request or deployment. Depending on how active your repositories are, that can be minutes, hours, or days.</p>
+                <p>Distilled doesn't backfill history. We capture delivery data from GitHub webhooks as events happen. So your first metric appears on your next pull request or deployment. Depending on how active your repositories are, that can be minutes, hours, or days.</p>
               </li>
 
               <li class="guide-step">
@@ -379,7 +320,7 @@ permalink: /getting-started.html
             </ol>
 
             <div class="callout">
-              <p><strong>Adding or removing repositories later?</strong> You can update the Distilled GitHub App's access at any time from your GitHub organisation settings. A newly added repository will start contributing metrics on its next pull request or deployment event.</p>
+              <p><strong>Adding or removing repositories?</strong> You can update the Distilled GitHub App's access at any time from your GitHub organisation settings. A newly added repository will start contributing metrics on its next pull request or deployment event.</p>
             </div>
           </section>
 
@@ -390,16 +331,13 @@ permalink: /getting-started.html
             <h3>What counts as a production deployment</h3>
             <p>When GitHub sends a <code>deployment_status</code> event, Distilled records it as a production deployment if:</p>
             <ul>
-              <li>Its <strong>state is <code>success</code></strong> — failed or in-progress deployments are ignored until they resolve.</li>
-              <li>Its <strong>environment is recognised as production</strong>. Distilled auto-detects production environments by name — e.g. <code>production</code>, <code>prod</code>, <code>live</code>. If your setup uses a different convention, tell us once and we'll remember it for your tenant.</li>
+              <li>Its <strong>state is <code>success</code></strong>. failed or in-progress deployments are ignored until they resolve.</li>
+              <li>Its <strong>environment is recognised as production</strong>. Distilled auto-detects production environments by name.<br />e.g. <code>production</code>, <code>prod</code>, <code>live</code>.</li>
             </ul>
 
             <h3>If you don't use GitHub Deployments</h3>
             <p>You can create deployment events from any CI pipeline with a single API call to GitHub. Our recommendation is to add a step at the end of your production deploy that posts a <code>deployment_status</code> with <code>state: success</code> and <code>environment: production</code>. That's all Distilled needs.</p>
 
-            <div class="callout">
-              <p><strong>No production environment yet?</strong> Distilled will tell you. The onboarding screen and the data-quality panel both flag repositories where we can't find a production environment, so you always know what's missing.</p>
-            </div>
           </section>
 
           <section id="pull-requests">
@@ -457,17 +395,6 @@ permalink: /getting-started.html
             </div>
           </section>
 
-          <section id="data-quality">
-            <h2>Data quality</h2>
-            <p>Numbers without context are noise. Distilled includes a data-quality panel on every dashboard so you always know whether to trust what you're looking at.</p>
-
-            <ul>
-              <li><strong>Attribution coverage</strong> — the percentage of merged PRs successfully linked to a production deployment. Low coverage means lead-time data should be treated with care.</li>
-              <li><strong>Metrics freshness</strong> — a simple <code>ok</code>, <code>stale</code>, or <code>no_data</code> signal based on when metrics were last recomputed (threshold: 2 hours).</li>
-              <li><strong>Setup configuration</strong> — a quick check that each repository has a production environment configured, which is required for deployment-based metrics.</li>
-            </ul>
-          </section>
-
           <section id="troubleshooting">
             <h2>Troubleshooting</h2>
 
@@ -476,16 +403,13 @@ permalink: /getting-started.html
             <p>If you're sure the repositories are active, double-check that the GitHub App installation completed and that the right repositories were selected. If the install landed on the wrong organisation, reinstall the app from <a href="https://github.com/settings/installations">GitHub's installed apps page</a> and choose the right one.</p>
 
             <h3>Where's my past activity?</h3>
-            <p>Distilled doesn't import historical pull requests or deployments when you install. It begins tracking from your next GitHub event onward. Trends and averages build up as your team continues to ship — a few weeks of activity is usually enough for a clear picture.</p>
+            <p>Distilled doesn't import historical pull requests or deployments when you install. It begins tracking from your next GitHub event onward. Trends and averages build up as your team continues to ship. A few weeks of activity is usually enough for a clear picture.</p>
 
             <h3>I can see pull requests but no deployments</h3>
             <p>Distilled only records deployments that arrive as successful <code>deployment_status</code> events tagged with a production-looking environment. Check that your deployment tool creates GitHub Deployments and sets the environment to something like <code>production</code>. The data-quality panel will flag repositories with missing production environments.</p>
 
-            <h3>Lead Time looks wrong</h3>
-            <p>Lead Time depends on being able to link each merged PR to a production deployment. If attribution coverage is low, lead-time numbers are unreliable — fix the underlying deployment signal first and the metric will recover on the next recompute.</p>
-
             <h3>Still stuck?</h3>
-            <p>Email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a> with your GitHub organisation name and a brief description of what you're seeing. We read every message.</p>
+            <p>Email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a> with your GitHub organisation name and a brief description of your issue.</p>
           </section>
 
           <div class="guide-cta">
