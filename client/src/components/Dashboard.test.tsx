@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse, delay } from "msw"
 import { server } from "@/test/mocks/server"
-import { makeOpenPRs, makeDeploymentFrequency, makeRepo } from "@/test/factories"
+import { makeDataQuality, makeDeploymentFrequency, makeOpenPRs, makeRepo } from "@/test/factories"
 import { Dashboard } from "./Dashboard"
 
 vi.mock("@clerk/clerk-react", () => ({
@@ -88,5 +88,52 @@ describe("Dashboard", () => {
     await waitFor(() => {
       expect(screen.getByText("Sign out")).toBeInTheDocument()
     })
+  })
+
+  it("shows days of data in the freshness indicator", async () => {
+    server.use(
+      http.get("/metrics/data-quality", () =>
+        HttpResponse.json(
+          makeDataQuality({
+            freshness: {
+              status: "ok",
+              last_refresh_at: new Date().toISOString(),
+              days_of_data: 47,
+            },
+          })
+        )
+      )
+    )
+
+    render(<Dashboard repos={defaultRepos} />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/47 days of data/)).toBeInTheDocument()
+    })
+  })
+
+  it("falls back to 30d when insufficient data exists for the default window", async () => {
+    server.use(
+      http.get("/metrics/data-quality", () =>
+        HttpResponse.json(
+          makeDataQuality({
+            freshness: {
+              status: "ok",
+              last_refresh_at: new Date().toISOString(),
+              days_of_data: 12,
+            },
+          })
+        )
+      )
+    )
+
+    render(<Dashboard repos={defaultRepos} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "30d" })).toHaveAttribute("aria-pressed", "true")
+    })
+
+    expect(screen.getByRole("button", { name: "90d" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "6m" })).toBeDisabled()
   })
 })

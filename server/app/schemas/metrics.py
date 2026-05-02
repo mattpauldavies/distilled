@@ -72,6 +72,7 @@ class PRAgeingSection(BaseModel):
 class FreshnessInfo(BaseModel):
     status: str
     last_refresh_at: datetime | None
+    days_of_data: int = 0
 
 
 class SetupInfo(BaseModel):

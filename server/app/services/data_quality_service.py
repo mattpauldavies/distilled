@@ -16,6 +16,7 @@ STALE_THRESHOLD = timedelta(hours=2)
 class MetricsFreshness:
     status: str  # "ok" | "stale" | "no_data"
     last_refresh_at: datetime | None
+    days_of_data: int
 
 
 async def get_metrics_freshness(
@@ -25,6 +26,11 @@ async def get_metrics_freshness(
     *,
     now: datetime | None = None,
 ) -> MetricsFreshness:
+    current_time = now or datetime.now(UTC)
+    days_of_data = await get_days_of_data(
+        tenant_id, repo_id, session, now=current_time
+    )
+
     result = await session.execute(
         select(func.max(MetricsRefreshLog.completed_at)).where(
             MetricsRefreshLog.tenant_id == tenant_id,
@@ -35,11 +41,37 @@ async def get_metrics_freshness(
     last = result.scalar_one_or_none()
 
     if last is None:
-        return MetricsFreshness(status="no_data", last_refresh_at=None)
+        return MetricsFreshness(
+            status="no_data", last_refresh_at=None, days_of_data=days_of_data
+        )
 
-    age = (now or datetime.now(UTC)) - last
+    age = current_time - last
     status = "stale" if age > STALE_THRESHOLD else "ok"
-    return MetricsFreshness(status=status, last_refresh_at=last)
+    return MetricsFreshness(
+        status=status, last_refresh_at=last, days_of_data=days_of_data
+    )
+
+
+async def get_days_of_data(
+    tenant_id: uuid.UUID,
+    repo_id: uuid.UUID,
+    session: AsyncSession,
+    *,
+    now: datetime | None = None,
+) -> int:
+    result = await session.execute(
+        select(func.min(PullRequest.opened_at)).where(
+            PullRequest.tenant_id == tenant_id,
+            PullRequest.repo_id == repo_id,
+        )
+    )
+    oldest = result.scalar_one_or_none()
+
+    if oldest is None:
+        return 0
+
+    span = (now or datetime.now(UTC)) - oldest
+    return max(span.days, 0)
 
 
 async def get_attribution_coverage(

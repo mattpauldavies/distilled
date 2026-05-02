@@ -29,6 +29,7 @@ async def test_data_quality_returns_all_fields(client, mock_session):
         mock_fresh.return_value = MetricsFreshness(
             status="ok",
             last_refresh_at=datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC),
+            days_of_data=47,
         )
         mock_cov.return_value = 87.5
 
@@ -39,6 +40,7 @@ async def test_data_quality_returns_all_fields(client, mock_session):
     assert data["attribution_coverage_percent"] == 87.5
     assert data["freshness"]["status"] == "ok"
     assert data["freshness"]["last_refresh_at"] == "2025-01-15T12:00:00Z"
+    assert data["freshness"]["days_of_data"] == 47
     assert data["setup"]["has_production_environment"] is True
     assert data["setup"]["production_environments"] == ["production"]
 
@@ -60,7 +62,9 @@ async def test_data_quality_no_production(client, mock_session):
         ) as mock_cov,
     ):
         mock_envs.return_value = []
-        mock_fresh.return_value = MetricsFreshness(status="no_data", last_refresh_at=None)
+        mock_fresh.return_value = MetricsFreshness(
+            status="no_data", last_refresh_at=None, days_of_data=0
+        )
         mock_cov.return_value = None
 
         resp = await client.get(f"/metrics/data-quality?repo_id={REPO_ID}")
@@ -70,4 +74,5 @@ async def test_data_quality_no_production(client, mock_session):
     assert data["attribution_coverage_percent"] is None
     assert data["freshness"]["status"] == "no_data"
     assert data["freshness"]["last_refresh_at"] is None
+    assert data["freshness"]["days_of_data"] == 0
     assert data["setup"]["has_production_environment"] is False

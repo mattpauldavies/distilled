@@ -17,10 +17,11 @@ Copy `.env.example` to `.env.local` and fill in the values:
 cp .env.example .env.local
 ```
 
-| Variable                     | Description                                    |
-| ---------------------------- | ---------------------------------------------- |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)   |
-| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL |
+| Variable                     | Description                                     |
+| ---------------------------- | ----------------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)    |
+| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL  |
+| `VITE_API_BASE_URL`          | Backend base URL (e.g. `http://localhost:8000`) |
 
 ## Run
 
@@ -28,7 +29,7 @@ cp .env.example .env.local
 npm run dev    # http://localhost:5173
 ```
 
-Vite proxies `/api` requests to `http://localhost:8000` so the backend must be running.
+Set `VITE_API_BASE_URL` (in `.env.local`) to the backend's URL — `http://localhost:8000` for local development. The backend must be running.
 
 ## Build
 

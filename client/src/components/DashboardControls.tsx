@@ -5,16 +5,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
+import { DaysSelectorButton } from "@/components/DaysSelectorButton"
+import { WINDOWS } from "@/lib/daysWindow"
 import type { Repo, DaysWindow } from "@/types/dashboard"
-
-const WINDOWS: DaysWindow[] = [30, 90, 180]
-
-const WINDOW_LABELS: Record<DaysWindow, string> = {
-  30: "30d",
-  90: "90d",
-  180: "6m",
-}
 
 interface Props {
   repos: Repo[]
@@ -22,6 +15,7 @@ interface Props {
   onRepoChange: (repoId: string) => void
   daysWindow: DaysWindow
   onDaysWindowChange: (daysWindow: DaysWindow) => void
+  daysOfData: number
 }
 
 export function DashboardControls({
@@ -30,6 +24,7 @@ export function DashboardControls({
   onRepoChange,
   daysWindow,
   onDaysWindowChange,
+  daysOfData,
 }: Props) {
   return (
     <div className="flex items-center gap-4">
@@ -48,16 +43,13 @@ export function DashboardControls({
 
       <div role="group" aria-label="Time window" className="flex rounded-md border border-border">
         {WINDOWS.map((w) => (
-          <Button
+          <DaysSelectorButton
             key={w}
-            variant={w === daysWindow ? "default" : "ghost"}
-            size="sm"
-            aria-pressed={w === daysWindow}
-            onClick={() => onDaysWindowChange(w)}
-            className="rounded-none first:rounded-l-md last:rounded-r-md"
-          >
-            {WINDOW_LABELS[w]}
-          </Button>
+            window={w}
+            selected={daysWindow}
+            daysOfData={daysOfData}
+            onSelect={onDaysWindowChange}
+          />
         ))}
       </div>
     </div>
