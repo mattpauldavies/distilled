@@ -215,4 +215,188 @@ No FK on `tenant_id` for now — tenant resolution happens inside handlers and w
 
 ## Implementation Plan
 
-_To be appended to this RFC after design review and approval, per project convention (CLAUDE.md → "Spec location" / "Plan location")._
+The work splits into three independent code phases (A, B+C, D) plus operator config (E). Phase A and Phase B can be done in parallel by separate PRs if useful, but the simplest path is sequential. Each step follows red/green TDD: failing test first, then the minimum implementation to turn it green, then refactor.
+
+### Phase A — GitHub client retries
+
+Goal: outbound calls in `GitHubClient` survive transient errors and rate limits without changing public method signatures.
+
+**A1. Add `tenacity` dependency.**
+- `cd server && poetry add tenacity@^9.0.0`
+- Verify `poetry.lock` updates and `make lint-server` still passes (no usage yet, so just an import-availability check).
+
+**A2. Failing tests for `_request_with_retry` (new file `server/tests/test_github_client.py`).**
+Tests use the project's existing pattern: `patch("httpx.AsyncClient", return_value=mock_client)` (see `tests/test_clerk_service.py` for reference). Each test sets up a `Mock` whose `.get` / `.post` returns canned `httpx.Response` objects.
+- `test_request_succeeds_first_try` — single 200, asserts one call made.
+- `test_request_retries_on_503_then_succeeds` — 503, 200; asserts two calls.
+- `test_request_retries_on_transport_error_then_succeeds` — raises `httpx.ConnectError` first, then 200.
+- `test_request_does_not_retry_on_404` — 404 surfaces immediately as `httpx.HTTPStatusError`.
+- `test_request_exhausts_retries_and_raises` — 503 four times, asserts last `HTTPStatusError` raised, asserts exactly four calls made.
+
+**A3. Implement `_request_with_retry` helper in `server/app/services/github_client.py`.**
+- Private async method on `GitHubClient`. Signature: `async def _request_with_retry(self, method: str, path: str, **kwargs) -> httpx.Response`.
+- Use `tenacity.AsyncRetrying` with:
+  - `stop=stop_after_attempt(4)`
+  - `wait=wait_exponential_jitter(initial=1, max=8)` (the `jitter` variant gives full jitter)
+  - `retry=retry_if_exception(_is_retryable)` where `_is_retryable` returns True for `httpx.TransportError`, `httpx.ReadTimeout`, and an `HTTPStatusError` whose `response.status_code` is in `{429, 502, 503, 504}`.
+  - `reraise=True` so the original exception surfaces on exhaustion.
+- Log `WARNING` with `event=github_retry`, `attempt`, `status`, `wait_s` from a `before_sleep` callback.
+- Route `list_repos`, `list_environments`, and the token POST in `get_installation_token` through it. Public signatures stay unchanged.
+- Run A2 tests → green.
+
+**A4. Failing tests for `Retry-After` / `x-ratelimit-reset` honouring.**
+- `test_request_honours_retry_after_on_429` — 429 response with `Retry-After: 2`, then 200. Assert that `tenacity`'s wait was ≥2s. (Use `unittest.mock.patch` on `asyncio.sleep` to capture the awaited duration without actually sleeping.)
+- `test_request_caps_retry_after_at_30s` — 429 with `Retry-After: 120`, asserts capped at 30s.
+- `test_request_uses_x_ratelimit_reset_when_no_retry_after` — 403 with `x-ratelimit-remaining: 0` and `x-ratelimit-reset: <epoch+5s>`, asserts wait ≈5s.
+
+**A5. Implement server-supplied wait.**
+- Replace the bare `wait_exponential_jitter` with a custom `wait` callable that:
+  1. Inspects the last attempt's exception. If it's a 429/403-rate-limit `HTTPStatusError`, compute the server-supplied delay from `Retry-After` (seconds or HTTP-date) or from `x-ratelimit-reset` (epoch).
+  2. Cap the result at 30s.
+  3. Otherwise fall back to exponential jitter.
+- Run A4 tests → green.
+
+**A6. Failing tests for token-refresh-on-401.**
+- `test_401_evicts_token_cache_and_retries_once` — first call returns 401, second succeeds. Assert cache entry for the `installation_id` was evicted and a fresh `POST /access_tokens` was issued. Assert public method returns successfully.
+- `test_terminal_401_after_eviction_surfaces` — both attempts return 401. Assert exactly two attempts (no further loop) and `HTTPStatusError` is raised.
+
+**A7. Implement 401 handling.**
+- Wrap the per-call path inside `list_repos` / `list_environments` (the two methods that carry an installation token) so that a single 401 triggers `_token_cache.pop(installation_id, None)` and one re-issue. This logic lives outside the `tenacity` loop — it is a one-shot, not part of exponential backoff. The simplest shape: a small `_with_token_refresh(installation_id, fn)` helper that runs `fn()`, catches `HTTPStatusError(401)`, evicts, and re-runs once.
+- Run A6 tests → green.
+
+**A8. Verify and tidy.**
+- `make lint-server` → clean.
+- `make test` → all green (existing tests must still pass — `test_installation_service.py:59` patches `GitHubClient` so should be unaffected; sanity check anyway).
+- One smoke test in dev: trigger an installation flow against a test GitHub App, confirm logs show no retries on the happy path.
+
+### Phase B — `webhook_events` schema and model
+
+Goal: the table exists and the model is queryable. No write-path changes yet.
+
+**B1. Add SQLAlchemy model `server/app/models/webhook_event.py`.**
+- Mirror existing model style (`models/pull_request.py` is a representative example).
+- Columns exactly as the Schema Changes table in this RFC.
+- `delivery_id` has `unique=True`; the index pair on `(received_at)` and `(status, received_at)` declared via `__table_args__`.
+
+**B2. Generate Alembic migration.**
+- `cd server && poetry run alembic revision --autogenerate -m "add webhook_events"`
+- Inspect the generated file in `server/database/versions/`. Confirm: only the new table is created, indexes match, defaults render correctly (`server_default=text("now()")` for `received_at`).
+- Hand-edit if autogenerate misses the indexes (it sometimes does for non-FK indexes).
+
+**B3. Apply migration locally.**
+- `make migrate` against the dev DB. Confirm `\d webhook_events` shows expected columns + indexes.
+
+**B4. Migration round-trip test.**
+- A minimal integration test (or extend an existing migration smoke test if one exists) that inserts a row via the model and reads it back, asserting all columns persist correctly. If the project has no such pattern, skip — the route-level tests in Phase C will exercise the model.
+
+### Phase C — Wire the receipt + outcome writes
+
+Depends on B.
+
+**C1. Failing tests for `record_received` (extend `tests/test_webhook_service.py`).**
+- `test_record_received_inserts_row` — call helper, query DB, assert row exists with `status='received'`, `received_at` set, `processed_at` null, payload_bytes correct.
+- `test_record_received_duplicate_delivery_id_is_noop` — call twice with same `delivery_id`, assert exactly one row.
+- These tests use the existing async session fixture from `conftest.py`.
+
+**C2. Implement `record_received` in `server/app/services/webhook_service.py`.**
+- Signature: `async def record_received(delivery_id: str, event_type: str, action: str | None, payload_bytes: int) -> None`.
+- Opens its **own** `async_session()`, performs `insert(...).on_conflict_do_nothing(index_elements=["delivery_id"])`, commits, closes.
+- The own-session requirement is non-negotiable: the dispatcher's session can roll back, and the receipt row must survive that rollback.
+
+**C3. Failing tests for `record_outcome`.**
+- `test_record_outcome_marks_succeeded` — pre-insert a `received` row; call `record_outcome(delivery_id, "succeeded", None)`; assert row updated, `processed_at` set, `error_message` null.
+- `test_record_outcome_marks_failed_with_error` — assert `status='failed'`, `error_message` populated.
+- `test_record_outcome_truncates_long_error` — pass an error string >2KB, assert stored value is exactly 2048 chars.
+- `test_record_outcome_unknown_delivery_id_is_noop` — call against a non-existent `delivery_id`, assert no exception (defensive — dispatcher races shouldn't crash).
+
+**C4. Implement `record_outcome`.**
+- Signature: `async def record_outcome(delivery_id: str, status: str, error: str | None) -> None`.
+- Own session (same reasoning as C2). `update(WebhookEvent).where(WebhookEvent.delivery_id == delivery_id).values(...)`. No-op when no row matches.
+- Truncate `error` to 2048 chars before storing.
+
+**C5. Failing end-to-end tests in `tests/test_webhooks.py`.**
+- `test_webhook_records_received_then_succeeded` — POST a valid `pull_request` event, assert webhook_events row exists with terminal status `succeeded`.
+- `test_webhook_records_failed_when_handler_raises` — register a handler that raises; assert row ends as `failed` with non-empty `error_message`. Use the existing `EVENT_HANDLERS` registry pattern from `test_webhook_service.py:38-50`.
+- `test_webhook_records_no_handler_for_unknown_event_type` — POST with an unregistered `X-GitHub-Event`, assert row exists with status `no_handler`.
+- `test_rejected_webhook_does_not_create_row` — POST with bad HMAC, assert no row was inserted.
+
+**C6. Update `server/app/routes/webhooks.py`.**
+- After all rejection checks pass, before `background_tasks.add_task(...)`:
+  ```
+  delivery_id = request.headers.get("X-GitHub-Delivery", "")
+  if not delivery_id:
+      return Response(status_code=400)  # GitHub always sends this; missing = malformed
+  await record_received(delivery_id, event_type, payload.get("action"), len(body))
+  background_tasks.add_task(_dispatch_event, event_type, payload, delivery_id)
+  ```
+- Bubble the `delivery_id` through the dispatcher signature.
+
+**C7. Update `_dispatch_event` in the same file.**
+- Track per-handler outcomes locally. After all handlers run:
+  - If no handlers were registered: `await record_outcome(delivery_id, "no_handler", None)`.
+  - If any handler raised: `await record_outcome(delivery_id, "failed", first_error_message)`.
+  - Otherwise: `await record_outcome(delivery_id, "succeeded", None)`.
+- Preserve current behaviour: handlers continue running even if an earlier one fails (the loop already handles this).
+
+**C8. Verify.**
+- `make test` → all green, including pre-existing `test_webhooks.py` cases.
+- `make lint-server` → clean.
+- Smoke test in dev: send a real webhook from the GitHub App or curl a signed payload, query `SELECT * FROM webhook_events ORDER BY received_at DESC LIMIT 5;` and confirm the row + transition.
+
+### Phase D — Documentation
+
+**D1. Write `docs/runbooks/webhook-redelivery.md`.**
+Sections:
+- **When to use**: data quality `attribution_coverage` drop, customer-reported missing deployment, Sentry alert from `app.routes.webhooks`.
+- **Step 1: confirm what arrived.** SQL snippet:
+  ```sql
+  SELECT delivery_id, event_type, action, status, error_message, received_at
+  FROM webhook_events
+  WHERE event_type = 'deployment_status'
+    AND received_at > now() - interval '1 day'
+  ORDER BY received_at DESC;
+  ```
+- **Step 2: cross-check with GitHub.** GitHub App settings → Advanced → Recent Deliveries; how to filter by event type and find the `X-GitHub-Delivery` ID matching (or missing from) our table.
+- **Step 3: redeliver.** Click Redeliver on the GitHub side. Note that the redelivery gets a fresh `delivery_id` so it appears as a new row in `webhook_events` — that is correct.
+- **When NOT to redeliver.** If `webhook_events.status='succeeded'` for that delivery, processing is complete; redelivery is a no-op for `deployment_status` (idempotent on `(tenant_id, deployment_id)`) and `pull_request` (UPSERT) — but it adds a row and creates noise.
+
+**D2. Update `server/README.md`.**
+- Under "Webhook events" table or as a sibling section: one paragraph naming `webhook_events`, the four statuses, link to the runbook.
+- New "GitHub API retries" section: one paragraph stating the policy (4 attempts, exponential + jitter, server-supplied delays honoured up to 30s, automatic token refresh on 401) and the relevant file (`app/services/github_client.py`).
+
+### Phase E — Operator configuration (no code; requires the human)
+
+Captured here so the work isn't "done" until these are in place.
+
+**E1. Sentry alert rule.**
+- In Sentry → Alerts → Create Alert → Issue Alert.
+- Conditions: "An issue is first seen" AND `logger:app.routes.webhooks`.
+- A second rule: "The issue is seen more than 5 times in 5 minutes" with the same logger filter.
+- Actions: send to the chosen Slack channel (#alerts or #ingest — TBD).
+
+**E2. Railway healthcheck.**
+- Web service settings → Health Check Path: `/health`.
+- Leave defaults for timeout/interval unless they are unset.
+
+**E3. Railway deploy notifications.**
+- Project settings → Notifications → enable Slack integration on deploy events for the `server` service.
+
+**E4. Sanity-check production env.**
+- Confirm `SENTRY_DSN` is set on the Railway production environment (it should already be — verify, do not assume). Re-deploy if it was missing.
+
+### Definition of Done
+
+- All Phase A–C tests green; coverage for `github_client.py` and the new `webhook_service.py` helpers ≥ existing project baseline.
+- `make lint-server` clean; `make test` clean.
+- Migration applies cleanly on a fresh DB and on the existing dev DB.
+- Manual smoke: trigger a GitHub installation against a test App, confirm `webhook_events` shows the lifecycle `received → succeeded` and no retries fired on the happy path.
+- Runbook published at `docs/runbooks/webhook-redelivery.md` and linked from `server/README.md`.
+- Sentry alert rule live and tested by deliberately raising in a test handler in dev (or using Sentry's "send test event" feature).
+- Railway healthcheck path saved; visible as healthy in the Railway dashboard.
+
+### Suggested PR Carving
+
+One PR is fine if the diff stays small. If it grows, split:
+1. **PR 1: GitHub client retries** — Phase A only. Self-contained, reviewable in isolation.
+2. **PR 2: Webhook events table + writes + docs** — Phases B, C, D.
+3. **(Out of band): Phase E configuration** — non-code, captured in the runbook.
