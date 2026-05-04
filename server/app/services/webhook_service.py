@@ -42,7 +42,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(f"sha256={expected}", signature)
 
 
-async def record_received(
+async def record_webhook_received(
     delivery_id: str,
     event_type: str,
     action: str | None,
@@ -69,7 +69,7 @@ async def record_received(
         await session.commit()
 
 
-async def record_outcome(delivery_id: str, status: str, error: str | None) -> None:
+async def record_webhook_outcome(delivery_id: str, status: str, error: str | None) -> None:
     """Update a webhook_events row with terminal status, processed_at, and (optional) error.
 
     No-op if no row matches delivery_id (defensive — shouldn't happen in practice).

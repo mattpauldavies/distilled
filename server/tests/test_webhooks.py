@@ -25,7 +25,7 @@ def webhook_client():
 
 
 class TestWebhookSignature:
-    @patch("app.routes.webhooks.record_received", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_received", new_callable=AsyncMock)
     @patch("app.routes.webhooks.settings")
     async def test_valid_signature_returns_200(self, mock_settings, mock_record, webhook_client):
         mock_settings.github_webhook_secret = SECRET
@@ -77,7 +77,7 @@ class TestWebhookSignature:
 
 
 class TestWebhookDispatch:
-    @patch("app.routes.webhooks.record_received", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_received", new_callable=AsyncMock)
     @patch("app.routes.webhooks._dispatch_event", new_callable=AsyncMock)
     @patch("app.routes.webhooks.settings")
     async def test_dispatches_event_to_background(
@@ -102,7 +102,7 @@ class TestWebhookDispatch:
 
 
 class TestWebhookEventRecording:
-    @patch("app.routes.webhooks.record_received", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_received", new_callable=AsyncMock)
     @patch("app.routes.webhooks._dispatch_event", new_callable=AsyncMock)
     @patch("app.routes.webhooks.settings")
     async def test_received_recorded_before_dispatch_scheduling(
@@ -132,7 +132,7 @@ class TestWebhookEventRecording:
             payload_bytes=len(body),
         )
 
-    @patch("app.routes.webhooks.record_received", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_received", new_callable=AsyncMock)
     @patch("app.routes.webhooks._dispatch_event", new_callable=AsyncMock)
     @patch("app.routes.webhooks.settings")
     async def test_missing_delivery_id_returns_400(
@@ -156,7 +156,7 @@ class TestWebhookEventRecording:
         assert resp.status_code == 400
         mock_record.assert_not_awaited()
 
-    @patch("app.routes.webhooks.record_received", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_received", new_callable=AsyncMock)
     @patch("app.routes.webhooks._dispatch_event", new_callable=AsyncMock)
     @patch("app.routes.webhooks.settings")
     async def test_rejected_webhook_does_not_record(
@@ -181,9 +181,9 @@ class TestWebhookEventRecording:
 
 
 class TestDispatchEvent:
-    @patch("app.routes.webhooks.record_outcome", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
     @patch("app.routes.webhooks.async_session")
-    async def test_calls_registered_handlers(self, mock_session_factory, mock_record_outcome):
+    async def test_calls_registered_handlers(self, mock_session_factory, mock_record_webhook_outcome):
         from app.routes.webhooks import _dispatch_event
 
         handler = AsyncMock()
@@ -196,23 +196,23 @@ class TestDispatchEvent:
 
         handler.assert_awaited_once_with({"data": 1}, mock_session)
         mock_session.commit.assert_awaited_once()
-        mock_record_outcome.assert_awaited_once_with("delivery-1", "succeeded", None)
+        mock_record_webhook_outcome.assert_awaited_once_with("delivery-1", "succeeded", None)
 
-    @patch("app.routes.webhooks.record_outcome", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
     @patch("app.routes.webhooks.async_session")
-    async def test_no_handlers_records_no_handler(self, mock_session_factory, mock_record_outcome):
+    async def test_no_handlers_records_no_handler(self, mock_session_factory, mock_record_webhook_outcome):
         from app.routes.webhooks import _dispatch_event
 
         with patch("app.routes.webhooks.EVENT_HANDLERS", {}):
             await _dispatch_event("unknown_event", {}, "delivery-2")
 
         mock_session_factory.assert_not_called()
-        mock_record_outcome.assert_awaited_once_with("delivery-2", "no_handler", None)
+        mock_record_webhook_outcome.assert_awaited_once_with("delivery-2", "no_handler", None)
 
-    @patch("app.routes.webhooks.record_outcome", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
     @patch("app.routes.webhooks.async_session")
     async def test_handler_exception_rolls_back_and_records_failed(
-        self, mock_session_factory, mock_record_outcome
+        self, mock_session_factory, mock_record_webhook_outcome
     ):
         from app.routes.webhooks import _dispatch_event
 
@@ -225,16 +225,16 @@ class TestDispatchEvent:
             await _dispatch_event("test_event", {}, "delivery-3")
 
         mock_session.rollback.assert_awaited_once()
-        mock_record_outcome.assert_awaited_once()
-        call = mock_record_outcome.call_args
+        mock_record_webhook_outcome.assert_awaited_once()
+        call = mock_record_webhook_outcome.call_args
         assert call.args[0] == "delivery-3"
         assert call.args[1] == "failed"
         assert "boom" in call.args[2]
 
-    @patch("app.routes.webhooks.record_outcome", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
     @patch("app.routes.webhooks.async_session")
     async def test_first_handler_failure_recorded_when_later_handler_succeeds(
-        self, mock_session_factory, mock_record_outcome
+        self, mock_session_factory, mock_record_webhook_outcome
     ):
         """If multiple handlers run and any fails, the outcome is 'failed' with the first error."""
         from app.routes.webhooks import _dispatch_event
@@ -252,6 +252,6 @@ class TestDispatchEvent:
         failing.assert_awaited_once()
         passing.assert_awaited_once()
         # Outcome reflects the first (and only) failure.
-        call = mock_record_outcome.call_args
+        call = mock_record_webhook_outcome.call_args
         assert call.args[1] == "failed"
         assert "first failure" in call.args[2]

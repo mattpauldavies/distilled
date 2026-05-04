@@ -8,8 +8,8 @@ from app.db import async_session
 from app.rate_limit import limiter
 from app.services.webhook_service import (
     EVENT_HANDLERS,
-    record_outcome,
-    record_received,
+    record_webhook_outcome,
+    record_webhook_received,
     verify_signature,
 )
 
@@ -22,7 +22,7 @@ async def _dispatch_event(event_type: str, payload: dict, delivery_id: str) -> N
     handlers = EVENT_HANDLERS.get(event_type, [])
     if not handlers:
         logger.info("no handler for event_type=%s", event_type)
-        await record_outcome(delivery_id, "no_handler", None)
+        await record_webhook_outcome(delivery_id, "no_handler", None)
         return
     first_error: str | None = None
     async with async_session() as session:
@@ -36,7 +36,7 @@ async def _dispatch_event(event_type: str, payload: dict, delivery_id: str) -> N
                 if first_error is None:
                     first_error = f"{type(exc).__name__}: {exc}"
     status = "failed" if first_error else "succeeded"
-    await record_outcome(delivery_id, status, first_error)
+    await record_webhook_outcome(delivery_id, status, first_error)
 
 
 _MAX_WEBHOOK_BODY = 25 * 1024 * 1024  # 25 MB
@@ -80,7 +80,7 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks) ->
         payload.get("action", ""),
     )
 
-    await record_received(
+    await record_webhook_received(
         delivery_id=delivery_id,
         event_type=event_type,
         action=payload.get("action"),

@@ -7,8 +7,8 @@ from sqlalchemy.dialects import postgresql
 
 from app.services.webhook_service import (
     EVENT_HANDLERS,
-    record_outcome,
-    record_received,
+    record_webhook_outcome,
+    record_webhook_received,
     register_handler,
     verify_signature,
 )
@@ -94,15 +94,15 @@ def test_register_handler_multiple_handlers_same_event():
         EVENT_HANDLERS.pop(event_type, None)
 
 
-# --- record_received ---
+# --- record_webhook_received ---
 
 
 @pytest.mark.asyncio
-async def test_record_received_inserts_row_in_received_status():
+async def test_record_webhook_received_inserts_row_in_received_status():
     mock_session, mock_factory = _patch_session()
 
     with patch("app.services.webhook_service.async_session", mock_factory):
-        await record_received(
+        await record_webhook_received(
             delivery_id="abc-123",
             event_type="pull_request",
             action="opened",
@@ -121,11 +121,11 @@ async def test_record_received_inserts_row_in_received_status():
 
 
 @pytest.mark.asyncio
-async def test_record_received_uses_on_conflict_do_nothing_for_dedup():
+async def test_record_webhook_received_uses_on_conflict_do_nothing_for_dedup():
     mock_session, mock_factory = _patch_session()
 
     with patch("app.services.webhook_service.async_session", mock_factory):
-        await record_received(
+        await record_webhook_received(
             delivery_id="abc-123",
             event_type="pull_request",
             action=None,
@@ -138,11 +138,11 @@ async def test_record_received_uses_on_conflict_do_nothing_for_dedup():
 
 
 @pytest.mark.asyncio
-async def test_record_received_handles_none_action():
+async def test_record_webhook_received_handles_none_action():
     mock_session, mock_factory = _patch_session()
 
     with patch("app.services.webhook_service.async_session", mock_factory):
-        await record_received(
+        await record_webhook_received(
             delivery_id="abc-123",
             event_type="ping",
             action=None,
@@ -154,15 +154,15 @@ async def test_record_received_handles_none_action():
     assert "NULL" in sql  # action column rendered as NULL
 
 
-# --- record_outcome ---
+# --- record_webhook_outcome ---
 
 
 @pytest.mark.asyncio
-async def test_record_outcome_marks_succeeded():
+async def test_record_webhook_outcome_marks_succeeded():
     mock_session, mock_factory = _patch_session()
 
     with patch("app.services.webhook_service.async_session", mock_factory):
-        await record_outcome("abc-123", "succeeded", None)
+        await record_webhook_outcome("abc-123", "succeeded", None)
 
     mock_session.execute.assert_awaited_once()
     mock_session.commit.assert_awaited_once()
@@ -173,11 +173,11 @@ async def test_record_outcome_marks_succeeded():
 
 
 @pytest.mark.asyncio
-async def test_record_outcome_marks_failed_with_error_message():
+async def test_record_webhook_outcome_marks_failed_with_error_message():
     mock_session, mock_factory = _patch_session()
 
     with patch("app.services.webhook_service.async_session", mock_factory):
-        await record_outcome("abc-123", "failed", "boom: KeyError 'foo'")
+        await record_webhook_outcome("abc-123", "failed", "boom: KeyError 'foo'")
 
     sql = _compiled_sql(mock_session.execute.call_args)
     assert "'failed'" in sql
@@ -185,12 +185,12 @@ async def test_record_outcome_marks_failed_with_error_message():
 
 
 @pytest.mark.asyncio
-async def test_record_outcome_truncates_long_error():
+async def test_record_webhook_outcome_truncates_long_error():
     mock_session, mock_factory = _patch_session()
     long_error = "x" * 5000
 
     with patch("app.services.webhook_service.async_session", mock_factory):
-        await record_outcome("abc-123", "failed", long_error)
+        await record_webhook_outcome("abc-123", "failed", long_error)
 
     # Inspect the bound parameters rather than literal SQL — 2048 x's would be hard to grep.
     stmt = mock_session.execute.call_args.args[0]
@@ -199,11 +199,11 @@ async def test_record_outcome_truncates_long_error():
 
 
 @pytest.mark.asyncio
-async def test_record_outcome_marks_no_handler():
+async def test_record_webhook_outcome_marks_no_handler():
     mock_session, mock_factory = _patch_session()
 
     with patch("app.services.webhook_service.async_session", mock_factory):
-        await record_outcome("abc-123", "no_handler", None)
+        await record_webhook_outcome("abc-123", "no_handler", None)
 
     sql = _compiled_sql(mock_session.execute.call_args)
     assert "'no_handler'" in sql
