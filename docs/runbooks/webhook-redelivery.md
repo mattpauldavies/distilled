@@ -106,8 +106,3 @@ WHERE status = 'received'
   AND received_at < now() - interval '10 minutes'
 ORDER BY received_at;
 ```
-
-## Related
-
-- RFC 020 — design of the retry layer + `webhook_events`.
-- Sentry alert rule on logger `app.routes.webhooks` — fires on handler crashes.
