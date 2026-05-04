@@ -110,6 +110,32 @@ The `logs/` directory is gitignored.
 | `deployment_status` (success)                  | Deployment succeeds | Create deployment event if production environment      |
 | `pull_request` (opened, reopened, closed, ...) | PR lifecycle event  | Upsert PR record (capture draft, closed_at status)     |
 
+### Webhook delivery audit (`webhook_events`)
+
+Every accepted delivery is recorded in the `webhook_events` table with one of
+four statuses: `received`, `succeeded`, `failed`, `no_handler`. The route
+inserts the row in its own transaction immediately after HMAC + content-type
+checks pass; the dispatcher updates it once handlers complete. Receipt and
+outcome use separate sessions so the audit row survives any handler rollback.
+Webhooks rejected before dispatch (bad HMAC, malformed body, missing
+`X-GitHub-Delivery`) are not recorded.
+
+When an event appears to have been missed or failed processing, see
+[`docs/runbooks/webhook-redelivery.md`](../docs/runbooks/webhook-redelivery.md)
+for triage queries and how to use GitHub's Recent Deliveries UI to redeliver.
+
+## GitHub API retries
+
+Outbound calls in `app/services/github_client.py` go through a `tenacity`-driven
+retry helper: up to 4 attempts with exponential backoff and jitter
+(1s → 8s) on `httpx` transport errors and HTTP 429 / 502 / 503 / 504. When
+GitHub returns a `Retry-After` header (or `x-ratelimit-reset` for secondary
+rate limits on 403), the server-supplied delay is honoured up to a 30s cap.
+
+Installation tokens are cached in-process for ~1 hour. On a 401 against an
+authenticated call the cached token is evicted and the request is retried
+once with a freshly-minted token; a second 401 surfaces normally.
+
 ## Testing
 
 ```sh
