@@ -33,7 +33,6 @@ This RFC proposes a small `tenacity`-driven retry layer on `GitHubClient`, singl
 
 ### Why this matters now
 
-- Distilled's data quality story (PRD 009 / RFC 009) depends on attribution coverage. A dropped `deployment_status` event silently breaks every downstream metric for that repo until manual intervention.
 - We have no operator-facing dashboard for ingestion health. The first signal of "we missed a deployment" today would be a customer noticing.
 - The retry gap is more likely to bite as we grow tenants — GitHub rate limits are per-installation, but list_environments fan-out scales linearly with repo count.
 
@@ -47,7 +46,6 @@ Add `tenacity` as a dependency and wrap the three outbound calls in a single pri
 
 **Why a helper, not a decorator on each method:**
 - All three call sites share the same retry policy — duplicating `@retry(...)` is noise.
-- Future calls (we'll add more — e.g. fetching deployment commits for richer attribution) inherit the policy automatically.
 - Keeps public method signatures unchanged so callers and tests don't move.
 
 **Retry policy:**
@@ -60,7 +58,7 @@ Add `tenacity` as a dependency and wrap the three outbound calls in a single pri
 | Not retried on      | 4xx other than 429 (caller bug or auth issue)          |
 | Per-call total cap  | ~20s wall-clock worst case                             |
 
-**`Retry-After` and `x-ratelimit-reset`:** if GitHub returns 429 or 403-with-rate-limit, prefer the server-supplied delay over the exponential schedule — capped at 30s per attempt to bound the wait. Log a structured warning so we can see rate-limit pressure in Sentry breadcrumbs.
+**`Retry-After` and `x-ratelimit-reset`:** if GitHub returns 429 or 403 (with rate limit), prefer the server-supplied delay over the exponential schedule — capped at 30s per attempt to bound the wait. Log a structured warning so we can see rate-limit pressure in Sentry breadcrumbs.
 
 **Idempotency note:** all three current call sites are `GET`s and the `POST /app/installations/.../access_tokens` call is documented as idempotent (issuing a new token is the entire side effect, and we always overwrite the cache). Safe to retry.
 
@@ -85,8 +83,6 @@ We considered and rejected:
   - More than 5 events from that logger in a 5-minute window (burst detection).
 - Routed to Slack via Sentry's existing integration. No PagerDuty until we have an on-call rotation.
 
-**Why not persist webhook deliveries to a `webhook_events` table:** that's the right answer eventually (audit trail, manual replay, observable delivery rate) but it costs a migration, ~50 LOC, and an admin surface to be useful. Defer until we have a second tenant and a real ops need. Tracked in "Out of scope" below.
-
 ### 5. Runbook for missed webhooks
 
 Add `docs/runbooks/webhook-redelivery.md` covering:
@@ -97,15 +93,6 @@ Add `docs/runbooks/webhook-redelivery.md` covering:
 - When **not** to redeliver (we already processed it — `on_conflict_do_nothing` and `on_conflict_do_update` make this safe, but call out the invariant).
 
 This is the cheapest possible "replay" mechanism and it's already built — we just need to write it down.
-
-### 6. Railway-side: healthcheck and deploy notifications
-
-Two Railway dashboard changes (no code):
-
-- **Healthcheck path** on the `server` web service set to `/health` (the route already exists at `server/app/routes/health.py`). Railway restarts the container if the path stops returning 200 — catches the "process is wedged and not accepting webhooks" failure mode.
-- **Deploy notification webhook** → Slack so we see crash-loop deploys. (Railway has a first-class integration; no code.)
-
-Confirming `SENTRY_DSN` is set as a Railway service variable in production is part of this work — verify, don't assume.
 
 ---
 
@@ -122,8 +109,6 @@ Confirming `SENTRY_DSN` is set as a Railway service variable in production is pa
 - Sentry alert rule + Railway healthcheck path + Railway deploy notification (configured in dashboards, captured in this RFC + runbook for repeatability).
 
 **Out of scope (deferred):**
-- `webhook_events` audit table with status tracking and manual replay UI. Revisit when (a) we have multi-tenant production traffic, or (b) we observe a pattern of missed events that GitHub redelivery can't solve.
-- Circuit breaker / `pybreaker`.
 - Distributed retry queue.
 - Per-tenant rate-limit isolation (we share one App so this is already structurally fine).
 - Replacing FastAPI `BackgroundTasks` with a real job runner — orthogonal concern.
@@ -160,12 +145,6 @@ Confirming `SENTRY_DSN` is set as a Railway service variable in production is pa
 | Sentry alert is noisy on a flaky GitHub day.                                          | Use the burst rule (>5 in 5min) plus first-occurrence rule; tune threshold if it's chatty for the first week.                    |
 | Railway healthcheck restarts the container during a long-running install sync.        | `/health` is a lightweight DB-free endpoint; install sync runs in a `BackgroundTask` and doesn't block the event loop. Low risk. |
 | `Retry-After` of 60s blocks an event-loop slot for too long.                          | Cap honoured wait at 30s per attempt; beyond that we fail and let the caller decide (webhook handler will surface to Sentry).    |
-
-## Open Questions
-
-1. Sentry alert routing — Slack channel `#alerts` or dedicated `#ingest`? (Defer to whoever owns Slack hygiene.)
-2. Do we want to expose the retry policy constants as env-tunable now, or wait until we have evidence we need to tune them in prod?
-3. Should the runbook also cover "how to inspect a specific delivery's payload" (useful for repro) or keep it action-only? Leaning action-only.
 
 ---
 
