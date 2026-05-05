@@ -2,15 +2,16 @@
 
 ## Summary
 
-Allow more than one user to access the same Distilled tenant. Today every Clerk user is provisioned their own private tenant with no path to share it — engineering leaders cannot bring their team into the product without handing over credentials. This PRD introduces an explicit owner role on each tenant, an invitation flow for adding teammates, and the ability to remove members or transfer ownership. Tenants remain a single, shared workspace; this PRD does not introduce per-resource permissions or multiple workspaces per user.
+Allow more than one user to access the same Distilled tenant, and allow a single user to belong to more than one tenant. Today every Clerk user is provisioned their own private tenant with no path to share it — engineering leaders cannot bring their team into the product without handing over credentials. This PRD introduces an explicit owner role on each tenant, an invitation flow for adding teammates (over GitHub-only sign-in), a tenant switcher for users with access to multiple workspaces, and the ability to remove members, transfer ownership, or leave a tenant. It also folds in the small set of changes needed to make the solo → team transition feel intentional: renaming the tenant when you invite your first teammate, and leaving (or deleting) a solo tenant once your team's "official" tenant exists.
 
 ---
 
 ## Problem
 
-PRD 016 established a 1:1 mapping between Clerk users and tenants: the `users.tenant_id` column is a non-nullable FK created at first login and never changes. This was the right shape for solo onboarding, but it has three concrete consequences that block real customer use:
+PRD 016 established a 1:1 mapping between Clerk users and tenants: the `users.tenant_id` column is a non-nullable FK created at first login and never changes. This was the right shape for solo onboarding, but it has four concrete consequences that block real customer use:
 
 - A CTO who signs up cannot give their VP Eng or EMs visibility into the same metrics. The only workaround is sharing a Clerk login.
+- An EM who tried Distilled solo before their CTO did has no path to join the company tenant — their personal tenant is permanent.
 - Distilled data is organisational by nature — repositories, deployments, incidents — but the access model is personal. The mismatch is visible to every prospect within minutes of trial.
 - There is no concept of an account "owner" distinct from a member, so we cannot reason about who is allowed to perform destructive actions (disconnect a GitHub installation, remove a repo, change billing later).
 
@@ -20,11 +21,13 @@ Multi-user access is the most common piece of feedback in early conversations an
 
 ## Goals
 
-1. Allow a tenant to have multiple users, each authenticating via their own Clerk identity, all seeing the same data.
-2. Designate one user per tenant as the **owner** (the "primary" account holder) with rights to manage membership.
-3. Let the owner invite teammates by email and revoke access at any time.
-4. Let the owner transfer ownership to another member without losing data continuity.
-5. Preserve the existing solo onboarding flow from PRD 016 — a new user signing up still gets a private tenant, and they are the owner of it.
+1. Allow a tenant to have multiple users, each authenticating via their own GitHub identity through Clerk, all seeing the same data.
+2. Designate one user per tenant as the **owner** (the "primary" account holder) with rights to manage membership and rename the tenant.
+3. Let the owner invite teammates by email and revoke access at any time, while keeping GitHub as the only sign-in method.
+4. Allow a user to belong to **multiple tenants** and switch between them.
+5. Let any user leave a tenant they're a member of, and let an owner leave by transferring ownership first (or deleting the tenant if they are its sole user).
+6. Make the solo → team transition feel deliberate: prompt the owner to rename the tenant when they invite their first teammate.
+7. Preserve the existing solo onboarding flow from PRD 016 — a new user signing up still gets a private tenant and is its owner.
 
 ---
 
@@ -32,11 +35,12 @@ Multi-user access is the most common piece of feedback in early conversations an
 
 - Granular roles beyond owner / member (no admin, billing-only, viewer, etc.).
 - Per-repository or per-metric permissions. All members see all data in the tenant.
-- Multiple tenants per user. A user belongs to exactly one tenant at a time. Switching tenants is out of scope.
+- Sign-in methods other than GitHub via Clerk. No email/password, no Google, no magic links — including for invitations.
 - SSO, SCIM, or directory-sync provisioning. Invitations are manual and email-based.
 - Domain-based auto-join (e.g. "anyone with an `@acme.com` email joins the Acme tenant").
 - Audit logging of membership changes. Useful later, not required for v1.
 - Billing or seat-based pricing. Tenants are unlimited members for now.
+- Tenant deletion as a general feature. The narrow case of "owner is the only user, wants to leave" is supported as a side effect of leave; broader tenant lifecycle management is deferred.
 
 ---
 
@@ -46,9 +50,11 @@ Multi-user access is the most common piece of feedback in early conversations an
 
 **Secondary (member):** An EM, staff engineer, or peer leader invited by the owner. They authenticate with their own GitHub account via Clerk and land directly in the shared tenant — no setup, no GitHub App install, no empty state.
 
-**Journey (owner):** dashboard → "Settings → Team" → enter teammate email → send invite. Later: remove a member, or transfer ownership before leaving the company.
+**Tertiary (returning solo user):** Someone who tried Distilled before their company adopted it, has a personal tenant, and is now invited to the company tenant. They need to be able to switch between both, and to leave the personal one if they choose.
 
-**Journey (member):** receive invitation email → click link → sign in with GitHub via Clerk → land on the shared dashboard with full data visibility.
+**Journey (owner):** dashboard → "Settings → Team" → invite first teammate → prompted to rename tenant from "Anna's tenant" to "Acme Engineering" → invite sent. Later: remove a member, or transfer ownership before leaving the company.
+
+**Journey (member):** receive invitation email → click link → sign in with GitHub via Clerk → land on the shared dashboard with full data visibility. Tenant switcher in the header shows both their personal tenant (if any) and the new shared one.
 
 ---
 
@@ -56,11 +62,15 @@ Multi-user access is the most common piece of feedback in early conversations an
 
 ### Tenant Membership
 
-A tenant has a set of users. One of those users is the **owner**. Every other user is a **member**. Members and owners have identical read access to all tenant data; the only behavioural difference is that owners can manage membership and transfer ownership.
+A **tenant membership** is the relationship between a user and a tenant, carrying a role. A user can hold many memberships (one per tenant they belong to). A tenant has a set of members; exactly one membership per tenant has `role = 'owner'`. Owners and members have identical read access to all tenant data; the only behavioural difference is that owners can manage membership, rename the tenant, and transfer ownership.
+
+### Active Tenant
+
+When a user belongs to multiple tenants, every API request must be unambiguous about which tenant it operates in. The frontend tracks an **active tenant** (persisted per-user in the database) and sends it on each request. The backend rejects any request whose active tenant the user is not a member of.
 
 ### Invitations
 
-An invitation is a pending grant of membership against an email address. It exists as a row in the database before any user record does — the invited person may not have a Clerk account yet. When they sign in for the first time, the invitation is consumed: instead of provisioning a new private tenant for them (the PRD 016 default), they are attached to the inviting tenant as a member.
+An invitation is a pending grant of membership against an email address or GitHub username. It exists as a row in the database before any user record does — the invited person may not have a Clerk account yet. When they sign in for the first time, the invitation is consumed and a new membership is created in the inviting tenant. Existing users who accept an invitation simply gain an additional membership; they don't lose their existing tenant access.
 
 ### Ownership Transfer
 
@@ -72,14 +82,27 @@ A tenant always has exactly one owner. Transfer is a single atomic action: the c
 
 ### Modified: `users` table
 
-The current schema has `tenant_id` as a non-nullable FK with no role information. Two changes:
+`tenant_id` is removed from `users` — it doesn't make sense once a user can belong to multiple tenants. Existing rows are migrated to a single membership row each (see Migration below).
 
 | Column | Change | Notes |
 |---|---|---|
-| `tenant_id` | unchanged | still FK → tenants, still non-null, still exactly one tenant per user |
-| `role` | **new**, TEXT NOT NULL | enum: `'owner' \| 'member'`, default `'member'` for invited users, `'owner'` for self-provisioned tenants |
+| `tenant_id` | **removed** | replaced by `tenant_memberships` |
+| `active_tenant_id` | **new**, UUID FK → tenants, nullable | the user's currently selected tenant; nullable only transiently between sign-up and first membership creation |
 
-> One user still belongs to exactly one tenant. The change is that a tenant can have many users, and one of them is flagged as the owner. A partial unique index enforces "at most one owner per tenant": `CREATE UNIQUE INDEX ON users (tenant_id) WHERE role = 'owner'`.
+### New: `tenant_memberships` table
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID FK → users NOT NULL | |
+| `tenant_id` | UUID FK → tenants NOT NULL | |
+| `role` | TEXT NOT NULL | enum: `'owner' \| 'member'` |
+| `created_at` | TIMESTAMPTZ | |
+| `updated_at` | TIMESTAMPTZ | |
+
+Constraints:
+- `UNIQUE (user_id, tenant_id)` — a user has at most one membership per tenant.
+- `CREATE UNIQUE INDEX ON tenant_memberships (tenant_id) WHERE role = 'owner'` — at most one owner per tenant.
 
 ### New: `invitations` table
 
@@ -87,7 +110,8 @@ The current schema has `tenant_id` as a non-nullable FK with no role information
 |---|---|---|
 | `id` | UUID PK | |
 | `tenant_id` | UUID FK → tenants NOT NULL | tenant being shared |
-| `email` | TEXT NOT NULL | normalised lowercase |
+| `email` | TEXT | normalised lowercase; nullable when invited by GitHub username |
+| `github_username` | TEXT | nullable; set when invited by handle instead of email |
 | `invited_by_user_id` | UUID FK → users NOT NULL | for display in the UI |
 | `token` | TEXT UNIQUE NOT NULL | unguessable secret embedded in invite link |
 | `status` | TEXT NOT NULL | `'pending' \| 'accepted' \| 'revoked' \| 'expired'`, default `'pending'` |
@@ -97,11 +121,34 @@ The current schema has `tenant_id` as a non-nullable FK with no role information
 | `created_at` | TIMESTAMPTZ | |
 | `updated_at` | TIMESTAMPTZ | |
 
-A partial unique index on `(tenant_id, lower(email)) WHERE status = 'pending'` prevents duplicate live invitations to the same address.
+Constraints:
+- `CHECK (email IS NOT NULL OR github_username IS NOT NULL)` — at least one addressing field set.
+- Partial unique on `(tenant_id, lower(email)) WHERE status = 'pending' AND email IS NOT NULL`.
+- Partial unique on `(tenant_id, lower(github_username)) WHERE status = 'pending' AND github_username IS NOT NULL`.
 
-### Tenants table
+### Modified: `tenants` table
 
-No structural change. The existing `slug` and seed columns remain.
+Add `name` (TEXT NOT NULL) — the human-friendly display name shown in the tenant switcher and team page. The existing `slug` is retained but is no longer the primary display string.
+
+### Migration
+
+A single migration:
+1. Adds `tenants.name` (default: derived from `slug` for existing rows).
+2. Adds `tenant_memberships` and `invitations`.
+3. For every existing `users` row, inserts a `tenant_memberships` row with `role = 'owner'` and copies `users.tenant_id` to `tenant_memberships.tenant_id`.
+4. Sets `users.active_tenant_id = users.tenant_id`.
+5. Drops `users.tenant_id`.
+
+---
+
+## GitHub-Only Sign-In × Invitations
+
+Sign-in remains GitHub-only via Clerk. The friction this creates with email-based invitations is the email mismatch case: the owner invites `sam@acme.com`, but Sam's primary GitHub email is `sam@personal.com`. Two design decisions resolve this:
+
+1. **Match against all verified Clerk emails.** Clerk surfaces every verified email address attached to a user's GitHub account, not just the primary. Invitation redemption checks the pending invitation's email against the full set of the user's verified emails. If any one matches, the invitation is redeemed.
+2. **Allow a fallback by GitHub username.** The invite modal accepts either an email **or** a GitHub username (autodetected by the presence of `@`). When invited by username, redemption matches against the new user's `github_username` / `github_account_id` from Clerk's GitHub OAuth claims rather than email. This is the recommended path inside engineering orgs where teammates know each other's handles, and avoids the verified-email problem entirely.
+
+Both matching strategies are tried at redemption time. The owner doesn't need to know which one will work — they pick whichever identifier they have for the teammate.
 
 ---
 
@@ -111,53 +158,101 @@ No structural change. The existing `slug` and seed columns remain.
 
 The auto-provisioning logic in `middleware/tenant.py` becomes:
 
-1. Look up `User` by `clerk_user_id`. If found → return their `tenant_id`.
-2. If not found, look for a **pending invitation** matching the user's verified Clerk email.
-   - Match: create a `User` attached to the invitation's `tenant_id` with `role = 'member'`, mark the invitation `accepted`, return that `tenant_id`.
-3. Otherwise: existing behaviour — create a new `Tenant` and a `User` with `role = 'owner'`.
+1. Look up `User` by `clerk_user_id`.
+   - If found: read `active_tenant_id`, verify the corresponding membership still exists, return it. (See "Active Tenant Switching" for the request-time override.)
+2. If not found, look for any **pending invitations** matching either:
+   - any verified Clerk email address on the new identity, or
+   - the GitHub username / account ID from the GitHub OAuth claim.
+   For each match: create a `tenant_memberships` row with `role = 'member'`, mark the invitation `accepted`. Set `active_tenant_id` to the most recently created of these.
+3. If at least one invitation was redeemed in step 2, return the new active tenant.
+4. Otherwise: existing behaviour — create a new `Tenant`, create a `users` row, and create a single `tenant_memberships` row with `role = 'owner'`. Set `active_tenant_id` to the new tenant.
 
-This keeps the solo onboarding path identical and makes invitation redemption a side effect of normal sign-in. No separate "accept invite" page is strictly required for v1; the email link simply deep-links to Clerk sign-in pre-filled with the invited email, and the next API call resolves the invitation.
+This keeps the solo onboarding path identical and treats invitation redemption as a side effect of normal sign-in. Multiple invitations to the same person can all be redeemed in one sign-in.
+
+### Active Tenant Switching
+
+A new endpoint `POST /api/me/active-tenant` accepts `{tenant_id}`. The backend verifies the user has a membership in that tenant, updates `users.active_tenant_id`, and returns 204. All subsequent API requests resolve to that tenant via the existing tenant middleware (which now reads `active_tenant_id` instead of the removed `users.tenant_id` FK).
+
+For request-time override (e.g. opening Distilled in two tabs against two tenants), an optional `X-Tenant-Id` header takes precedence over `active_tenant_id` if the user is a member of the requested tenant. Otherwise return 403.
 
 ### New Endpoints
 
-All endpoints below require Clerk JWT auth (PRD 016) and operate within the caller's tenant.
+All endpoints below require Clerk JWT auth (PRD 016) and operate within the caller's active tenant unless noted.
 
 | Method | Path | Caller role | Purpose |
 |---|---|---|---|
-| `GET` | `/api/team/members` | any | list users in the tenant (id, email, github_username, role, created_at) |
-| `GET` | `/api/team/invitations` | owner | list pending invitations |
-| `POST` | `/api/team/invitations` | owner | create an invitation `{email}` → sends email, returns invitation row |
+| `GET` | `/api/me/tenants` | any auth | list tenants the current user is a member of, with role |
+| `POST` | `/api/me/active-tenant` | any auth | switch active tenant |
+| `GET` | `/api/team/members` | any member | list users in the active tenant (id, email, github_username, role, created_at) |
+| `GET` | `/api/team/invitations` | any member | list pending invitations |
+| `POST` | `/api/team/invitations` | owner | create an invitation `{email_or_username}` → sends email, returns invitation row |
 | `DELETE` | `/api/team/invitations/{id}` | owner | revoke a pending invitation |
 | `POST` | `/api/team/invitations/{id}/resend` | owner | re-send the invitation email (no token rotation) |
 | `DELETE` | `/api/team/members/{user_id}` | owner | remove a member from the tenant |
 | `POST` | `/api/team/transfer-ownership` | owner | `{new_owner_user_id}` — atomically swap the owner role |
+| `POST` | `/api/team/leave` | any member | leave the active tenant; owners must transfer first unless they are the sole user |
+| `PATCH` | `/api/tenant` | owner | update the tenant `{name}` |
 
-Authorization is enforced by a `require_owner` dependency that asserts `current_user.role == 'owner'`. Member-targeted endpoints additionally reject self-removal and removal of the current owner (must transfer first).
+Authorization is enforced by `require_owner` and `require_member` dependencies that read the caller's role from `tenant_memberships` for the active tenant.
 
 ### Removing a Member
 
-Deleting the `users` row is sufficient — the user retains their Clerk identity but on next sign-in step 1 fails, step 2 finds no invitation, and step 3 provisions them a fresh empty tenant. This matches the principle of least surprise (they aren't locked out of Distilled, just out of the previous tenant) and avoids needing a "you've been removed" screen for v1.
+Deleting the `tenant_memberships` row is sufficient — the user retains their Clerk identity and any other tenant memberships they hold. If the removed user's `active_tenant_id` pointed at the tenant they were just removed from, set it to the most recently created of their remaining memberships, or `null` if they have none. Their next sign-in falls through to step 4 of tenant resolution if they have no remaining memberships, identical to today's solo-provisioning behaviour.
+
+### Leaving a Tenant
+
+`POST /api/team/leave` rules:
+- **Member:** delete the membership; reset `active_tenant_id` if needed; return 204.
+- **Owner with other members:** return 400 with a clear message ("Transfer ownership first").
+- **Owner with no other members:** delete the tenant and all its data in a transaction. This is the only tenant-deletion path in v1 and is intentionally reachable only from this narrow case to avoid scope creep on lifecycle management. The user is reset to their next-most-recent tenant membership or, if none, the next sign-in re-provisions a solo tenant per PRD 016.
 
 ### Transferring Ownership
 
-Single transaction:
+Single transaction, demote-then-promote to respect the partial unique constraint:
 ```sql
-UPDATE users SET role = 'member' WHERE id = :current_owner_id;
-UPDATE users SET role = 'owner'  WHERE id = :new_owner_id AND tenant_id = :tenant_id;
+UPDATE tenant_memberships SET role = 'member' WHERE id = :current_owner_membership_id;
+UPDATE tenant_memberships SET role = 'owner'  WHERE user_id = :new_owner_user_id AND tenant_id = :tenant_id;
 ```
-The partial unique index guarantees only one owner exists at any time; the transaction ordering must demote first, then promote, to respect the constraint.
 
-### Email Delivery
+### Tenant Rename
 
-Invitation emails are sent through Clerk's transactional email API or a lightweight provider (Resend / Postmark). Email content:
+`PATCH /api/tenant` taking `{name}`. Validation: 1–60 characters, trimmed. The owner is prompted to rename when they create their first invitation (see Frontend), but they can rename any time afterwards from the team page.
 
+### Email Delivery (decoupled from Clerk)
+
+Invitation emails are sent through a dedicated transactional provider — **Resend** is the recommended choice (developer-first, simple SDK, low ops cost). This decouples our membership model from Clerk's invitation primitive, which we'll need to detangle eventually for billing receipts, future digest emails, and broader product comms.
+
+Configuration:
+- `RESEND_API_KEY` (Railway env var)
+- `EMAIL_FROM_ADDRESS` (e.g. `noreply@distilled.<tld>`)
+- `EMAIL_FROM_NAME` (e.g. `Distilled`)
+
+Email content:
 - Subject: `<Owner name> invited you to <Tenant name> on Distilled`
 - Body: short, on-brand, dark-themed HTML with a single CTA linking to `https://<app>/invite?token=<token>`.
-- The link resolves to a Clerk sign-in page; the token is exchanged server-side after authentication completes.
+- The link routes to a Clerk GitHub sign-in page; the token is exchanged server-side after authentication completes.
+
+Username-based invitations do not produce an outbound email (there's no address to send to). Instead, the invitation appears in the team page's pending list and the owner is responsible for nudging the teammate via their own channel (Slack, etc.). The email/username distinction is shown in the pending list.
+
+### Local Dev Seed Data
+
+The existing seed script is updated to provision multi-tenant fixtures so we can exercise switching, invitations, and ownership flows locally without external email:
+
+- Two tenants: `Acme Engineering` and `Anna's Personal`.
+- Three users: Anna (owner of Acme, owner of Anna's Personal), Ravi (member of Acme), Sam (member of Acme, with a previously redeemed invitation in their history).
+- One outstanding pending invitation against `jules@acme.com`.
+
+Seed data is keyed by stable Clerk dev-account IDs documented in the dev setup guide.
 
 ---
 
 ## Frontend Changes
+
+### Tenant Switcher
+
+A new compact dropdown in the top-left of the global header showing the active tenant name. Clicking it lists all tenants the user is a member of, each with a role badge. Selecting a tenant calls `POST /api/me/active-tenant` and reloads the dashboard.
+
+For single-tenant users, the switcher renders as a static label (no chevron) so the chrome cost is zero.
 
 ### Settings → Team Page
 
@@ -165,7 +260,7 @@ A new screen under the existing settings area, accessible to all members but wit
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Team                                                    │
+│  Acme Engineering                          [Rename]      │
 │                                                          │
 │  Members (3)                            [Invite member]  │
 │  ──────────────────────────────────────────────────────  │
@@ -176,64 +271,105 @@ A new screen under the existing settings area, accessible to all members but wit
 │  Pending invitations (1)                                 │
 │  ──────────────────────────────────────────────────────  │
 │  sam@acme.com        Sent 2 days ago     [Resend][✕]    │
+│                                                          │
+│  ──────────────────────────────────────────────────────  │
+│  [Leave tenant]                                          │
 └──────────────────────────────────────────────────────────┘
 ```
 
 - The `[⋯]` menu (owner-only) offers **Remove** and **Transfer ownership**. Both require a confirmation dialog naming the affected member.
-- For non-owners, the page is read-only: they see the list and roles but no action menus or invite button.
-- Empty pending invitations list collapses to nothing — no empty-state card.
+- For non-owners, the page is read-only (no rename, no `[⋯]`, no invite button) but the **Leave tenant** action is always available to non-owners.
+- For the owner, **Leave tenant** is disabled with a tooltip ("Transfer ownership first") if there are other members; enabled with a stronger confirmation ("This will permanently delete the tenant and all its data") if they are the sole user.
+
+### Solo → Team Rename Prompt
+
+When the owner clicks **Invite member** for the first time on a tenant whose name is still the auto-generated default (e.g. `Anna's tenant`), a one-time modal appears **before** the invite modal:
+
+```
+┌──────────────────────────────────────────────┐
+│  Name your team                              │
+│                                              │
+│  You're about to invite a teammate. Give     │
+│  your tenant a name they'll recognise.       │
+│                                              │
+│  Team name: [ Acme Engineering        ]      │
+│                                              │
+│           [Skip for now]    [Continue →]     │
+└──────────────────────────────────────────────┘
+```
+
+"Continue" calls `PATCH /api/tenant` then opens the invite modal. "Skip for now" opens the invite modal directly without renaming, and the prompt does not appear again on subsequent invites (one-time only). Owners can always rename later via the **Rename** button on the team page.
 
 ### Invite Modal
 
-Single email field with inline validation. Submits to `POST /api/team/invitations`. On success, the modal closes and the new row appears in the pending list. Errors (duplicate pending invite, already a member, malformed email) render below the field.
+Single field accepting either an email address or a GitHub username (autodetected by the presence of `@`). Inline validation. Submits to `POST /api/team/invitations`. Errors (duplicate pending invite, already a member, malformed input) render below the field.
 
 ### Sign-In via Invitation
 
-No new page needed. The invited email link routes the user through Clerk's existing sign-in. The first authenticated API call invokes the updated tenant resolver, which redeems the invitation transparently. The user lands on the shared dashboard.
+No new page needed. The invited email link routes the user through Clerk's existing GitHub sign-in. The first authenticated API call invokes the updated tenant resolver, which redeems the invitation transparently and sets the active tenant. The user lands on the shared dashboard.
 
 A small one-time toast — `Welcome to <Tenant name>` — appears on first load after redemption to confirm they're in the right place.
 
 ### Header / Account Menu
 
-The existing user menu gains a single line: the tenant name, with a dimmer "Owner" or "Member" label underneath. No tenant switcher (out of scope).
+The existing user menu gains a single line: a "Member" or "Owner" badge for the active tenant. The tenant name itself lives in the tenant switcher rather than the account menu.
+
+---
+
+## Documentation
+
+The following docs must land alongside the implementation:
+
+- **Getting Started guide** (`docs/getting-started.md`, new): a short walkthrough covering sign-in, the solo → team transition (including the rename prompt), inviting teammates by email or GitHub username, switching between tenants, and the path for "I tried Distilled solo and just got invited to my company's tenant" — including how to leave or delete a personal tenant.
+- **`/docs/architecture.md`**: update the auth and tenant-resolution sections to describe the new join-table model and active-tenant header.
+- **`/server/README.md`**: document the new env vars (`RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`) and the seed data shape.
+- **ADR**: a short ADR documenting "Tenant membership as a join table; one user → many tenants" so future contributors don't trip on the PRD-016 1:1 assumption.
 
 ---
 
 ## Edge Cases & Behaviour
 
-- **Invitee already has a Distilled tenant of their own.** Reject the invitation acceptance. We don't move users between tenants in v1; the invitee must contact support or accept that their existing tenant takes precedence. Surface this clearly in the email-link landing page: "You already have a Distilled account. Multi-tenant membership isn't supported yet."
-- **Owner tries to remove themselves.** Blocked by API; UI hides the option. Must transfer ownership first.
+- **Invitee already has a Distilled tenant of their own.** Allowed — they gain a second membership and can switch between tenants. The newly accepted tenant becomes their active tenant on first sign-in after redemption.
+- **Owner tries to remove themselves via `DELETE /members`.** Blocked by API. Use **Leave tenant** instead, which enforces the transfer-or-sole-user rule.
 - **Owner tries to transfer to a non-member.** Blocked. Transfer target must already be a member of the tenant.
+- **Owner is the sole user and leaves.** The tenant and all its data are deleted in a transaction. The user is reset to their next-most-recent membership or, if none, signs in afresh and gets a new solo tenant per PRD 016.
 - **Invitation expires.** `status` flips to `'expired'` via a periodic job (or lazily on read). The owner can re-issue from the team page.
-- **Invitation revoked after sign-in but before first API call.** Race is acceptable: the redeem-on-resolve step reads `status = 'pending'` under a row lock; if it's been revoked, the user falls through to step 3 and gets a fresh tenant. No data leaks.
+- **Invitation revoked after sign-in but before first API call.** Race is acceptable: the redeem-on-resolve step reads `status = 'pending'` under a row lock; if it's been revoked, that invitation is skipped and the user falls through to step 4 if no other invitations apply. No data leaks.
+- **Email mismatch with no verified work email.** If the invitee's GitHub account does not have the invited address as a verified email and the invitation wasn't created against their GitHub username, the invitation will not auto-redeem. The invitation page shows a clear message explaining the mismatch and suggesting the owner re-invite by GitHub username.
 - **GitHub App installation context.** The installation remains tenant-scoped. Members do not need to re-install or re-authorise the GitHub App — they inherit access through tenant membership.
+- **Two tabs, two tenants.** Setting `X-Tenant-Id` per request lets a power user keep one tab on each tenant without `active_tenant_id` thrash. The frontend sets this header from the tenant context of the currently rendered route.
 
 ---
 
 ## Acceptance Criteria
 
 ### Membership
-- [ ] A tenant created via solo sign-up has exactly one user, role `owner`.
+- [ ] A tenant created via solo sign-up has exactly one membership, role `owner`.
 - [ ] A tenant can have at least 10 members in addition to the owner without performance regression on dashboard load.
 - [ ] All members see identical data via the dashboard and API.
-- [ ] At most one user per tenant has `role = 'owner'` at any time (DB constraint enforced).
+- [ ] At most one membership per tenant has `role = 'owner'` at any time (DB constraint enforced).
+- [ ] A user can hold memberships in multiple tenants simultaneously.
 
 ### Invitations
-- [ ] An owner can invite a teammate by email; the teammate receives an email with a working link within 30 seconds.
+- [ ] An owner can invite a teammate by email; the teammate receives an email via Resend within 30 seconds.
+- [ ] An owner can invite by GitHub username; no email is sent, and the invitation redeems on the next sign-in by the matching GitHub account regardless of the user's email.
+- [ ] An invited user whose verified Clerk emails include the invited address redeems successfully even if the invited address is not their GitHub primary.
 - [ ] A non-owner cannot create, revoke, or resend invitations (API returns 403; UI hides controls).
-- [ ] A pending invitation cannot be created twice for the same email + tenant.
+- [ ] A pending invitation cannot be created twice for the same email + tenant or username + tenant.
 - [ ] Invitations expire after 14 days and cannot be redeemed thereafter.
 - [ ] An owner can revoke a pending invitation; subsequent attempts to redeem the link fail.
 
-### Redemption
-- [ ] An invited user signs in with GitHub via Clerk and lands on the shared dashboard without seeing the onboarding/empty state.
-- [ ] An invited user whose Clerk email does not match the invitation email is **not** auto-joined to the tenant.
-- [ ] A solo user who already has their own tenant cannot redeem an invitation in v1; they receive a clear error.
+### Tenant Switching
+- [ ] A user with two memberships sees both in the tenant switcher.
+- [ ] Selecting a tenant in the switcher updates `active_tenant_id` and reloads the dashboard against that tenant's data.
+- [ ] Two browser tabs scoped to two different tenants via `X-Tenant-Id` do not interfere with each other.
+- [ ] A user attempting to access a tenant they're not a member of (via direct API call) receives 403.
 
-### Removal
-- [ ] An owner can remove a member; that member's next API request returns a freshly provisioned empty tenant, not the previous one.
-- [ ] The owner cannot remove themselves; the API returns 400 and the UI offers transfer instead.
-- [ ] A member cannot remove anyone (API 403).
+### Removal & Leaving
+- [ ] An owner can remove a member; that member loses access on their next API call, while retaining any other memberships.
+- [ ] A member can leave a tenant on their own; their membership is deleted and `active_tenant_id` resets cleanly.
+- [ ] An owner with other members cannot leave; the API returns 400 and the UI directs them to transfer first.
+- [ ] An owner who is the sole user of a tenant can leave; the tenant and all its data are deleted.
 
 ### Ownership Transfer
 - [ ] An owner can transfer ownership to any existing member in a single action.
@@ -241,16 +377,20 @@ The existing user menu gains a single line: the tenant name, with a dimmer "Owne
 - [ ] Ownership transfer to a non-member or non-existent user fails with 400.
 - [ ] At no point during transfer does the tenant have zero or two owners.
 
+### Solo → Team Transition
+- [ ] On the first invite from a tenant whose name is still the auto-generated default, the rename prompt appears.
+- [ ] Skipping the rename prompt does not block the invite, and the prompt does not appear again on subsequent invites.
+- [ ] An owner can rename the tenant from the team page at any time.
+
+### Local Development
+- [ ] Seed data provisions at least two tenants, three users with mixed memberships, and one pending invitation, sufficient to manually exercise switching, leaving, and transfer flows.
+
 ---
 
 ## Open Questions
 
-1. **Cross-tenant membership.** We're explicitly forbidding it in v1, which forces invitees who are already Distilled users into a dead end. Is the "contact support" fallback acceptable, or should we offer a "leave my current tenant and join this one" action? The latter doubles the surface area but unblocks a real case (an EM who tried Distilled solo before their CTO did).
+1. **Member visibility of pending invitations.** The PRD currently shows the pending invitations list to all members (so they can see who's coming), but only owners can act on them. An alternative is owner-only visibility, which slightly reduces the social signal of "who is being courted to join". Confirm the team-page-for-everyone read model is what we want.
 
-2. **Member-initiated leaving.** Should a non-owner be able to leave a tenant on their own (without owner action)? Symmetric to removal; trivial to add. Worth doing for v1 or defer?
+2. **Default active tenant on sign-in for a returning user with multiple tenants.** Their last-used (`active_tenant_id`) is the obvious default. But a freshly redeemed invitation arguably should win for that one session ("we just brought you here, here you are"). The PRD currently picks the latter — confirm this is the desired behaviour.
 
-3. **Invitation email branding & sender.** Send from `noreply@distilled.<tld>` via Resend/Postmark, or rely on Clerk's built-in invitation emails? Clerk's flow is faster to ship but couples our membership model to Clerk's invitation primitive, which we'd later want to detangle.
-
-4. **Tenant naming.** Today the tenant `slug` derives from the owner's GitHub username (PRD 016). Once a tenant is multi-user, that's a confusing artifact ("acme-eng's tenant" but Anna left). Should the owner be able to rename the tenant from the team page? Out of scope here, but called out for sequencing.
-
-5. **Audit trail.** No logging of "who invited / removed / transferred" beyond `invited_by_user_id`. Acceptable for v1, or do we need a minimal `tenant_audit_log` table now to avoid a backfill later?
+3. **Tenant deletion scope.** v1 only allows tenant deletion as a side-effect of a sole-owner leaving. Should we also expose an explicit "Delete tenant" action on the team page for that same case (sole owner), to make the destructive action more visible than hiding it behind "Leave"? Mild UX improvement, no extra backend work.
