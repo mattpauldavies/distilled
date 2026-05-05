@@ -466,6 +466,10 @@ async def main() -> None:
                     last_active_tenant_id=TENANT_ID,
                 )
             )
+            # Flush so the user row exists before the membership FK is evaluated.
+            # Without an ORM relationship() mapper, SQLAlchemy's UnitOfWork does
+            # not reorder pending inserts by FK dependency.
+            await session.flush()
             session.add(
                 TenantUser(
                     id=uuid.uuid4(),
