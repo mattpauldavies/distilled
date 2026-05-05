@@ -4,7 +4,7 @@
 
 Replace the 1:1 user → tenant relationship established in RFC 016 with a many-to-many membership model. Each tenant gains a single **owner** and zero-or-more **members**. Owners can invite teammates by email, remove members, transfer ownership, rename the tenant, or delete it when they are the sole user. A user may belong to multiple tenants and switches between them via a header dropdown. Sign-in remains GitHub-only via Clerk; invitations are redeemed by clicking a tokenised link, so the GitHub email on the invitee's account need not match the address the invite was sent to.
 
-The four pillars: a `tenant_memberships` join table replaces `users.tenant_id` as the source of truth; an `invitations` table backs the invite/redeem flow; per-request **active tenant** resolution via an `X-Tenant-Id` header lets a single Clerk session drive multiple tenant contexts; a transactional email provider (Resend) is introduced for invitation delivery, decoupled from Clerk.
+The four pillars: a `tenant_users` join table replaces `users.tenant_id` as the source of truth; an `invitations` table backs the invite/redeem flow; per-request **active tenant** resolution via an `X-Tenant-Id` header lets a single Clerk session drive multiple tenant contexts; a transactional email provider (Resend) is introduced for invitation delivery, decoupled from Clerk.
 
 ---
 
@@ -26,7 +26,7 @@ The data model is multi-tenant by row (every domain table has `tenant_id`), but 
 
 The PRD raised several implementation questions; the resolutions are:
 
-1. **Membership model** → a dedicated `tenant_memberships` table with `(user_id, tenant_id, role)`. `users.tenant_id` is dropped.
+1. **Membership model** → a dedicated `tenant_users` table with `(user_id, tenant_id, role)`. `users.tenant_id` is dropped.
 2. **Active tenant transport** → client sends `X-Tenant-Id` on every authenticated request. Membership is verified server-side per request. The user's *last active* tenant is persisted to `users.last_active_tenant_id` for sign-in defaulting and survives across sessions and devices.
 3. **Invitation token** → opaque 32-byte URL-safe token, stored hashed (SHA-256) in `invitations.token_hash`. The raw token only exists in the email link.
 4. **Email provider** → Resend, abstracted behind a small `EmailService` interface so we can swap providers later without touching invitation logic.
@@ -41,7 +41,7 @@ The PRD raised several implementation questions; the resolutions are:
 
 ### Membership
 
-A user's relationship to a tenant is a row in `tenant_memberships`. The role is `owner` or `member`. A tenant has **exactly one** owner row at all times — enforced by a partial unique index. The previous semantic of "the user who owns the tenant" lives in this row, not on the tenant or the user.
+A user's relationship to a tenant is a row in `tenant_users`. The role is `owner` or `member`. A tenant has **exactly one** owner row at all times — enforced by a partial unique index. The previous semantic of "the user who owns the tenant" lives in this row, not on the tenant or the user.
 
 ### Active Tenant
 
@@ -59,11 +59,11 @@ The first invite from a tenant whose name was auto-generated triggers a one-time
 
 ## Data Model Changes
 
-### New: `tenant_memberships` table
+### New: `tenant_users` table
 
 ```python
-class TenantMembership(TimestampMixin, Base):
-    __tablename__ = "tenant_memberships"
+class TenantUser(TimestampMixin, Base):
+    __tablename__ = "tenant_users"
 
     id: UUID PK
     tenant_id: UUID FK → tenants.id ON DELETE CASCADE
@@ -71,10 +71,10 @@ class TenantMembership(TimestampMixin, Base):
     role: TEXT NOT NULL CHECK (role IN ('owner','member'))
 
     __table_args__ = (
-        UniqueConstraint("tenant_id", "user_id", name="uq_tenant_memberships_tenant_user"),
+        UniqueConstraint("tenant_id", "user_id", name="uq_tenant_users_tenant_user"),
         # Exactly one owner per tenant
         Index(
-            "uq_tenant_memberships_one_owner",
+            "uq_tenant_users_one_owner",
             "tenant_id",
             unique=True,
             postgresql_where=text("role = 'owner'"),
@@ -131,23 +131,18 @@ ALTER TABLE tenants ADD COLUMN rename_prompt_dismissed BOOLEAN NOT NULL DEFAULT 
 
 All existing tenant-scoped tables get `ON DELETE CASCADE` on their `tenant_id` FK so tenant deletion is a single statement. Tables touched: `repositories`, `github_installations`, `production_deployment_events`, `pull_requests`, `environments`, `deployment_attributions`, `metrics_*`, `webhook_events`.
 
-### Migrations
+### Migration
 
-Two Alembic revisions, in order:
+A single Alembic revision `multi_user_tenants` does the full transition atomically (migrations run inline with code deploy, so a split rollout buys nothing):
 
-1. **`add_tenant_memberships_and_invitations`**
-   - Enable `citext` extension
-   - Create `tenant_memberships` and `invitations`
-   - Add `users.last_active_tenant_id` (nullable)
-   - Add `tenants.rename_prompt_dismissed` (default FALSE)
-   - Backfill: `INSERT INTO tenant_memberships (id, tenant_id, user_id, role) SELECT gen_random_uuid(), tenant_id, id, 'owner' FROM users;`
-   - Backfill: `UPDATE users SET last_active_tenant_id = tenant_id;`
-
-2. **`drop_users_tenant_id_and_add_cascades`** (run after the application code is deployed and reading from memberships)
-   - Drop `users.tenant_id`
-   - Recreate tenant-scoped FKs with `ON DELETE CASCADE`
-
-The two-step split keeps the rollout safe: app code is live on memberships before the column it used to depend on disappears.
+- Enable `citext` extension
+- Create `tenant_users` and `invitations`
+- Add `users.last_active_tenant_id` (nullable)
+- Add `tenants.rename_prompt_dismissed` (default FALSE)
+- Backfill: `INSERT INTO tenant_users (id, tenant_id, user_id, role) SELECT gen_random_uuid(), tenant_id, id, 'owner' FROM users;`
+- Backfill: `UPDATE users SET last_active_tenant_id = tenant_id;`
+- Drop `users.tenant_id`
+- Recreate tenant-scoped FKs with `ON DELETE CASCADE`
 
 ---
 
@@ -164,7 +159,7 @@ Browser                  FastAPI
   │────────────────────────►│
   │              verify JWT (Clerk)
   │              load User by clerk_user_id
-  │              verify TenantMembership(user, tenant) exists
+  │              verify TenantUser(user, tenant) exists
   │              update users.last_active_tenant_id (async, fire-and-forget)
   │              dispatch route with CurrentUser{user, tenant, role}
   │◄─────────── 200 ────────│
@@ -235,7 +230,7 @@ async def require_owner(current: CurrentUser = Depends(require_auth)) -> Current
 
 Rewrite `get_or_create_user_and_tenant` to:
 - Look up `User` by `clerk_user_id`
-- If absent → create `Tenant` + `User` + `TenantMembership(role='owner')` in one transaction; set `users.last_active_tenant_id = tenant.id`
+- If absent → create `Tenant` + `User` + `TenantUser(role='owner')` in one transaction; set `users.last_active_tenant_id = tenant.id`
 - If present → resolve active tenant from `X-Tenant-Id` header (preferred) or `last_active_tenant_id` (fallback); verify membership exists; return `(user, tenant, role)`
 
 A new helper updates `last_active_tenant_id` lazily (only writes when value changes).
@@ -244,7 +239,7 @@ A new helper updates `last_active_tenant_id` lazily (only writes when value chan
 
 ```python
 async def list_memberships(user_id, session) -> list[MembershipView]
-async def add_member(tenant_id, user_id, role, session) -> TenantMembership
+async def add_member(tenant_id, user_id, role, session) -> TenantUser
 async def remove_member(tenant_id, user_id, session) -> None
 async def transfer_ownership(tenant_id, current_owner_id, new_owner_id, session) -> None
 async def leave_tenant(tenant_id, user_id, session) -> None  # fails for owners
@@ -272,7 +267,7 @@ async def expire_old_invitations(session) -> int  # for scheduled job
 `redeem_invitation` is the only path that creates a non-self-provisioned membership. It:
 - Validates the token (lookup by `sha256(token)`)
 - Checks not expired, not revoked, not already redeemed
-- Inserts a `tenant_memberships` row with role `member` (idempotent on `(tenant_id, user_id)`)
+- Inserts a `tenant_users` row with role `member` (idempotent on `(tenant_id, user_id)`)
 - Marks invitation `redeemed_at = now()`
 - Sets `users.last_active_tenant_id = tenant_id`
 
@@ -463,7 +458,7 @@ Single inline-HTML template, dark-themed, rendered server-side in `ResendEmailSe
 
 - **`docs/getting-started.md`** (new) — covers sign-in, solo onboarding, inviting teammates, tenant switching, leaving, deleting a personal tenant after joining a company tenant.
 - **`docs/architecture.md`** — update the "Multi-tenancy" section to describe memberships, active-tenant header, and ownership invariants.
-- **`docs/adrs/002-multi-user-tenancy.md`** (new) — short ADR documenting the move from `users.tenant_id` to `tenant_memberships`, the `X-Tenant-Id` header decision, and the choice of Resend over Clerk-native invitations.
+- **`docs/adrs/002-multi-user-tenancy.md`** (new) — short ADR documenting the move from `users.tenant_id` to `tenant_users`, the `X-Tenant-Id` header decision, and the choice of Resend over Clerk-native invitations.
 - **`server/README.md`** — new env vars (`APP_BASE_URL`, `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM`).
 - **`client/README.md`** — local dev guidance: how to set up Clerk dev users, how to use the `LoggingEmailService` accept URL printed in server logs to test invitations end-to-end without a real inbox.
 
@@ -540,7 +535,7 @@ This exercises every code path users will hit on day one.
 
 ### Phase 1: Data model
 
-- [ ] **1.1** Create Alembic migration `add_tenant_memberships_and_invitations`: enable `citext`; create `tenant_memberships` (with partial unique index on `role='owner'`); create `invitations` (with partial unique index on open invites); add `users.last_active_tenant_id`; add `tenants.rename_prompt_dismissed`; backfill memberships from `users.tenant_id`; backfill `last_active_tenant_id`.
+- [ ] **1.1** Create Alembic migration `multi_user_tenants`: enable `citext`; create `tenant_users` (with partial unique index on `role='owner'`); create `invitations` (with partial unique index on open invites); add `users.last_active_tenant_id`; add `tenants.rename_prompt_dismissed`; backfill memberships from `users.tenant_id`; backfill `last_active_tenant_id`; drop `users.tenant_id`; recreate tenant-scoped FKs with `ON DELETE CASCADE`.
 - [ ] **1.2** Create `app/models/tenant_membership.py` and `app/models/invitation.py`; export from `app/models/__init__.py`.
 - [ ] **1.3** Update `app/models/user.py` — add `last_active_tenant_id`, leave `tenant_id` in place for now.
 - [ ] **1.4** Update `app/models/tenant.py` — add `rename_prompt_dismissed`.
@@ -553,7 +548,7 @@ This exercises every code path users will hit on day one.
 - [ ] **2.1** Failing tests in `tests/test_auth.py` for `X-Tenant-Id` header behaviour: happy path, fallback to `last_active_tenant_id`, non-member → 403, nonexistent → 403, missing both → 409, role injected on `CurrentUser`.
 - [ ] **2.2** Update `app/auth.py` — add `role` to `CurrentUser`; resolve active tenant from header → fallback; verify membership; lazily update `last_active_tenant_id`. Add `require_owner` dependency.
 - [ ] **2.3** Failing tests in `tests/test_user_service.py` for: first login creates owner membership; subsequent login returns existing membership; multiple-tenant user with `X-Tenant-Id` switches correctly without new inserts.
-- [ ] **2.4** Rewrite `app/services/user_service.get_or_create_user_and_tenant` to provision via `tenant_memberships`.
+- [ ] **2.4** Rewrite `app/services/user_service.get_or_create_user_and_tenant` to provision via `tenant_users`.
 - [ ] **2.5** Update `tests/conftest.py` — fixtures for owner / member / multi-tenant user; override `require_auth` to inject role.
 - [ ] **2.6** Run full server test suite — pre-existing tests pass with the membership model.
 
@@ -601,20 +596,13 @@ This exercises every code path users will hit on day one.
 
 ---
 
-### Phase 7: Cascade cleanup migration
+### Phase 7: Documentation + verification
 
-- [ ] **7.1** Create migration `drop_users_tenant_id_and_add_cascades`: drop `users.tenant_id`; recreate tenant FKs with `ON DELETE CASCADE`.
-- [ ] **7.2** Verify locally with a `DELETE FROM tenants WHERE id = '...'` against a seeded tenant; expect all dependent rows gone.
-- [ ] **7.3** Update `delete_tenant` service to use a single `DELETE` statement.
-
----
-
-### Phase 8: Documentation + verification
-
-- [ ] **8.1** Write `docs/adrs/002-multi-user-tenancy.md`.
-- [ ] **8.2** Update `docs/architecture.md` (multi-tenancy section).
-- [ ] **8.3** Write `docs/getting-started.md`.
-- [ ] **8.4** Update `server/README.md` and `client/README.md` with new env vars and dev workflow.
-- [ ] **8.5** Update seed script to produce two tenants, a multi-tenant user, and a pending invitation.
-- [ ] **8.6** Manual end-to-end smoke: solo sign-up → invite teammate (rename prompt) → second user redeems link with mismatched GitHub email → tenant switcher works in two tabs → owner removes member → owner transfers ownership → previous owner leaves → final user deletes tenant.
-- [ ] **8.7** Full server + client test suites green.
+- [ ] **7.1** Verify cascade locally with `DELETE FROM tenants WHERE id = '...'` against a seeded tenant; expect all dependent rows gone. Update `delete_tenant` service to use a single `DELETE` statement.
+- [ ] **7.2** Write `docs/adrs/002-multi-user-tenancy.md`.
+- [ ] **7.3** Update `docs/architecture.md` (multi-tenancy section).
+- [ ] **7.4** Write `docs/getting-started.md`.
+- [ ] **7.5** Update `server/README.md` and `client/README.md` with new env vars and dev workflow.
+- [ ] **7.6** Update seed script to produce two tenants, a multi-tenant user, and a pending invitation.
+- [ ] **7.7** Manual end-to-end smoke: solo sign-up → invite teammate (rename prompt) → second user redeems link with mismatched GitHub email → tenant switcher works in two tabs → owner removes member → owner transfers ownership → previous owner leaves → final user deletes tenant.
+- [ ] **7.8** Full server + client test suites green.
