@@ -70,7 +70,7 @@ When a user belongs to multiple tenants, every API request must be unambiguous a
 
 ### Invitations
 
-An invitation is a pending grant of membership. Every invitation carries an **email address** (used to notify the invitee that they have access) and may optionally carry a **GitHub username** (used as a more reliable matching identifier at sign-in). It exists as a row in the database before any user record does — the invited person may not have a Clerk account yet. When they sign in for the first time, the invitation is consumed and a new membership is created in the inviting tenant. Existing users who accept an invitation simply gain an additional membership; they don't lose their existing tenant access.
+An invitation is a pending grant of membership. Every invitation carries an **email address** for delivery and a unique **token** that acts as the redemption credential. The token — not the email address — is what authorises membership when the invitee clicks the link and signs in with GitHub. Email is purely the notification channel; there is no email-matching at redemption time for link-based sign-in. The invitation exists as a row in the database before any user record does — the invited person may not have a Clerk account yet. When they sign in for the first time, the invitation is consumed and a new membership is created. Existing users who accept an invitation simply gain an additional membership; they don't lose their existing tenant access.
 
 ### Ownership Transfer
 
@@ -110,9 +110,7 @@ Constraints:
 |---|---|---|
 | `id` | UUID PK | |
 | `tenant_id` | UUID FK → tenants NOT NULL | tenant being shared |
-| `email` | TEXT NOT NULL | normalised lowercase; always set, used for notification delivery |
-| `github_username` | TEXT | nullable; optional matching hint provided by the owner |
-| `github_account_id` | BIGINT | nullable; resolved from GitHub's public API at invite creation when `github_username` is supplied |
+| `email` | TEXT NOT NULL | normalised lowercase; used for notification delivery only |
 | `invited_by_user_id` | UUID FK → users NOT NULL | for display in the UI |
 | `token` | TEXT UNIQUE NOT NULL | unguessable secret embedded in invite link |
 | `status` | TEXT NOT NULL | `'pending' \| 'accepted' \| 'revoked' \| 'expired'`, default `'pending'` |
@@ -124,7 +122,6 @@ Constraints:
 
 Constraints:
 - Partial unique on `(tenant_id, lower(email)) WHERE status = 'pending'` — one live invitation per email per tenant.
-- Partial unique on `(tenant_id, github_account_id) WHERE status = 'pending' AND github_account_id IS NOT NULL` — one live invitation per GitHub identity per tenant.
 
 ### Modified: `tenants` table
 
@@ -143,17 +140,21 @@ A single migration:
 
 ## GitHub-Only Sign-In × Invitations
 
-Sign-in remains GitHub-only via Clerk. The friction this creates with email-only invitations is the **email mismatch case**: the owner invites `sam@acme.com`, but Sam's primary GitHub email is `sam@personal.com`. Sam might never have his work email verified on GitHub, in which case redemption-by-email-match silently fails.
+Sign-in remains GitHub-only via Clerk. The invite token — embedded in the link sent to the invitee's email — is the redemption credential. There is no email matching at redemption time. This sidesteps the mismatch problem entirely: it doesn't matter whether the invitee's GitHub account has `sam@acme.com` verified or not.
 
-The resolution: **email is always the delivery channel, GitHub identity is an optional matching enhancement.**
+```
+Owner invites sam@acme.com
+  → email sent with /invite?token=abc123
+  → Sam clicks the link
+  → Clerk GitHub sign-in (Sam's GitHub account, any email)
+  → backend: token abc123 is pending → create membership → done
+```
 
-- **Email is required on every invitation.** This is the only reliable way to notify the invitee they have access. We cannot derive an email address from a GitHub username — GitHub's public API only returns an email when the user has explicitly made it public, and the `users.noreply.github.com` addresses drop inbound mail.
-- **GitHub username is optional but encouraged.** When supplied, we resolve the GitHub numeric account ID at invite creation time (via `GET https://api.github.com/users/{username}` — public, no auth needed) and store both. This pair is immune to GitHub username changes and to email-verification mismatches.
-- **At redemption, both matching strategies are tried.** First match wins:
-  1. **GitHub identity match** — the new Clerk user's `github_account_id` (or `github_username` as a weaker fallback) equals the invitation's stored value.
-  2. **Email match** — any verified email on the new Clerk identity matches the invitation's email. Clerk surfaces every verified email from GitHub, not just the primary, so a teammate with `sam@acme.com` verified-but-not-primary on GitHub still redeems cleanly.
+The `email` on the invitation is only used for delivery. Once Sam clicks the link and signs in, the token is what closes the loop. His GitHub email address is irrelevant.
 
-Owners aren't asked to understand the matching mechanics. They're asked for an email (always) and a GitHub handle (when they know it). The reliability gradient — both > GitHub-only > email-only — is invisible to them.
+### Existing users without a link
+
+An existing Distilled user who loses the invite link (or who signs in directly without clicking it) falls back to a best-effort email match: after sign-in, if any verified email on their Clerk account matches a pending invitation's `email`, surface a banner — "You've been invited to Acme Engineering — Accept?" — for an explicit accept/decline. This is the only case where email is used for anything beyond delivery, and it's opt-in (the user acts on the banner rather than being auto-enrolled).
 
 ---
 
@@ -165,14 +166,14 @@ The auto-provisioning logic in `middleware/tenant.py` becomes:
 
 1. Look up `User` by `clerk_user_id`.
    - If found: read `active_tenant_id`, verify the corresponding membership still exists, return it. (See "Active Tenant Switching" for the request-time override.)
-2. If not found, look for any **pending invitations** matching either:
-   - the GitHub `account_id` from the GitHub OAuth claim (preferred when the invitation has one), or
-   - any verified Clerk email address on the new identity matching the invitation's `email`.
-   For each match: create a `tenant_users` row with `role = 'member'`, mark the invitation `accepted`. Set `active_tenant_id` to the most recently created of these.
-3. If at least one invitation was redeemed in step 2, return the new active tenant.
+2. If not found, check if the request carries an **invite token** (query param or short-lived cookie set when the user landed on `/invite?token=...`).
+   - If the token resolves to a `pending` invitation: create a `users` row, create a `tenant_users` row with `role = 'member'`, mark the invitation `accepted`. Set `active_tenant_id` to that tenant.
+3. If at least one membership was created in step 2, return the active tenant.
 4. Otherwise: existing behaviour — create a new `Tenant`, create a `users` row, and create a single `tenant_users` row with `role = 'owner'`. Set `active_tenant_id` to the new tenant.
 
-This keeps the solo onboarding path identical and treats invitation redemption as a side effect of normal sign-in. Multiple invitations to the same person can all be redeemed in one sign-in.
+The `/invite?token=...` landing page stores the token in a short-lived cookie before redirecting to Clerk's GitHub sign-in. This survives the OAuth redirect so the token is available on the first API call after sign-in.
+
+For existing users who sign in without a link, the frontend separately calls `GET /api/me/pending-invitations` on load, which performs a best-effort email match against the user's verified Clerk emails and returns any matching pending invitations. These are surfaced as an explicit accept/decline banner rather than auto-enrolled.
 
 ### Active Tenant Switching
 
@@ -190,7 +191,10 @@ All endpoints below require Clerk JWT auth (PRD 016) and operate within the call
 | `POST` | `/api/me/active-tenant` | any auth | switch active tenant |
 | `GET` | `/api/team/members` | any member | list users in the active tenant (id, email, github_username, role, created_at) |
 | `GET` | `/api/team/invitations` | any member | list pending invitations |
-| `POST` | `/api/team/invitations` | owner | create an invitation `{email, github_username?}` → sends email via Resend, returns invitation row |
+| `POST` | `/api/team/invitations` | owner | create an invitation `{email}` → sends email via Resend, returns invitation row |
+| `GET` | `/api/me/pending-invitations` | any auth | best-effort email match; returns invitations for explicit accept/decline |
+| `POST` | `/api/me/pending-invitations/{id}/accept` | any auth | accept a discovered invitation; creates membership |
+| `POST` | `/api/me/pending-invitations/{id}/decline` | any auth | decline a discovered invitation; marks it revoked |
 | `DELETE` | `/api/team/invitations/{id}` | owner | revoke a pending invitation |
 | `POST` | `/api/team/invitations/{id}/resend` | owner | re-send the invitation email (no token rotation) |
 | `DELETE` | `/api/team/members/{user_id}` | owner | remove a member from the tenant |
@@ -237,7 +241,7 @@ Email content:
 - Body: short, on-brand, dark-themed HTML with a single CTA linking to `https://<app>/invite?token=<token>`.
 - The link routes to a Clerk GitHub sign-in page; the token is exchanged server-side after authentication completes.
 
-Every invitation produces exactly one email. Whether the owner supplied a GitHub username or not, the email goes to `invitations.email`.
+Every invitation produces exactly one email, sent to `invitations.email`.
 
 ### Local Dev Seed Data
 
@@ -307,34 +311,39 @@ When the owner clicks **Invite member** for the first time on a tenant whose nam
 
 ### Invite Modal
 
-Two fields:
+Single email field:
 
 ```
 ┌──────────────────────────────────────────────┐
 │  Invite a teammate                           │
 │                                              │
-│  Email address (required)                    │
+│  Email address                               │
 │  [ sam@acme.com                          ]   │
-│                                              │
-│  GitHub username (optional)                  │
-│  [ samkpatel                             ]   │
-│  We'll use this to match them when they      │
-│  sign in, so the invite still works even if  │
-│  their work email isn't on their GitHub.     │
 │                                              │
 │                       [Cancel] [Send invite] │
 └──────────────────────────────────────────────┘
 ```
 
-- **Email** is required and used for delivery. Inline validation for format.
-- **GitHub username** is optional. On blur, the frontend hits a backend helper (`GET /api/team/invitations/lookup-github?username=...`) which calls GitHub's public API and returns `{ exists, account_id, avatar_url }`. If the username doesn't resolve, surface a soft warning ("we couldn't find that GitHub user") but allow submission anyway.
-- Submits to `POST /api/team/invitations`. Errors (duplicate pending invite on either email or GitHub identity, already a member, malformed input) render below the relevant field.
+Inline format validation. Submits to `POST /api/team/invitations`. Errors (duplicate pending invite, already a member, malformed email) render below the field.
 
 ### Sign-In via Invitation
 
-No new page needed. The invited email link routes the user through Clerk's existing GitHub sign-in. The first authenticated API call invokes the updated tenant resolver, which redeems the invitation transparently and sets the active tenant. The user lands on the shared dashboard.
+The invite link (`/invite?token=...`) stores the token in a short-lived cookie, then immediately redirects to Clerk's GitHub sign-in. After OAuth completes, the backend reads the cookie on the first API call, redeems the invitation, and sets the active tenant. The user lands on the shared dashboard.
 
 A small one-time toast — `Welcome to <Tenant name>` — appears on first load after redemption to confirm they're in the right place.
+
+### Pending Invitation Banner
+
+For existing Distilled users who sign in without clicking the link, the app calls `GET /api/me/pending-invitations` on load. If any are returned, a dismissable banner appears at the top of the dashboard:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  You've been invited to Acme Engineering.               │
+│                              [Decline]  [Join tenant →] │
+└─────────────────────────────────────────────────────────┘
+```
+
+Accepting calls `POST /api/me/pending-invitations/{id}/accept` and adds the tenant to the switcher. Declining calls `decline` and the banner disappears.
 
 ### Header / Account Menu
 
@@ -346,7 +355,7 @@ The existing user menu gains a single line: a "Member" or "Owner" badge for the 
 
 The following docs must land alongside the implementation:
 
-- **Getting Started guide** (`docs/getting-started.md`, new): a short walkthrough covering sign-in, the solo → team transition (including the rename prompt), inviting teammates (email + optional GitHub handle), switching between tenants, and the path for "I tried Distilled solo and just got invited to my company's tenant" — including how to leave or delete a personal tenant.
+- **Getting Started guide** (`docs/getting-started.md`, new): a short walkthrough covering sign-in, the solo → team transition (including the rename prompt), inviting teammates by email, switching between tenants, and the path for "I tried Distilled solo and just got invited to my company's tenant" — including how to leave or delete a personal tenant.
 - **`/docs/architecture.md`**: update the auth and tenant-resolution sections to describe the new join-table model and active-tenant header.
 - **`/server/README.md`**: document the new env vars (`RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`) and the seed data shape.
 - **ADR**: a short ADR documenting "Tenant membership as a join table; one user → many tenants" so future contributors don't trip on the PRD-016 1:1 assumption.
@@ -361,8 +370,7 @@ The following docs must land alongside the implementation:
 - **Owner is the sole user and leaves.** The tenant and all its data are deleted in a transaction. The user is reset to their next-most-recent membership or, if none, signs in afresh and gets a new solo tenant per PRD 016.
 - **Invitation expires.** `status` flips to `'expired'` via a periodic job (or lazily on read). The owner can re-issue from the team page.
 - **Invitation revoked after sign-in but before first API call.** Race is acceptable: the redeem-on-resolve step reads `status = 'pending'` under a row lock; if it's been revoked, that invitation is skipped and the user falls through to step 4 if no other invitations apply. No data leaks.
-- **Email mismatch with no verified work email.** If the invitee's GitHub account does not have the invited address as a verified email and the owner didn't supply a GitHub username on the invitation, redemption will not happen automatically. The invitation page shows a clear message explaining the mismatch and asking the owner to re-issue the invitation with a GitHub username. This case becomes rare once owners are habituated to the optional username field.
-- **GitHub username doesn't resolve at invite time.** The owner typed a handle that GitHub's public API rejects. We allow submission with a warning; the invitation stores `github_username` but no `github_account_id`. Redemption can still match on username (weaker) or fall back to email match.
+- **Invitee doesn't click the link.** If the invitee signs in directly (without the link), the pending-invitation banner appears if their verified GitHub emails include the invited address. If they have a completely different email on GitHub, neither auto-redemption nor the banner fires — the owner should resend the link for the invitee to click directly.
 - **GitHub App installation context.** The installation remains tenant-scoped. Members do not need to re-install or re-authorise the GitHub App — they inherit access through tenant membership.
 - **Two tabs, two tenants.** Setting `X-Tenant-Id` per request lets a power user keep one tab on each tenant without `active_tenant_id` thrash. The frontend sets this header from the tenant context of the currently rendered route.
 
@@ -378,15 +386,14 @@ The following docs must land alongside the implementation:
 - [ ] A user can hold memberships in multiple tenants simultaneously.
 
 ### Invitations
-- [ ] Every invitation requires an email address; the API rejects requests without one.
-- [ ] An owner can invite a teammate with email only; the teammate receives an email via Resend within 30 seconds.
-- [ ] An owner can invite a teammate with email + GitHub username; the email is sent, and the GitHub identity is resolved to a numeric account ID at creation time when the username exists.
-- [ ] An invitation with both email and GitHub identity redeems via GitHub identity match even when the invitee's verified emails do not include the invited address.
-- [ ] An invitation with email only redeems when any of the invitee's verified GitHub emails matches.
+- [ ] An owner can invite a teammate by email; the teammate receives a Resend email within 30 seconds containing a unique invite link.
+- [ ] Clicking the invite link, signing in with any GitHub account, and completing the OAuth flow redeems the invitation and lands the user on the shared dashboard regardless of which email is on their GitHub account.
+- [ ] An existing Distilled user who signs in without the link sees a pending-invitation banner when their verified GitHub emails match the invited address.
+- [ ] Accepting via the banner creates the membership; declining dismisses it without creating one.
 - [ ] A non-owner cannot create, revoke, or resend invitations (API returns 403; UI hides controls).
-- [ ] A pending invitation cannot be created twice for the same email + tenant or the same GitHub identity + tenant.
-- [ ] Invitations expire after 14 days and cannot be redeemed thereafter.
-- [ ] An owner can revoke a pending invitation; subsequent attempts to redeem the link fail.
+- [ ] A pending invitation cannot be created twice for the same email + tenant.
+- [ ] Invitations expire after 14 days; the link returns an expired-invite page and the owner can re-issue.
+- [ ] An owner can revoke a pending invitation; subsequent attempts to redeem the link show an invalid-invite page.
 
 ### Tenant Switching
 - [ ] A user with two memberships sees both in the tenant switcher.
