@@ -72,7 +72,17 @@ The **dashboard_service** exposes one helper per section; each of the `/metrics/
 
 ### Multi-tenancy
 
-All tables carry `tenant_id`. Currently a hardcoded seed tenant for dev. Tenant resolved per-request via middleware.
+All tables carry `tenant_id`. Membership is a many-to-many relationship in `tenant_users`, with a `(user_id, tenant_id, role)` row per membership and a partial unique index enforcing exactly one owner per tenant. `users.last_active_tenant_id` is a per-user default — the tenant a fresh sign-in resolves to in the absence of an explicit choice.
+
+The active tenant for any given request is resolved as:
+
+1. `X-Tenant-Id` header on the request, if present (membership verified at request time)
+2. Otherwise, `users.last_active_tenant_id`
+3. Otherwise, 409 — the user has no active tenant and the client must surface onboarding
+
+`require_owner` is the dependency used for owner-only routes (`/team/*`); membership lookups use indexed columns and add a single join per authenticated request.
+
+Tenant deletion is a single `DELETE FROM tenants WHERE id = ...`: every tenant-scoped FK (`repositories`, `pull_requests`, `deployment_events`, `tenant_users`, `invitations`, all metrics tables) carries `ON DELETE CASCADE`. ADR 002 documents the rationale.
 
 ## Frontend (client/)
 
