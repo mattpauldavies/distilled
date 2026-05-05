@@ -305,12 +305,13 @@ Tenant-agnostic — depends only on the JWT, not on `X-Tenant-Id`.
 
 `POST /me/invitations/{id}/accept` validates that one of the user's verified GitHub emails matches the invitation's email before creating the membership — this is the email-based codepath, distinct from token redemption.
 
-### 9. New: `app/routes/invitations.py` (public — no `X-Tenant-Id`)
+### 9. New: `app/routes/invitations.py` (no `X-Tenant-Id`)
 
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/invitations/redeem` | Body: `{ token }`. Requires JWT. Redeems, returns the joined tenant. |
-| GET | `/invitations/preview` | Query: `token`. Returns tenant name + inviter for the accept page. No auth (token is the credential). |
+
+There is no preview endpoint. The user has already read the inviter's name and the tenant name in the email; re-displaying them in-app before sign-in adds a confirmation step without value. The redeem call is fired automatically once the user is signed in (see frontend §8) and the joined tenant's name is surfaced in a welcome toast — that's the first time the app speaks to the user about which tenant they've joined.
 
 ### 10. `app/services/clerk_service.py`
 
@@ -428,13 +429,13 @@ Mounted in `<Dashboard />`. On mount calls `GET /me/invitations`. If non-empty, 
 
 ### 8. New: `client/src/pages/AcceptInvitePage.tsx` and routing
 
-A new public route `/invitations/accept?token=<raw>` mounted **before** the Clerk gate. Behaviour:
+A new route `/invitations/accept?token=<raw>` mounted **before** the Clerk gate. Redemption is bundled into the first sign-in — the user clicks the email link, signs in with GitHub, and lands in the joined tenant. There is no intermediate confirm step, no preview of the tenant name, and no extra button. Behaviour:
 
-- If signed out: render the Clerk `<SignIn>` widget with `redirectUrl=/invitations/accept?token=<raw>` so we return here after auth.
-- If signed in: call `POST /invitations/redeem`, on success switch active tenant to the joined one and redirect to `/`.
-- Display tenant name + inviter (from `GET /invitations/preview`) so the user knows what they're joining.
+- If signed out: render a centred loading card and the Clerk `<SignIn>` widget with `redirectUrl=/invitations/accept?token=<raw>` so we return here after auth.
+- If signed in: immediately `POST /invitations/redeem` with the token. On success: switch active tenant to the joined one, redirect to `/`, and surface a `Welcome to <tenant name>` toast on the dashboard.
+- On error (expired / revoked / already redeemed): render an inline error state with a single CTA back to the dashboard. The user can ask the owner to re-issue.
 
-This is the first non-dashboard route in the app, so we wire `react-router` (or a minimal hash-route check — to be decided in implementation) and update `App.tsx` to dispatch.
+This is the first non-dashboard route in the app, so we wire `react-router` (or a minimal hash-route check — to be decided in implementation) and update `App.tsx` to dispatch. The token is held in component state only — never persisted to `localStorage` or query strings on the dashboard — so a successful redemption leaves no trace in the user's URL bar after redirect.
 
 ### 9. New: `client/src/components/SignOutButton.tsx`
 
@@ -490,7 +491,7 @@ No new env vars. Existing `VITE_API_BASE_URL` continues to drive the API base.
 - `tests/test_invitation_service.py` — create + email dispatched, duplicate creation rejected, redeem (happy path), redeem (expired), redeem (revoked), redeem (already redeemed), revoke after click but before sign-in fails gracefully, expire-old-invitations job.
 - `tests/test_routes_team.py` — RBAC: member is 403 on every `/team/*` route; owner gets full access. Endpoint contracts.
 - `tests/test_routes_me.py` — `/me/tenants` lists all memberships; `/me/invitations` matches against verified Clerk emails (mocked); accept/decline.
-- `tests/test_routes_invitations.py` — `/invitations/preview` is anonymous; `/invitations/redeem` requires JWT; mismatch GitHub email still works (token is the credential).
+- `tests/test_routes_invitations.py` — `/invitations/redeem` requires JWT; mismatch GitHub email still works (token is the credential); expired / revoked / already-redeemed paths return distinct error codes.
 - `tests/test_auth.py` — `X-Tenant-Id` happy path, missing header falls back to `last_active_tenant_id`, header for non-member returns 403, header for nonexistent tenant returns 403, no active tenant returns 409, `require_owner` 403s for members.
 - `tests/test_user_service.py` — first-login provisions tenant + owner membership; second login returns existing membership; switching `X-Tenant-Id` between two valid memberships does not create new rows.
 - `tests/test_installation_service.py` — unchanged behaviour confirmed (regression guard).
@@ -502,7 +503,7 @@ No new env vars. Existing `VITE_API_BASE_URL` continues to drive the API base.
 - `components/team/TeamPage.test.tsx` — owner sees full controls; transfer ownership flow; remove member confirmation; delete tenant only visible at sole-user; rename inline editor.
 - `components/team/InviteMemberModal.test.tsx` — first invite shows rename step; skipping persists `rename_prompt_dismissed`; subsequent invites skip rename step; duplicate email shows server validation error.
 - `components/InvitationBanner.test.tsx` — fetches on mount; accept → joins tenant; decline → dismisses.
-- `pages/AcceptInvitePage.test.tsx` — signed-out shows Clerk sign-in; signed-in redeems and routes home; token preview renders tenant + inviter.
+- `pages/AcceptInvitePage.test.tsx` — signed-out shows Clerk sign-in with the right `redirectUrl`; signed-in auto-redeems and routes home; expired / revoked tokens render the error state.
 - `lib/tenantContext.test.tsx` — multiple tabs read independent `localStorage`; switching tenant in one context does not pollute the other.
 - `hooks/useRepos.test.ts` and friends — assert `X-Tenant-Id` header is sent.
 
@@ -569,7 +570,7 @@ This exercises every code path users will hit on day one.
 - [ ] **4.2** Failing tests in `tests/test_invitation_service.py` for create / revoke / resend / redeem (all branches) / expire job.
 - [ ] **4.3** Implement `app/services/invitation_service.py`.
 - [ ] **4.4** Failing tests in `tests/test_routes_invitations.py` and `tests/test_routes_me.py`.
-- [ ] **4.5** Implement `app/routes/me.py` and `app/routes/invitations.py`; wire in `main.py` (note: `/invitations/preview` is unauthenticated; `/invitations/redeem` requires JWT only — neither uses `X-Tenant-Id`).
+- [ ] **4.5** Implement `app/routes/me.py` and `app/routes/invitations.py`; wire in `main.py` (`/invitations/redeem` requires JWT only — does not use `X-Tenant-Id`).
 - [ ] **4.6** Add Clerk `get_user_emails` helper; wire into `/me/invitations`.
 - [ ] **4.7** Add `POST /internal/invitations/expire` and Railway scheduler entry.
 - [ ] **4.8** Add config fields and update `_validate_production_secrets`.
