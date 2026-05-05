@@ -15,7 +15,7 @@ from app.config import settings
 from app.db import dispose_db, init_db
 from app.logging import configure_logging
 from app.rate_limit import limiter
-from app.routes import deployments, environments, health, metrics, pull_requests, repos, webhooks
+from app.routes import deployments, environments, health, metrics, pull_requests, repos, team, webhooks
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,7 @@ def create_app() -> FastAPI:
     app.include_router(deployments.router, dependencies=[Depends(require_auth)])
     app.include_router(pull_requests.router, dependencies=[Depends(require_auth)])
     app.include_router(metrics.router)  # no router-level auth — per-route in metrics.py
+    app.include_router(team.router)  # per-route auth (require_owner / require_auth)
     return app
 
 
