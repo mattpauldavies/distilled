@@ -8,7 +8,7 @@ import App from "./App"
 let signedIn = true
 
 vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
+  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: signedIn }),
   useClerk: () => ({ signOut: vi.fn() }),
   SignedIn: ({ children }: { children: ReactNode }) => (signedIn ? <>{children}</> : null),
   SignedOut: ({ children }: { children: ReactNode }) => (signedIn ? null : <>{children}</>),

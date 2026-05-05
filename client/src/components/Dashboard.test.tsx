@@ -1,11 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse, delay } from "msw"
 import { server } from "@/test/mocks/server"
 import { makeDataQuality, makeDeploymentFrequency, makeOpenPRs, makeRepo } from "@/test/factories"
+import { renderWithProviders as render } from "@/test/render"
 import { Dashboard } from "./Dashboard"
 
 vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
+  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
   useClerk: () => ({ signOut: vi.fn() }),
 }))
 

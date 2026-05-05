@@ -9,10 +9,12 @@ import { OnboardingScreen } from "@/components/OnboardingScreen"
 import { ReposErrorScreen } from "@/components/ReposErrorScreen"
 import { SignInPage } from "@/components/SignInPage"
 import { useRepos } from "@/hooks/useRepos"
+import { TenantProvider, useTenantContext } from "@/lib/tenantContext"
 
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN ?? ""
 
 function Home() {
+  const { loading: tenantLoading, error: tenantError, activeTenant } = useTenantContext()
   const { repos, loading, error, refetch } = useRepos()
 
   useEffect(() => {
@@ -23,6 +25,10 @@ function Home() {
     }
   }, [])
 
+  if (tenantLoading) return <InitialisingScreen />
+  if (tenantError)
+    return <ReposErrorScreen error={tenantError} onRetry={() => window.location.reload()} />
+  if (!activeTenant) return <OnboardingScreen onReposDetected={refetch} />
   if (loading) return <InitialisingScreen />
   if (error) return <ReposErrorScreen error={error} onRetry={refetch} />
   if (repos.length === 0) return <OnboardingScreen onReposDetected={refetch} />
@@ -36,7 +42,9 @@ export default function App() {
         <SignInPage />
       </SignedOut>
       <SignedIn>
-        <Home />
+        <TenantProvider>
+          <Home />
+        </TenantProvider>
       </SignedIn>
     </ErrorBoundary>
   )

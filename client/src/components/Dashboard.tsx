@@ -13,6 +13,7 @@ import { PRCycleTimeChartPanel } from "@/components/metrics/PRCycleTimeChartPane
 import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
 import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
 import { SignOutButton } from "@/components/SignOutButton"
+import { TenantSwitcher } from "@/components/TenantSwitcher"
 import type { DaysWindow, Repo } from "@/types/dashboard"
 
 function timeAgo(isoString: string | null): string {
@@ -81,6 +82,7 @@ export function Dashboard({ repos }: DashboardProps) {
             onDaysWindowChange={setDaysWindow}
             daysOfData={daysOfData}
           />
+          <TenantSwitcher />
           <SignOutButton />
         </div>
       </div>
