@@ -57,13 +57,17 @@ async def test_first_call_creates_tenant_and_user():
 
     user, tenant = await get_or_create_user_and_tenant(TEST_CLAIMS, session, verifier)
 
-    assert session.add.call_count == 2
-    assert session.flush.call_count == 2
+    # Tenant + User + owner TenantUser
+    assert session.add.call_count == 3
+    assert session.flush.call_count == 3
     session.commit.assert_called_once()
+
+    from app.models.tenant_user import TenantUser
 
     added_objects = [call.args[0] for call in session.add.call_args_list]
     tenant_obj = next(obj for obj in added_objects if isinstance(obj, Tenant))
     user_obj = next(obj for obj in added_objects if isinstance(obj, User))
+    membership_obj = next(obj for obj in added_objects if isinstance(obj, TenantUser))
 
     assert tenant_obj.name == "devuser"
     assert tenant_obj.slug == "devuser"
@@ -71,6 +75,10 @@ async def test_first_call_creates_tenant_and_user():
     assert user_obj.email == "dev@example.com"
     assert user_obj.github_username == "devuser"
     assert user_obj.github_account_id == 98765
+    assert user_obj.last_active_tenant_id == tenant_obj.id
+    assert membership_obj.role == "owner"
+    assert membership_obj.tenant_id == tenant_obj.id
+    assert membership_obj.user_id == user_obj.id
 
     verifier.get_user.assert_called_once_with("user_clerk123")
 
@@ -87,7 +95,7 @@ async def test_second_call_returns_existing_records():
         email="dev@example.com",
         github_username="devuser",
         github_account_id=98765,
-        tenant_id=TENANT_ID,
+        last_active_tenant_id=TENANT_ID,
     )
     existing_tenant = Tenant(id=TENANT_ID, name="devuser", slug="devuser")
 
@@ -151,7 +159,7 @@ async def test_backfills_github_data_on_subsequent_login():
         email="dev@example.com",
         github_username=None,
         github_account_id=None,
-        tenant_id=TENANT_ID,
+        last_active_tenant_id=TENANT_ID,
     )
     existing_tenant = Tenant(id=TENANT_ID, name="user_clerk123", slug=None)
 

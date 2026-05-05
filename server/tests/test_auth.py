@@ -69,7 +69,7 @@ async def test_valid_jwt_injects_current_user():
     from app.models.tenant import Tenant
     from app.models.user import User
 
-    mock_user = User(id=user_id, clerk_user_id="user_test123", tenant_id=tenant_id)
+    mock_user = User(id=user_id, clerk_user_id="user_test123", last_active_tenant_id=tenant_id)
     mock_tenant = Tenant(id=tenant_id, name="testuser")
 
     app = make_secured_app()

@@ -24,6 +24,7 @@ from app.models.metrics import (
 )
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
+from app.models.tenant_user import TenantUser
 from app.models.user import User
 
 TENANT_ID = UUID("00000000-0000-0000-0000-000000000001")
@@ -88,9 +89,23 @@ async def main() -> None:
         # Delete the installation (but NOT the tenant — it's shared with dev)
         await session.execute(delete(GitHubInstallation).where(GitHubInstallation.id == installation_uuid))
 
-        # Remove any users linked to the seed tenant (smoke test user, claimed users)
-        user_result = await session.execute(delete(User).where(User.tenant_id == TENANT_ID))
-        users_removed = user_result.rowcount
+        # Remove any users whose only membership is the seed tenant (smoke
+        # test user, claimed users). We delete the membership first, then any
+        # user left without memberships.
+        member_ids_result = await session.execute(
+            select(TenantUser.user_id).where(TenantUser.tenant_id == TENANT_ID)
+        )
+        member_ids = [row[0] for row in member_ids_result.all()]
+        await session.execute(delete(TenantUser).where(TenantUser.tenant_id == TENANT_ID))
+
+        users_removed = 0
+        for user_id in member_ids:
+            still_member = await session.execute(
+                select(TenantUser.id).where(TenantUser.user_id == user_id).limit(1)
+            )
+            if still_member.scalar_one_or_none() is None:
+                await session.execute(delete(User).where(User.id == user_id))
+                users_removed += 1
 
         await session.commit()
         print(f"✓ Demo data removed ({len(repo_ids)} repos, {users_removed} users).")
