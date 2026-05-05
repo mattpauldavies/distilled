@@ -11,9 +11,12 @@ import { DeploymentFrequencyChartPanel } from "@/components/metrics/DeploymentFr
 import { LeadTimeChartPanel } from "@/components/metrics/LeadTimeChartPanel"
 import { PRCycleTimeChartPanel } from "@/components/metrics/PRCycleTimeChartPanel"
 import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
+import { InvitationBanner } from "@/components/InvitationBanner"
 import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
 import { SignOutButton } from "@/components/SignOutButton"
 import { TenantSwitcher } from "@/components/TenantSwitcher"
+import { Button } from "@/components/ui/button"
+import { useTenantContext } from "@/lib/tenantContext"
 import type { DaysWindow, Repo } from "@/types/dashboard"
 
 function timeAgo(isoString: string | null): string {
@@ -29,9 +32,11 @@ function timeAgo(isoString: string | null): string {
 
 interface DashboardProps {
   repos: Repo[]
+  onOpenTeam?: () => void
 }
 
-export function Dashboard({ repos }: DashboardProps) {
+export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
+  const { activeTenant } = useTenantContext()
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [selectedDaysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
@@ -47,6 +52,7 @@ export function Dashboard({ repos }: DashboardProps) {
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
+      <InvitationBanner />
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1 pr-6">
           <h1 className="truncate text-2xl font-bold tracking-tight">
@@ -83,6 +89,11 @@ export function Dashboard({ repos }: DashboardProps) {
             daysOfData={daysOfData}
           />
           <TenantSwitcher />
+          {activeTenant?.role === "owner" && onOpenTeam ? (
+            <Button variant="outline" size="sm" onClick={onOpenTeam}>
+              Team
+            </Button>
+          ) : null}
           <SignOutButton />
         </div>
       </div>
