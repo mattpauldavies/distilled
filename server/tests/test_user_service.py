@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.models.tenant import Tenant
+from app.models.tenant_user import TenantUser
 from app.models.user import User
-from app.services.user_service import get_or_create_user_and_tenant
+from app.services.user_service import get_or_create_user
 
 
 def make_mock_session() -> AsyncMock:
@@ -41,7 +42,6 @@ def mock_result(scalar_or_none=None):
 TENANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
-# Claims now only carry sub and email (external_accounts come from Clerk API)
 TEST_CLAIMS = {
     "sub": "user_clerk123",
     "email": "dev@example.com",
@@ -49,28 +49,26 @@ TEST_CLAIMS = {
 
 
 @pytest.mark.asyncio
-async def test_first_call_creates_tenant_and_user():
-    """First call for a new clerk_user_id creates Tenant and User with GitHub data from API."""
+async def test_first_call_provisions_tenant_user_and_owner_membership():
     session = make_mock_session()
     session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
     verifier = make_mock_verifier()
 
-    user, tenant = await get_or_create_user_and_tenant(TEST_CLAIMS, session, verifier)
+    user = await get_or_create_user(TEST_CLAIMS, session, verifier)
 
     # Tenant + User + owner TenantUser
     assert session.add.call_count == 3
     assert session.flush.call_count == 3
     session.commit.assert_called_once()
 
-    from app.models.tenant_user import TenantUser
-
-    added_objects = [call.args[0] for call in session.add.call_args_list]
-    tenant_obj = next(obj for obj in added_objects if isinstance(obj, Tenant))
-    user_obj = next(obj for obj in added_objects if isinstance(obj, User))
-    membership_obj = next(obj for obj in added_objects if isinstance(obj, TenantUser))
+    added = [call.args[0] for call in session.add.call_args_list]
+    tenant_obj = next(o for o in added if isinstance(o, Tenant))
+    user_obj = next(o for o in added if isinstance(o, User))
+    membership_obj = next(o for o in added if isinstance(o, TenantUser))
 
     assert tenant_obj.name == "devuser"
     assert tenant_obj.slug == "devuser"
+    assert user_obj is user
     assert user_obj.clerk_user_id == "user_clerk123"
     assert user_obj.email == "dev@example.com"
     assert user_obj.github_username == "devuser"
@@ -84,8 +82,7 @@ async def test_first_call_creates_tenant_and_user():
 
 
 @pytest.mark.asyncio
-async def test_second_call_returns_existing_records():
-    """Second call for the same clerk_user_id returns existing records without calling the API."""
+async def test_second_call_returns_existing_user_without_clerk_lookup():
     session = make_mock_session()
     verifier = make_mock_verifier()
 
@@ -97,59 +94,48 @@ async def test_second_call_returns_existing_records():
         github_account_id=98765,
         last_active_tenant_id=TENANT_ID,
     )
-    existing_tenant = Tenant(id=TENANT_ID, name="devuser", slug="devuser")
 
-    session.execute = AsyncMock(
-        side_effect=[
-            mock_result(scalar_or_none=existing_user),
-            mock_result(scalar_or_none=existing_tenant),
-        ]
-    )
+    session.execute = AsyncMock(return_value=mock_result(scalar_or_none=existing_user))
 
-    user, tenant = await get_or_create_user_and_tenant(TEST_CLAIMS, session, verifier)
+    user = await get_or_create_user(TEST_CLAIMS, session, verifier)
 
     assert user.id == USER_ID
-    assert tenant.id == TENANT_ID
     session.add.assert_not_called()
-    # Clerk API should not be called for existing users
     verifier.get_user.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_falls_back_to_clerk_id_when_no_github():
-    """Tenant name falls back to clerk_user_id when GitHub account is absent from API."""
     session = make_mock_session()
     session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
     verifier = make_mock_verifier(github_username=None, github_account_id=None)
 
     claims = {"sub": "user_nogh123", "email": "ngh@example.com"}
-    user, tenant = await get_or_create_user_and_tenant(claims, session, verifier)
+    await get_or_create_user(claims, session, verifier)
 
-    added_objects = [call.args[0] for call in session.add.call_args_list]
-    tenant_obj = next(obj for obj in added_objects if isinstance(obj, Tenant))
+    added = [call.args[0] for call in session.add.call_args_list]
+    tenant_obj = next(o for o in added if isinstance(o, Tenant))
     assert tenant_obj.name == "user_nogh123"
     assert tenant_obj.slug is None
 
 
 @pytest.mark.asyncio
 async def test_handles_missing_verifier():
-    """Without a verifier, GitHub fields are null but user is still created."""
     session = make_mock_session()
     session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
 
     claims = {"sub": "user_minimal"}
-    user, tenant = await get_or_create_user_and_tenant(claims, session, verifier=None)
+    await get_or_create_user(claims, session, verifier=None)
 
-    added_objects = [call.args[0] for call in session.add.call_args_list]
-    user_obj = next(obj for obj in added_objects if isinstance(obj, User))
+    added = [call.args[0] for call in session.add.call_args_list]
+    user_obj = next(o for o in added if isinstance(o, User))
     assert user_obj.github_account_id is None
     assert user_obj.github_username is None
     assert user_obj.email is None
 
 
 @pytest.mark.asyncio
-async def test_backfills_github_data_on_subsequent_login():
-    """If github_account_id is missing on an existing user, it is filled in on next login."""
+async def test_backfills_github_data_on_subsequent_login_when_missing():
     session = make_mock_session()
     verifier = make_mock_verifier()
 
@@ -161,38 +147,27 @@ async def test_backfills_github_data_on_subsequent_login():
         github_account_id=None,
         last_active_tenant_id=TENANT_ID,
     )
-    existing_tenant = Tenant(id=TENANT_ID, name="user_clerk123", slug=None)
 
-    session.execute = AsyncMock(
-        side_effect=[
-            mock_result(scalar_or_none=existing_user),
-            mock_result(scalar_or_none=existing_tenant),
-        ]
-    )
+    session.execute = AsyncMock(return_value=mock_result(scalar_or_none=existing_user))
 
-    user, tenant = await get_or_create_user_and_tenant(TEST_CLAIMS, session, verifier)
+    user = await get_or_create_user(TEST_CLAIMS, session, verifier)
 
     assert user.github_username == "devuser"
     assert user.github_account_id == 98765
-    assert tenant.slug == "devuser"
     verifier.get_user.assert_called_once_with("user_clerk123")
     session.commit.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_clerk_api_failure_is_handled_gracefully():
-    """If the Clerk API call fails, user is still created with null GitHub fields."""
+async def test_clerk_api_failure_during_create_is_handled():
     session = make_mock_session()
     session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
 
     verifier = AsyncMock()
     verifier.get_user = AsyncMock(side_effect=Exception("Clerk API unavailable"))
 
-    user, tenant = await get_or_create_user_and_tenant(TEST_CLAIMS, session, verifier)
+    user = await get_or_create_user(TEST_CLAIMS, session, verifier)
 
-    added_objects = [call.args[0] for call in session.add.call_args_list]
-    user_obj = next(obj for obj in added_objects if isinstance(obj, User))
-    assert user_obj.github_username is None
-    assert user_obj.github_account_id is None
-    # Email from JWT is still stored
-    assert user_obj.email == "dev@example.com"
+    assert user.github_username is None
+    assert user.github_account_id is None
+    assert user.email == "dev@example.com"
