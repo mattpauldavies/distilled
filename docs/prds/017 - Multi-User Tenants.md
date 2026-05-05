@@ -86,10 +86,10 @@ A tenant always has exactly one owner. Transfer is a single atomic action: the c
 
 | Column | Change | Notes |
 |---|---|---|
-| `tenant_id` | **removed** | replaced by `tenant_memberships` |
+| `tenant_id` | **removed** | replaced by `tenant_users` |
 | `active_tenant_id` | **new**, UUID FK → tenants, nullable | the user's currently selected tenant; nullable only transiently between sign-up and first membership creation |
 
-### New: `tenant_memberships` table
+### New: `tenant_users` table
 
 | Column | Type | Notes |
 |---|---|---|
@@ -102,7 +102,7 @@ A tenant always has exactly one owner. Transfer is a single atomic action: the c
 
 Constraints:
 - `UNIQUE (user_id, tenant_id)` — a user has at most one membership per tenant.
-- `CREATE UNIQUE INDEX ON tenant_memberships (tenant_id) WHERE role = 'owner'` — at most one owner per tenant.
+- `CREATE UNIQUE INDEX ON tenant_users (tenant_id) WHERE role = 'owner'` — at most one owner per tenant.
 
 ### New: `invitations` table
 
@@ -134,8 +134,8 @@ Add `name` (TEXT NOT NULL) — the human-friendly display name shown in the tena
 
 A single migration:
 1. Adds `tenants.name` (default: derived from `slug` for existing rows).
-2. Adds `tenant_memberships` and `invitations`.
-3. For every existing `users` row, inserts a `tenant_memberships` row with `role = 'owner'` and copies `users.tenant_id` to `tenant_memberships.tenant_id`.
+2. Adds `tenant_users` and `invitations`.
+3. For every existing `users` row, inserts a `tenant_users` row with `role = 'owner'` and copies `users.tenant_id` to `tenant_users.tenant_id`.
 4. Sets `users.active_tenant_id = users.tenant_id`.
 5. Drops `users.tenant_id`.
 
@@ -163,9 +163,9 @@ The auto-provisioning logic in `middleware/tenant.py` becomes:
 2. If not found, look for any **pending invitations** matching either:
    - any verified Clerk email address on the new identity, or
    - the GitHub username / account ID from the GitHub OAuth claim.
-   For each match: create a `tenant_memberships` row with `role = 'member'`, mark the invitation `accepted`. Set `active_tenant_id` to the most recently created of these.
+   For each match: create a `tenant_users` row with `role = 'member'`, mark the invitation `accepted`. Set `active_tenant_id` to the most recently created of these.
 3. If at least one invitation was redeemed in step 2, return the new active tenant.
-4. Otherwise: existing behaviour — create a new `Tenant`, create a `users` row, and create a single `tenant_memberships` row with `role = 'owner'`. Set `active_tenant_id` to the new tenant.
+4. Otherwise: existing behaviour — create a new `Tenant`, create a `users` row, and create a single `tenant_users` row with `role = 'owner'`. Set `active_tenant_id` to the new tenant.
 
 This keeps the solo onboarding path identical and treats invitation redemption as a side effect of normal sign-in. Multiple invitations to the same person can all be redeemed in one sign-in.
 
@@ -193,11 +193,11 @@ All endpoints below require Clerk JWT auth (PRD 016) and operate within the call
 | `POST` | `/api/team/leave` | any member | leave the active tenant; owners must transfer first unless they are the sole user |
 | `PATCH` | `/api/tenant` | owner | update the tenant `{name}` |
 
-Authorization is enforced by `require_owner` and `require_member` dependencies that read the caller's role from `tenant_memberships` for the active tenant.
+Authorization is enforced by `require_owner` and `require_member` dependencies that read the caller's role from `tenant_users` for the active tenant.
 
 ### Removing a Member
 
-Deleting the `tenant_memberships` row is sufficient — the user retains their Clerk identity and any other tenant memberships they hold. If the removed user's `active_tenant_id` pointed at the tenant they were just removed from, set it to the most recently created of their remaining memberships, or `null` if they have none. Their next sign-in falls through to step 4 of tenant resolution if they have no remaining memberships, identical to today's solo-provisioning behaviour.
+Deleting the `tenant_users` row is sufficient — the user retains their Clerk identity and any other tenant memberships they hold. If the removed user's `active_tenant_id` pointed at the tenant they were just removed from, set it to the most recently created of their remaining memberships, or `null` if they have none. Their next sign-in falls through to step 4 of tenant resolution if they have no remaining memberships, identical to today's solo-provisioning behaviour.
 
 ### Leaving a Tenant
 
@@ -210,8 +210,8 @@ Deleting the `tenant_memberships` row is sufficient — the user retains their C
 
 Single transaction, demote-then-promote to respect the partial unique constraint:
 ```sql
-UPDATE tenant_memberships SET role = 'member' WHERE id = :current_owner_membership_id;
-UPDATE tenant_memberships SET role = 'owner'  WHERE user_id = :new_owner_user_id AND tenant_id = :tenant_id;
+UPDATE tenant_users SET role = 'member' WHERE id = :current_owner_membership_id;
+UPDATE tenant_users SET role = 'owner'  WHERE user_id = :new_owner_user_id AND tenant_id = :tenant_id;
 ```
 
 ### Tenant Rename
