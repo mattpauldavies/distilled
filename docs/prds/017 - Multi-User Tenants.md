@@ -25,7 +25,7 @@ Multi-user access is the most common piece of feedback in early conversations an
 2. Designate one user per tenant as the **owner** (the "primary" account holder) with rights to manage membership and rename the tenant.
 3. Let the owner invite teammates by email and revoke access at any time, while keeping GitHub as the only sign-in method.
 4. Allow a user to belong to **multiple tenants** and switch between them.
-5. Let any user leave a tenant they're a member of, and let an owner leave by transferring ownership first (or deleting the tenant if they are its sole user).
+5. Let members leave a tenant at any time. Let an owner delete a tenant when they are its sole user. Owners who have other members cannot leave — they must transfer ownership first.
 6. Make the solo → team transition feel deliberate: prompt the owner to rename the tenant when they invite their first teammate.
 7. Preserve the existing solo onboarding flow from PRD 016 — a new user signing up still gets a private tenant and is its owner.
 
@@ -40,7 +40,7 @@ Multi-user access is the most common piece of feedback in early conversations an
 - Domain-based auto-join (e.g. "anyone with an `@acme.com` email joins the Acme tenant").
 - Audit logging of membership changes. Useful later, not required for v1.
 - Billing or seat-based pricing. Tenants are unlimited members for now.
-- Tenant deletion as a general feature. The narrow case of "owner is the only user, wants to leave" is supported as a side effect of leave; broader tenant lifecycle management is deferred.
+- Tenant deletion as a general feature. The narrow case of "owner is the only user" is supported via an explicit Delete tenant action; broader tenant lifecycle management is deferred.
 
 ---
 
@@ -50,7 +50,7 @@ Multi-user access is the most common piece of feedback in early conversations an
 
 **Secondary (member):** An EM, staff engineer, or peer leader invited by the owner. They authenticate with their own GitHub account via Clerk and land directly in the shared tenant — no setup, no GitHub App install, no empty state.
 
-**Tertiary (returning solo user):** Someone who tried Distilled before their company adopted it, has a personal tenant, and is now invited to the company tenant. They need to be able to switch between both, and to leave the personal one if they choose.
+**Tertiary (returning solo user):** Someone who tried Distilled before their company adopted it, has a personal tenant, and is now invited to the company tenant. They need to be able to switch between both, and to leave or delete their personal one if they choose.
 
 **Journey (owner):** dashboard → "Settings → Team" → invite first teammate → prompted to rename tenant from "Anna's tenant" to "Acme Engineering" → invite sent. Later: remove a member, or transfer ownership before leaving the company.
 
@@ -62,11 +62,13 @@ Multi-user access is the most common piece of feedback in early conversations an
 
 ### Tenant Membership
 
-A user can belong to one or more tenants. For each tenant they belong to, they hold a role: **owner** or **member**. Every tenant has exactly one owner. Owners and members have identical read access to all tenant data; the only behavioural difference is that owners can manage membership, rename the tenant, and transfer ownership.
+A user can belong to one or more tenants. For each tenant they belong to, they hold a role: **owner** or **member**. Every tenant has exactly one owner. Owners and members have identical read access to all tenant data. The behavioural difference is that only owners can access Settings → Team, manage membership, rename the tenant, transfer ownership, and delete the tenant.
 
 ### Active Tenant
 
 When a user belongs to multiple tenants, the product needs to know which one they're currently looking at. The user has an **active tenant** at any given time — the dashboard, the team page, every screen scopes to that tenant. The user changes their active tenant via the tenant switcher.
+
+On regular sign-in, the active tenant defaults to the tenant the user last used. When a user arrives via an invitation link and successfully joins a tenant, that newly joined tenant becomes the active tenant for the session.
 
 ### Invitations
 
@@ -100,7 +102,7 @@ For an existing Distilled user who happens to sign in normally without clicking 
 
 ### Switching Between Tenants
 
-A tenant switcher in the global header shows the active tenant. Users with multiple memberships click it to choose between them. For single-tenant users it renders as a static label so the chrome cost is zero.
+A tenant switcher in the global header shows the active tenant. Users with multiple memberships click it to choose between them. For single-tenant users it renders as a static label so the chrome cost is zero. On sign-in, the active tenant defaults to the one the user last visited.
 
 ### Removing a Member
 
@@ -108,9 +110,13 @@ The owner opens the `[⋯]` menu next to a member and chooses **Remove**. A conf
 
 ### Leaving a Tenant
 
-- **Members** can leave at any time via a **Leave tenant** action on the team page.
-- **Owners with other members** must transfer ownership before leaving; the action is disabled with a tooltip explaining this.
-- **Owners with no other members** can leave, which permanently deletes the tenant and all its data. A stronger confirmation dialog reflects the destructive nature of this path.
+Members can leave a tenant at any time via a **Leave tenant** action on the team page. Leaving removes their access immediately and retains any other memberships they hold.
+
+Owners do not have a "Leave" option. If they want to step back, they must transfer ownership to an existing member first, after which they become a regular member and can leave normally.
+
+### Deleting a Tenant
+
+An owner who is the **sole user** of a tenant can delete it via an explicit **Delete tenant** action on the team page. This is a separate, clearly destructive action — not conflated with leaving. A strong confirmation dialog names the tenant and warns that all data will be permanently deleted. On confirmation, the tenant and all its data are removed and the owner is redirected to sign-in (or their next membership, if they have one).
 
 ### Transferring Ownership
 
@@ -145,6 +151,10 @@ A compact dropdown in the top-left of the global header showing the active tenan
 
 ### Settings → Team Page
 
+The team page is accessible to the **owner only**. Members do not have access to Settings.
+
+**Owner view (with other members):**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  Acme Engineering                          [Rename]      │
@@ -159,14 +169,27 @@ A compact dropdown in the top-left of the global header showing the active tenan
 │  ──────────────────────────────────────────────────────  │
 │  sam@acme.com        Sent 2 days ago     [Resend][✕]    │
 │                                                          │
-│  ──────────────────────────────────────────────────────  │
-│  [Leave tenant]                                          │
 └──────────────────────────────────────────────────────────┘
 ```
 
-- The `[⋯]` menu (owner-only) offers **Remove** and **Transfer ownership**.
-- For non-owners, the page is read-only (no rename, no `[⋯]`, no invite button) but the **Leave tenant** action is always available.
-- For the owner, **Leave tenant** is disabled with a tooltip ("Transfer ownership first") if there are other members; enabled with a stronger confirmation if they are the sole user.
+**Owner view (sole user — delete available):**
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  My Workspace                              [Rename]      │
+│                                                          │
+│  Members (1)                            [Invite member]  │
+│  ──────────────────────────────────────────────────────  │
+│  Anna Chen           anna@acme.com       Owner           │
+│                                                          │
+│  ──────────────────────────────────────────────────────  │
+│  [Delete tenant]                                         │
+└──────────────────────────────────────────────────────────┘
+```
+
+- The `[⋯]` menu offers **Remove** and **Transfer ownership** for each member.
+- **Delete tenant** is only shown when the owner is the sole user. A strong confirmation dialog names the tenant and warns that all data will be permanently deleted.
+- There is no "Leave tenant" option for owners. To step back, the owner must transfer ownership first.
 
 ### Invite Modal
 
@@ -223,9 +246,9 @@ The following docs must land alongside the implementation:
 ## Edge Cases & Behaviour
 
 - **Invitee already has a Distilled tenant of their own.** Allowed — they gain a second membership and can switch between tenants. The newly accepted tenant becomes their active tenant on first sign-in after redemption.
-- **Owner tries to remove themselves.** Not allowed via Remove. Use **Leave tenant** instead, which enforces the transfer-or-sole-user rule.
+- **Owner tries to remove themselves.** Not allowed via Remove. Owners must transfer ownership to step back from the role, or use Delete tenant if they are the sole user.
 - **Owner tries to transfer to a non-member.** Not allowed. Transfer target must already be a member of the tenant.
-- **Owner is the sole user and leaves.** The tenant and all its data are deleted. The user is reset to their next-most-recent membership or, if none, signs in afresh and gets a new solo tenant per PRD 016.
+- **Owner is the sole user and deletes the tenant.** The tenant and all its data are permanently deleted after a strong confirmation. The owner is redirected to sign-in (or their next membership if they have one). There is no undo.
 - **Invitation expires.** Invitations expire after 14 days. The link returns an expired-invite page; the owner can re-issue from the team page.
 - **Invitation revoked after the invitee has clicked but before they've completed sign-in.** The redemption fails gracefully — no membership is created. No data leaks.
 - **Invitee doesn't click the link.** If they sign in directly, the pending-invitation banner appears when their verified GitHub emails include the invited address. If they have a completely different email on GitHub, neither auto-redemption nor the banner fires — the owner should resend the link for the invitee to click directly.
@@ -256,18 +279,20 @@ The following docs must land alongside the implementation:
 ### Tenant Switching
 - [ ] A user with multiple memberships sees all of them in the tenant switcher.
 - [ ] Selecting a tenant in the switcher reloads the dashboard against that tenant's data.
+- [ ] On sign-in, the active tenant defaults to the tenant the user last visited.
+- [ ] When a user joins via an invite link, the newly joined tenant is set as the active tenant for that session.
 - [ ] Two browser tabs scoped to two different tenants do not interfere with each other.
 - [ ] A user cannot access a tenant they're not a member of.
 
 ### Removal & Leaving
 - [ ] An owner can remove a member; that member loses access on their next interaction, while retaining any other memberships.
-- [ ] A member can leave a tenant on their own.
-- [ ] An owner with other members cannot leave; the UI directs them to transfer first.
-- [ ] An owner who is the sole user of a tenant can leave; the tenant and all its data are deleted.
+- [ ] A member can leave a tenant on their own via the Leave tenant action on the team page.
+- [ ] Owners have no "Leave tenant" option; the Settings → Team page does not show one.
+- [ ] An owner who is the sole user of a tenant can delete it via an explicit Delete tenant action; the tenant and all its data are permanently removed.
 
 ### Ownership Transfer
 - [ ] An owner can transfer ownership to any existing member in a single action.
-- [ ] After transfer, the new owner has management rights and the old owner sees only read-only team controls.
+- [ ] After transfer, the new owner has full management rights and the old owner loses access to Settings → Team.
 - [ ] Ownership cannot be transferred to a non-member.
 - [ ] A tenant never has zero or two owners during transfer.
 
@@ -279,12 +304,3 @@ The following docs must land alongside the implementation:
 ### Local Development
 - [ ] Seed data exercises multi-tenant flows end-to-end (multiple tenants, users with mixed memberships, at least one pending invitation).
 
----
-
-## Open Questions
-
-1. **Member visibility of pending invitations.** The PRD currently shows the pending invitations list to all members (so they can see who's coming), but only owners can act on them. An alternative is owner-only visibility, which slightly reduces the social signal of "who is being courted to join". Confirm the team-page-for-everyone read model is what we want.
-
-2. **Default active tenant on sign-in for a returning user with multiple tenants.** Their last-used tenant is the obvious default. But a freshly redeemed invitation arguably should win for that one session ("we just brought you here, here you are"). The PRD currently picks the latter — confirm this is the desired behaviour.
-
-3. **Tenant deletion scope.** v1 only allows tenant deletion as a side-effect of a sole-owner leaving. Should we also expose an explicit "Delete tenant" action on the team page for that same case (sole owner), to make the destructive action more visible than hiding it behind "Leave"? Mild UX improvement worth considering.
