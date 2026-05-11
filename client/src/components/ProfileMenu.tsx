@@ -40,7 +40,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
           <CircleUser className="size-8 text-muted-foreground" />
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0">
+      <PopoverContent className="w-72 p-2">
         <div className="border-b border-border px-3 py-2">
           <p className="truncate text-sm font-medium">{displayName}</p>
           {primaryEmail && primaryEmail !== displayName ? (
@@ -51,7 +51,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
         {memberships.length > 0 ? (
           <div className="border-b border-border py-1">
             <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {memberships.length === 1 ? "Tenant" : "Switch tenant"}
+              {memberships.length === 1 ? "Tenant" : "Switch Tenant"}
             </p>
             <ul role="menu">
               {memberships.map((m) => {
@@ -67,7 +67,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <span className="truncate">{m.name}</span>
-                        <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground mt-[3px]">
                           {m.role}
                         </span>
                       </span>
@@ -87,7 +87,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
               onClick={onOpenTeam}
               className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
             >
-              Team settings
+              Team Settings
             </button>
           </div>
         ) : null}
@@ -98,7 +98,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
             onClick={() => signOut()}
             className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
           >
-            Sign out
+            Sign Out
           </button>
         </div>
       </PopoverContent>
