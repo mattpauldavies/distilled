@@ -1,18 +1,20 @@
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { server } from "@/test/mocks/server"
+import { TestProviders } from "@/test/render"
 import { useMetricSection } from "./useMetricSection"
 
 vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
+  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
 }))
 
 describe("useMetricSection", () => {
   it("fetches and returns data", async () => {
     server.use(http.get("/metrics/foo", () => HttpResponse.json({ hello: "world" })))
 
-    const { result } = renderHook(() =>
-      useMetricSection<{ hello: string }>("/metrics/foo", { repo_id: "r1" })
+    const { result } = renderHook(
+      () => useMetricSection<{ hello: string }>("/metrics/foo", { repo_id: "r1" }),
+      { wrapper: TestProviders }
     )
 
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -21,8 +23,10 @@ describe("useMetricSection", () => {
   })
 
   it("does nothing when path is null", () => {
-    const { result } = renderHook(() => useMetricSection("/", undefined))
-    const nullResult = renderHook(() => useMetricSection(null))
+    const { result } = renderHook(() => useMetricSection("/", undefined), {
+      wrapper: TestProviders,
+    })
+    const nullResult = renderHook(() => useMetricSection(null), { wrapper: TestProviders })
     expect(nullResult.result.current.data).toBeNull()
     expect(nullResult.result.current.loading).toBe(false)
     // the non-null one fires a real request which is fine
@@ -38,7 +42,9 @@ describe("useMetricSection", () => {
       })
     )
 
-    const { result } = renderHook(() => useMetricSection("/metrics/bar", { repo_id: "r1" }))
+    const { result } = renderHook(() => useMetricSection("/metrics/bar", { repo_id: "r1" }), {
+      wrapper: TestProviders,
+    })
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(seen[0]).toBe("Bearer test-clerk-token")
   })
@@ -46,7 +52,9 @@ describe("useMetricSection", () => {
   it("returns error on non-2xx", async () => {
     server.use(http.get("/metrics/broken", () => new HttpResponse(null, { status: 500 })))
 
-    const { result } = renderHook(() => useMetricSection("/metrics/broken", { repo_id: "r1" }))
+    const { result } = renderHook(() => useMetricSection("/metrics/broken", { repo_id: "r1" }), {
+      wrapper: TestProviders,
+    })
     await waitFor(() => expect(result.current.error).not.toBeNull())
     expect(result.current.error).toBe("Failed to load /metrics/broken: 500")
     expect(result.current.data).toBeNull()
@@ -62,8 +70,9 @@ describe("useMetricSection", () => {
       })
     )
 
-    const { result } = renderHook(() =>
-      useMetricSection<{ ok: boolean }>("/metrics/retry", { repo_id: "r1" })
+    const { result } = renderHook(
+      () => useMetricSection<{ ok: boolean }>("/metrics/retry", { repo_id: "r1" }),
+      { wrapper: TestProviders }
     )
     await waitFor(() => expect(result.current.error).not.toBeNull())
 
@@ -82,8 +91,9 @@ describe("useMetricSection", () => {
       })
     )
 
-    const { result } = renderHook(() =>
-      useMetricSection("/metrics/windowed", { repo_id: "r1", window: 90 })
+    const { result } = renderHook(
+      () => useMetricSection("/metrics/windowed", { repo_id: "r1", window: 90 }),
+      { wrapper: TestProviders }
     )
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(urls[0]).toContain("repo_id=r1")
@@ -102,7 +112,7 @@ describe("useMetricSection", () => {
     const { result, rerender } = renderHook(
       ({ repoId }: { repoId: string }) =>
         useMetricSection("/metrics/changing", { repo_id: repoId }),
-      { initialProps: { repoId: "r1" } }
+      { initialProps: { repoId: "r1" }, wrapper: TestProviders }
     )
     await waitFor(() => expect(result.current.loading).toBe(false))
     rerender({ repoId: "r2" })

@@ -11,6 +11,12 @@ import {
 } from "../factories"
 
 export const handlers = [
+  http.get("/me/tenants", () => {
+    return HttpResponse.json({
+      items: [{ id: "tenant-1", name: "Test Tenant", slug: "test", role: "owner" }],
+    })
+  }),
+
   http.get("/repos", () => {
     return HttpResponse.json({
       items: [makeRepo(), makeRepo({ id: "repo-2", full_name: "org/other-repo" })],

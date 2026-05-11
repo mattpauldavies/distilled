@@ -40,7 +40,7 @@ def make_test_user(github_account_id: int = GITHUB_ACCOUNT_ID) -> User:
         id=uuid.uuid4(),
         clerk_user_id="user_test123",
         github_account_id=github_account_id,
-        tenant_id=TENANT_ID,
+        last_active_tenant_id=TENANT_ID,
     )
 
 
@@ -74,8 +74,12 @@ async def test_handle_created_known_account(mock_github_cls, mock_discover, mock
     user_result = MagicMock()
     user_result.scalar_one_or_none.return_value = test_user
 
+    membership_result = MagicMock()
+    membership_result.scalar_one_or_none.return_value = TENANT_ID
+
     mock_session.execute.side_effect = [
         user_result,  # User lookup by github_account_id
+        membership_result,  # owner membership lookup
         mock_insert_result(1),  # upsert installation
         mock_result(scalar=installation),  # get installation
         mock_insert_result(1),  # sync repo 1

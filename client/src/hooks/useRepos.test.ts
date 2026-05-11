@@ -1,15 +1,16 @@
 import { renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { server } from "@/test/mocks/server"
+import { TestProviders } from "@/test/render"
 import { useRepos } from "./useRepos"
 
 vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
+  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
 }))
 
 describe("useRepos", () => {
   it("fetches repos successfully", async () => {
-    const { result } = renderHook(() => useRepos())
+    const { result } = renderHook(() => useRepos(), { wrapper: TestProviders })
 
     expect(result.current.loading).toBe(true)
 
@@ -21,7 +22,7 @@ describe("useRepos", () => {
   })
 
   it("starts in loading state", () => {
-    const { result } = renderHook(() => useRepos())
+    const { result } = renderHook(() => useRepos(), { wrapper: TestProviders })
     expect(result.current.loading).toBe(true)
     expect(result.current.repos).toEqual([])
   })
@@ -33,7 +34,7 @@ describe("useRepos", () => {
       })
     )
 
-    const { result } = renderHook(() => useRepos())
+    const { result } = renderHook(() => useRepos(), { wrapper: TestProviders })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
@@ -48,7 +49,7 @@ describe("useRepos", () => {
       })
     )
 
-    const { result } = renderHook(() => useRepos())
+    const { result } = renderHook(() => useRepos(), { wrapper: TestProviders })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
@@ -65,7 +66,7 @@ describe("useRepos", () => {
       })
     )
 
-    const { result } = renderHook(() => useRepos())
+    const { result } = renderHook(() => useRepos(), { wrapper: TestProviders })
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(headers[0]).toBe("Bearer test-clerk-token")

@@ -25,6 +25,7 @@ NOW = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
 TEST_CURRENT_USER = CurrentUser(
     user_id=USER_ID,
     tenant_id=TENANT_ID,
+    role="owner",
     clerk_user_id="user_test123",
 )
 

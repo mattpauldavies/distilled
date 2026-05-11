@@ -11,8 +11,8 @@ import { DeploymentFrequencyChartPanel } from "@/components/metrics/DeploymentFr
 import { LeadTimeChartPanel } from "@/components/metrics/LeadTimeChartPanel"
 import { PRCycleTimeChartPanel } from "@/components/metrics/PRCycleTimeChartPanel"
 import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
+import { InvitationBanner } from "@/components/InvitationBanner"
 import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
-import { SignOutButton } from "@/components/SignOutButton"
 import type { DaysWindow, Repo } from "@/types/dashboard"
 
 function timeAgo(isoString: string | null): string {
@@ -28,9 +28,10 @@ function timeAgo(isoString: string | null): string {
 
 interface DashboardProps {
   repos: Repo[]
+  onOpenTeam?: () => void
 }
 
-export function Dashboard({ repos }: DashboardProps) {
+export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [selectedDaysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
@@ -46,6 +47,7 @@ export function Dashboard({ repos }: DashboardProps) {
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
+      <InvitationBanner />
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1 pr-6">
           <h1 className="truncate text-2xl font-bold tracking-tight">
@@ -72,17 +74,15 @@ export function Dashboard({ repos }: DashboardProps) {
             </div>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <DashboardControls
-            repos={repos}
-            selectedRepoId={selectedRepoId}
-            onRepoChange={setUserSelectedRepoId}
-            daysWindow={daysWindow}
-            onDaysWindowChange={setDaysWindow}
-            daysOfData={daysOfData}
-          />
-          <SignOutButton />
-        </div>
+        <DashboardControls
+          repos={repos}
+          selectedRepoId={selectedRepoId}
+          onRepoChange={setUserSelectedRepoId}
+          daysWindow={daysWindow}
+          onDaysWindowChange={setDaysWindow}
+          daysOfData={daysOfData}
+          onOpenTeam={onOpenTeam}
+        />
       </div>
 
       <div className="flex items-center gap-3">
