@@ -13,9 +13,6 @@ import { PRCycleTimeChartPanel } from "@/components/metrics/PRCycleTimeChartPane
 import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
 import { InvitationBanner } from "@/components/InvitationBanner"
 import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
-import { SignOutButton } from "@/components/SignOutButton"
-import { Button } from "@/components/ui/button"
-import { useTenantContext } from "@/lib/tenantContext"
 import type { DaysWindow, Repo } from "@/types/dashboard"
 
 function timeAgo(isoString: string | null): string {
@@ -35,7 +32,6 @@ interface DashboardProps {
 }
 
 export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
-  const { activeTenant } = useTenantContext()
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [selectedDaysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
@@ -78,22 +74,15 @@ export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
             </div>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <DashboardControls
-            repos={repos}
-            selectedRepoId={selectedRepoId}
-            onRepoChange={setUserSelectedRepoId}
-            daysWindow={daysWindow}
-            onDaysWindowChange={setDaysWindow}
-            daysOfData={daysOfData}
-          />
-          {activeTenant?.role === "owner" && onOpenTeam ? (
-            <Button variant="outline" size="sm" onClick={onOpenTeam}>
-              Team
-            </Button>
-          ) : null}
-          <SignOutButton />
-        </div>
+        <DashboardControls
+          repos={repos}
+          selectedRepoId={selectedRepoId}
+          onRepoChange={setUserSelectedRepoId}
+          daysWindow={daysWindow}
+          onDaysWindowChange={setDaysWindow}
+          daysOfData={daysOfData}
+          onOpenTeam={onOpenTeam}
+        />
       </div>
 
       <div className="flex items-center gap-3">

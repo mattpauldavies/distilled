@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DaysSelectorButton } from "@/components/DaysSelectorButton"
-import { TenantSwitcher } from "@/components/TenantSwitcher"
+import { ProfileMenu } from "@/components/ProfileMenu"
 import { WINDOWS } from "@/lib/daysWindow"
 import type { Repo, DaysWindow } from "@/types/dashboard"
 
@@ -17,6 +17,7 @@ interface Props {
   daysWindow: DaysWindow
   onDaysWindowChange: (daysWindow: DaysWindow) => void
   daysOfData: number
+  onOpenTeam?: () => void
 }
 
 export function DashboardControls({
@@ -26,6 +27,7 @@ export function DashboardControls({
   daysWindow,
   onDaysWindowChange,
   daysOfData,
+  onOpenTeam,
 }: Props) {
   return (
     <div className="flex items-center gap-4">
@@ -54,7 +56,7 @@ export function DashboardControls({
         ))}
       </div>
 
-      <TenantSwitcher />
+      <ProfileMenu onOpenTeam={onOpenTeam} />
     </div>
   )
 }

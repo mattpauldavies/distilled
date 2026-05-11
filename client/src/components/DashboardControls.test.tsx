@@ -6,6 +6,10 @@ import { renderWithProviders as render } from "@/test/render"
 
 vi.mock("@clerk/clerk-react", () => ({
   useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
+  useClerk: () => ({ signOut: vi.fn() }),
+  useUser: () => ({
+    user: { fullName: "Test User", primaryEmailAddress: { emailAddress: "test@example.com" } },
+  }),
 }))
 
 describe("DashboardControls", () => {

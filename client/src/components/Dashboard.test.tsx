@@ -8,6 +8,9 @@ import { Dashboard } from "./Dashboard"
 vi.mock("@clerk/clerk-react", () => ({
   useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
   useClerk: () => ({ signOut: vi.fn() }),
+  useUser: () => ({
+    user: { fullName: "Test User", primaryEmailAddress: { emailAddress: "test@example.com" } },
+  }),
 }))
 
 vi.mock("./charts/DeploymentChart", () => ({
@@ -83,11 +86,11 @@ describe("Dashboard", () => {
     expect(screen.getByText("Retry")).toBeInTheDocument()
   })
 
-  it("shows sign out button", async () => {
+  it("renders the profile menu trigger", async () => {
     render(<Dashboard repos={defaultRepos} />)
 
     await waitFor(() => {
-      expect(screen.getByText("Sign out")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Account menu" })).toBeInTheDocument()
     })
   })
 
