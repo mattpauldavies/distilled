@@ -1,7 +1,12 @@
-import { render, screen } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { DashboardControls } from "./DashboardControls"
 import { makeRepo } from "@/test/factories"
+import { renderWithProviders as render } from "@/test/render"
+
+vi.mock("@clerk/clerk-react", () => ({
+  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
+}))
 
 describe("DashboardControls", () => {
   const repos = [makeRepo(), makeRepo({ id: "repo-2", full_name: "org/other-repo" })]

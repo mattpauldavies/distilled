@@ -14,7 +14,6 @@ import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
 import { InvitationBanner } from "@/components/InvitationBanner"
 import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
 import { SignOutButton } from "@/components/SignOutButton"
-import { TenantSwitcher } from "@/components/TenantSwitcher"
 import { Button } from "@/components/ui/button"
 import { useTenantContext } from "@/lib/tenantContext"
 import type { DaysWindow, Repo } from "@/types/dashboard"
@@ -88,7 +87,6 @@ export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
             onDaysWindowChange={setDaysWindow}
             daysOfData={daysOfData}
           />
-          <TenantSwitcher />
           {activeTenant?.role === "owner" && onOpenTeam ? (
             <Button variant="outline" size="sm" onClick={onOpenTeam}>
               Team

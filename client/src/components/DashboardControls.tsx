@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DaysSelectorButton } from "@/components/DaysSelectorButton"
+import { TenantSwitcher } from "@/components/TenantSwitcher"
 import { WINDOWS } from "@/lib/daysWindow"
 import type { Repo, DaysWindow } from "@/types/dashboard"
 
@@ -52,6 +53,8 @@ export function DashboardControls({
           />
         ))}
       </div>
+
+      <TenantSwitcher />
     </div>
   )
 }
