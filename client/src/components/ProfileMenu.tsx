@@ -87,7 +87,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
               onClick={onOpenTeam}
               className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
             >
-              Invite team members
+              Team settings
             </button>
           </div>
         ) : null}
