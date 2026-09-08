@@ -6,8 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.dependencies.repo import get_verified_repo
-from app.dependencies.tenant import get_tenant_id
+from app.middleware.repo import get_verified_repo
+from app.middleware.tenant import get_tenant_id
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.pull_request import PullRequest

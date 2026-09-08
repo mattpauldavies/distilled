@@ -21,9 +21,9 @@ GitHub webhook ──► FastAPI ──► PostgreSQL
 | Services     | `app/services/`     | Business logic, GitHub API, webhook processing            |
 | Models       | `app/models/`       | SQLAlchemy ORM, database schema, shared query predicates  |
 | Schemas      | `app/schemas/`      | Pydantic validation, API contracts                        |
-| Dependencies | `app/dependencies/` | FastAPI request dependencies (tenant and repo resolution) |
+| Middleware   | `app/middleware/`   | Request-scoped context via FastAPI dependencies (tenant, repo) |
 
-Cross-cutting HTTP middleware (CORS, security headers, rate limiting) lives in `app/main.py`.
+Note `app/middleware/` holds per-route FastAPI dependencies; cross-cutting ASGI middleware (CORS, security headers, rate limiting) lives in `app/main.py`.
 
 Conventions the layers follow are recorded as ADRs: transaction ownership in
 [ADR 003](adrs/003-transaction-boundaries.md), query placement in

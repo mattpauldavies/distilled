@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.dependencies.repo import get_verified_repo
-from app.dependencies.tenant import get_tenant_id
+from app.middleware.repo import get_verified_repo
+from app.middleware.tenant import get_tenant_id
 from app.models.repository import Repository
 from app.schemas.metrics import (
     DataQuality,

@@ -9,7 +9,7 @@ from tests.conftest import TENANT_ID, make_repo, mock_result
 
 @pytest.mark.asyncio
 async def test_get_verified_repo_returns_repo():
-    from app.dependencies.repo import get_verified_repo
+    from app.middleware.repo import get_verified_repo
 
     repo = make_repo()
     session = AsyncMock()
@@ -21,7 +21,7 @@ async def test_get_verified_repo_returns_repo():
 
 @pytest.mark.asyncio
 async def test_get_verified_repo_404_when_not_found():
-    from app.dependencies.repo import get_verified_repo
+    from app.middleware.repo import get_verified_repo
 
     session = AsyncMock()
     session.execute.return_value = mock_result(scalar_or_none=None)

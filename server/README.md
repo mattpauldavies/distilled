@@ -33,7 +33,7 @@ app/
   schemas/         # Pydantic request/response shapes (API contract)
   routes/          # FastAPI routers (HTTP layer)
   services/        # Business logic (webhook handling, GitHub API, attribution)
-  dependencies/    # FastAPI request dependencies (tenant, repo resolution)
+  middleware/      # Request-scoped context via FastAPI dependencies (tenant, repo)
 database/          # Alembic migrations
 ```
 

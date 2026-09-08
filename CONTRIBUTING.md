@@ -164,7 +164,7 @@ server/           # FastAPI backend
     schemas/      # Pydantic request/response schemas
     routes/       # HTTP endpoints
     services/     # Business logic
-    dependencies/  # FastAPI request dependencies (tenant, repo)
+    middleware/   # Request-scoped context via FastAPI dependencies (tenant, repo)
   database/       # Alembic migrations
   tests/          # pytest suite
 

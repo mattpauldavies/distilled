@@ -81,9 +81,12 @@ FastAPI. It now raises a framework-free `AuthError`, translated to 401 in `app/a
 Extracted to `pr_ingestion_service`; shared payload-parsing helpers (`parse_datetime`,
 `validate_github_url`) moved to `webhook_service`. Tests split accordingly.
 
-### S10 — `app/middleware/` contained dependencies, not middleware (LOW — fixed)
+### S10 — `app/middleware/` contained dependencies, not middleware (LOW — documented, not renamed)
 
-Renamed to `app/dependencies/` (the real HTTP middleware lives in `main.py`); docs updated.
+The package holds per-route FastAPI dependencies rather than ASGI middleware. A rename to
+`app/dependencies/` was applied and then reverted on review — the established name was
+preferred. The distinction is now documented in the package docstring and in
+`docs/architecture.md` instead.
 
 ### S11 — Smaller fixes (LOW — fixed)
 
