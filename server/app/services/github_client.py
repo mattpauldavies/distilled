@@ -197,6 +197,15 @@ class GitHubClient:
         )
         if resp.status_code == 404:
             return []
+        if resp.status_code == 403:
+            # Plan-gated: environments on private repos require GitHub Pro/Team/
+            # Enterprise; Free-plan private repos get 403 from this endpoint.
+            logger.info(
+                "environments unavailable for %s/%s (403 — likely plan-gated private repo)",
+                owner,
+                repo,
+            )
+            return []
         resp.raise_for_status()
         data = resp.json()
         return data.get("environments", [])
