@@ -12,9 +12,7 @@ import hashlib
 import os
 import random
 import uuid
-from collections import defaultdict
-from datetime import UTC, date, datetime, timedelta
-from statistics import median
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
@@ -25,18 +23,12 @@ from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.environment import Environment
 from app.models.github_installation import GitHubInstallation
-from app.models.metrics import (
-    DeploymentDailyMetric,
-    LeadTimeWeeklyMetric,
-    MetricsRefreshLog,
-    PRCycleTimeWeeklyMetric,
-    PRThroughputWeeklyMetric,
-)
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 from app.models.tenant import Tenant
 from app.models.tenant_user import TenantUser
 from app.models.user import User
+from app.services.metrics_service import recompute_repo_and_log
 
 # ── Fixed IDs ────────────────────────────────────────────────────────────────
 
@@ -174,10 +166,6 @@ def make_sha(seed: str) -> str:
     """Deterministic 40-char hex SHA from a seed string."""
     return hashlib.sha1(seed.encode(), usedforsecurity=False).hexdigest()
 
-
-def week_monday(dt: datetime) -> date:
-    """Return the Monday of the week containing dt."""
-    return dt.date() - timedelta(days=dt.weekday())
 
 
 def _generate_week_prs(
@@ -337,95 +325,6 @@ def _build_attributions(
     return attributions
 
 
-def _compute_metrics(
-    tenant_id: UUID,
-    repo_id: UUID,
-    all_prs: list[PullRequest],
-    deployments: list[ProductionDeploymentEvent],
-    attributions: list[DeploymentAttribution],
-) -> list:
-    """Compute all metrics rows from generated data."""
-    metrics: list = []
-
-    # Build PR → first deployment lookup from attributions
-    pr_to_first_deploy: dict[UUID, ProductionDeploymentEvent] = {}
-    deploy_map = {d.id: d for d in deployments}
-    for attr in attributions:
-        deploy = deploy_map.get(attr.deployment_id)
-        if deploy:
-            existing = pr_to_first_deploy.get(attr.pr_id)
-            if existing is None or deploy.deployed_at < existing.deployed_at:
-                pr_to_first_deploy[attr.pr_id] = deploy
-
-    # Deployment daily metrics
-    daily: defaultdict[date, int] = defaultdict(int)
-    for deploy in deployments:
-        daily[deploy.deployed_at.date()] += 1
-    for day, count in daily.items():
-        metrics.append(
-            DeploymentDailyMetric(
-                tenant_id=tenant_id,
-                repo_id=repo_id,
-                date=day,
-                deployment_count=count,
-            )
-        )
-
-    # Group merged PRs by ISO week (Monday)
-    merged_prs = [pr for pr in all_prs if pr.merged_at]
-    weeks: defaultdict[date, list[PullRequest]] = defaultdict(list)
-    for pr in merged_prs:
-        weeks[week_monday(pr.merged_at)].append(pr)
-
-    for ws, week_prs in weeks.items():
-        # Throughput
-        metrics.append(
-            PRThroughputWeeklyMetric(
-                tenant_id=tenant_id,
-                repo_id=repo_id,
-                week_start=ws,
-                pr_count=len(week_prs),
-            )
-        )
-
-        # PR cycle time
-        cycle_secs = sorted((pr.merged_at - pr.opened_at).total_seconds() for pr in week_prs)
-        med_cycle = median(cycle_secs)
-        p75_cycle = cycle_secs[min(int(len(cycle_secs) * 0.75), len(cycle_secs) - 1)]
-        metrics.append(
-            PRCycleTimeWeeklyMetric(
-                tenant_id=tenant_id,
-                repo_id=repo_id,
-                week_start=ws,
-                median_seconds=med_cycle,
-                p75_seconds=p75_cycle,
-                sample_size=len(cycle_secs),
-            )
-        )
-
-        # Lead time (only for PRs attributed to a deployment)
-        lead_secs = sorted(
-            (pr_to_first_deploy[pr.id].deployed_at - pr.opened_at).total_seconds()
-            for pr in week_prs
-            if pr.id in pr_to_first_deploy
-        )
-        if lead_secs:
-            med_lead = median(lead_secs)
-            p75_lead = lead_secs[min(int(len(lead_secs) * 0.75), len(lead_secs) - 1)]
-            metrics.append(
-                LeadTimeWeeklyMetric(
-                    tenant_id=tenant_id,
-                    repo_id=repo_id,
-                    week_start=ws,
-                    median_seconds=med_lead,
-                    p75_seconds=p75_lead,
-                    sample_size=len(lead_secs),
-                )
-            )
-
-    return metrics
-
-
 async def main() -> None:
     if settings.environment == "production":
         print("FATAL: refusing to run seed script against production database")
@@ -493,17 +392,18 @@ async def main() -> None:
             dict(id=WEB_REPO_ID, github_id=GITHUB_ID_WEB, full_name="acme-corp/web"),
             dict(id=API_REPO_ID, github_id=GITHUB_ID_API, full_name="acme-corp/api"),
         ]
+        seeded_repos: list[Repository] = []
         for rc in repos_config:
-            session.add(
-                Repository(
-                    id=rc["id"],
-                    tenant_id=TENANT_ID,
-                    installation_id=INSTALLATION_UUID,
-                    github_id=rc["github_id"],
-                    full_name=rc["full_name"],
-                    default_branch="main",
-                )
+            repo = Repository(
+                id=rc["id"],
+                tenant_id=TENANT_ID,
+                installation_id=INSTALLATION_UUID,
+                github_id=rc["github_id"],
+                full_name=rc["full_name"],
+                default_branch="main",
             )
+            session.add(repo)
+            seeded_repos.append(repo)
 
         # Flush so repositories exist before environments (FK dependency)
         await session.flush()
@@ -628,26 +528,16 @@ async def main() -> None:
             session.add(attr)
 
         # ── Metrics ───────────────────────────────────────────────────────────
-        for metric in _compute_metrics(TENANT_ID, WEB_REPO_ID, web_prs, web_deployments, web_attributions):
-            session.add(metric)
-        for metric in _compute_metrics(TENANT_ID, API_REPO_ID, api_prs, api_deployments, api_attributions):
-            session.add(metric)
-
-        # ── Metrics refresh log ───────────────────────────────────────────────
-        # Mark both repos as freshly refreshed so the dashboard freshness
-        # indicator shows "Data current" and the cold-start modal stays hidden.
-        refresh_hour = now.replace(minute=0, second=0, microsecond=0)
-        for repo_id in (WEB_REPO_ID, API_REPO_ID):
-            session.add(
-                MetricsRefreshLog(
-                    tenant_id=TENANT_ID,
-                    repo_id=repo_id,
-                    hour=refresh_hour,
-                    started_at=now - timedelta(minutes=1),
-                    completed_at=now,
-                    status="success",
+        # Derive metrics (and the refresh log) through the real pipeline so
+        # demo numbers always match what the production algorithm would show.
+        await session.flush()
+        for repo in seeded_repos:
+            recompute_result = await recompute_repo_and_log(TENANT_ID, repo, session)
+            if recompute_result.status != "success":
+                print(
+                    f"WARNING: metrics recompute failed for {repo.full_name}: "
+                    f"{recompute_result.error_message}"
                 )
-            )
 
         await session.commit()
         open_pr_count = len(web_open_prs + api_open_prs)
