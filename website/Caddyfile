@@ -1,0 +1,19 @@
+{
+	admin off
+	# The platform edge terminates TLS; this container only ever sees plain
+	# HTTP on $PORT, and has no control over the hostname a cert would need.
+	auto_https off
+}
+
+:{$PORT:8080} {
+	root * /srv
+	encode gzip zstd
+	file_server
+	header Cache-Control "public, max-age=300"
+
+	# Deliberately no SPA fallback — a missing marketing page must 404 rather
+	# than render the homepage under a wrong URL and get indexed as one.
+	handle_errors {
+		respond "{err.status_code} {err.status_text}" {err.status_code}
+	}
+}

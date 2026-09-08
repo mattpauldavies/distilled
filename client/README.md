@@ -22,6 +22,7 @@ cp .env.example .env.local
 | `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)    |
 | `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL  |
 | `VITE_API_BASE_URL`          | Backend base URL (e.g. `http://localhost:8000`) |
+| `VITE_SENTRY_DSN`            | Sentry DSN; error reporting is off when unset   |
 
 ## Run
 
@@ -36,6 +37,35 @@ Set `VITE_API_BASE_URL` (in `.env.local`) to the backend's URL — `http://local
 ```sh
 npm run build  # outputs to dist/
 ```
+
+## Deployment
+
+`Dockerfile` builds the SPA and serves it with Caddy on `$PORT`, for container
+hosts that have no dedicated static-site product. A Node stage runs
+`npm run build`; the resulting `dist/` is copied into a `caddy:2-alpine` stage
+configured by `Caddyfile`, so no Node runtime ships to production.
+
+Vite inlines `VITE_*` at **build** time, so every variable the app needs must be
+declared as an `ARG` in the build stage and passed to `docker build`. Setting one
+at runtime has no effect — the value is already baked into the bundle. Adding a
+new `VITE_*` variable therefore means adding a matching `ARG` line, or it
+silently reaches the browser as `undefined`.
+
+Never put a secret in a `VITE_*` variable: the bundle is public.
+
+```bash
+docker build -t distilled-client \
+  --build-arg VITE_API_BASE_URL=https://api.example.com \
+  --build-arg VITE_CLERK_PUBLISHABLE_KEY=pk_test_... \
+  --build-arg VITE_GITHUB_APP_SLUG=your-app-slug .
+
+docker run --rm -e PORT=8080 -p 8080:8080 distilled-client
+```
+
+`Caddyfile` provides the SPA history fallback (`try_files {path} /index.html`),
+so a reload on a client-side route such as `/settings/team` serves the app shell
+rather than a 404. Hashed `/assets/*` files are cached immutably; `index.html`
+is not cached, so a deploy takes effect immediately.
 
 ## Adding shadcn/ui components
 
