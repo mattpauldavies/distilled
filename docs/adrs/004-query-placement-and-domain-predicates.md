@@ -17,7 +17,7 @@ change a metric.
    trivial CRUD adds indirection without value. The shared count-then-page pattern lives in
    `app/services/pagination.py::paginate`.
 2. **Anything with aggregation, joins across contexts, or domain rules goes in a service**
-   (`dashboard_service`, `metrics_service`, `pull_request_service`, `data_quality_service`).
+   (`read_metrics_service`, `batch_metrics_service`, `read_data_quality_service`).
 3. **Core domain filters are defined once on the model** as class-level predicate builders:
    `PullRequest.merged_on_branch(...)` and `PullRequest.open_on_branch(...)`. New metric
    queries must use these rather than re-spelling the tenant/repo/branch/merged clauses.

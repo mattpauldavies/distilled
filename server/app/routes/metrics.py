@@ -17,7 +17,7 @@ from app.schemas.metrics import (
     PRCycleTimeSection,
     ThroughputSection,
 )
-from app.services import dashboard_service
+from app.services import read_metrics_service
 
 router = APIRouter(prefix="/metrics")
 
@@ -29,7 +29,7 @@ async def get_deployment_frequency_endpoint(
     session: AsyncSession = Depends(get_session),
     window: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> DeploymentFrequencySection:
-    return await dashboard_service.get_deployment_frequency_section(tenant_id, repo, session, int(window))
+    return await read_metrics_service.get_deployment_frequency_section(tenant_id, repo, session, int(window))
 
 
 @router.get("/lead-time")
@@ -39,7 +39,7 @@ async def get_lead_time_endpoint(
     session: AsyncSession = Depends(get_session),
     window: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> LeadTimeSection:
-    return await dashboard_service.get_lead_time_section(tenant_id, repo, session, int(window))
+    return await read_metrics_service.get_lead_time_section(tenant_id, repo, session, int(window))
 
 
 @router.get("/pr-cycle-time")
@@ -49,7 +49,7 @@ async def get_pr_cycle_time_endpoint(
     session: AsyncSession = Depends(get_session),
     window: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> PRCycleTimeSection:
-    return await dashboard_service.get_pr_cycle_time_section(tenant_id, repo, session, int(window))
+    return await read_metrics_service.get_pr_cycle_time_section(tenant_id, repo, session, int(window))
 
 
 @router.get("/throughput")
@@ -59,7 +59,7 @@ async def get_throughput_endpoint(
     session: AsyncSession = Depends(get_session),
     window: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> ThroughputSection:
-    return await dashboard_service.get_throughput_section(tenant_id, repo, session, int(window))
+    return await read_metrics_service.get_throughput_section(tenant_id, repo, session, int(window))
 
 
 @router.get("/open-prs")
@@ -68,7 +68,7 @@ async def get_open_prs_endpoint(
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
 ) -> OpenPRsSection:
-    return await dashboard_service.get_open_prs_section(tenant_id, repo, session)
+    return await read_metrics_service.get_open_prs_section(tenant_id, repo, session)
 
 
 @router.get("/pr-ageing")
@@ -77,7 +77,7 @@ async def get_pr_ageing_endpoint(
     repo: Repository = Depends(get_verified_repo),
     session: AsyncSession = Depends(get_session),
 ) -> PRAgeingSection:
-    return await dashboard_service.get_pr_ageing_section(tenant_id, repo, session)
+    return await read_metrics_service.get_pr_ageing_section(tenant_id, repo, session)
 
 
 @router.get("/data-quality")
@@ -87,4 +87,4 @@ async def get_data_quality_endpoint(
     session: AsyncSession = Depends(get_session),
     window: DaysWindow = Query(DaysWindow.THIRTY),
 ) -> DataQuality:
-    return await dashboard_service.get_data_quality_section(tenant_id, repo, session, int(window))
+    return await read_metrics_service.get_data_quality_section(tenant_id, repo, session, int(window))

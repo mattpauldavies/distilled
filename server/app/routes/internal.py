@@ -23,7 +23,7 @@ from app.db import get_session
 from app.models.repository import Repository
 from app.rate_limit import limiter
 from app.services import invitation_service
-from app.services.metrics_service import recompute_repo_and_log
+from app.services.batch_metrics_service import recompute_repo_and_log
 
 _bearer_scheme = HTTPBearer()
 

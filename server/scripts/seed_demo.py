@@ -28,7 +28,7 @@ from app.models.repository import Repository
 from app.models.tenant import Tenant
 from app.models.tenant_user import TenantUser
 from app.models.user import User
-from app.services.metrics_service import recompute_repo_and_log
+from app.services.batch_metrics_service import recompute_repo_and_log
 
 # ── Fixed IDs ────────────────────────────────────────────────────────────────
 

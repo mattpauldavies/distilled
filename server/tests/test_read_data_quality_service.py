@@ -16,7 +16,7 @@ from tests.conftest import (
 
 @pytest.mark.asyncio
 async def test_freshness_returns_no_data_when_no_records(mock_session):
-    from app.services.data_quality_service import get_metrics_freshness
+    from app.services.read_data_quality_service import get_metrics_freshness
 
     mock_session.execute = AsyncMock(
         side_effect=[
@@ -34,7 +34,7 @@ async def test_freshness_returns_no_data_when_no_records(mock_session):
 
 @pytest.mark.asyncio
 async def test_freshness_returns_ok_when_recent(mock_session):
-    from app.services.data_quality_service import get_metrics_freshness
+    from app.services.read_data_quality_service import get_metrics_freshness
 
     recent = datetime.now(UTC) - timedelta(minutes=30)
     mock_session.execute = AsyncMock(
@@ -52,7 +52,7 @@ async def test_freshness_returns_ok_when_recent(mock_session):
 
 @pytest.mark.asyncio
 async def test_freshness_returns_stale_when_old(mock_session):
-    from app.services.data_quality_service import get_metrics_freshness
+    from app.services.read_data_quality_service import get_metrics_freshness
 
     old = datetime.now(UTC) - timedelta(hours=3)
     mock_session.execute = AsyncMock(
@@ -70,7 +70,7 @@ async def test_freshness_returns_stale_when_old(mock_session):
 
 @pytest.mark.asyncio
 async def test_freshness_boundary_exactly_2h_is_ok(mock_session):
-    from app.services.data_quality_service import get_metrics_freshness
+    from app.services.read_data_quality_service import get_metrics_freshness
 
     now = datetime(2025, 1, 15, 14, 0, 0, tzinfo=UTC)
     boundary = now - timedelta(hours=2)
@@ -88,7 +88,7 @@ async def test_freshness_boundary_exactly_2h_is_ok(mock_session):
 
 @pytest.mark.asyncio
 async def test_freshness_includes_days_of_data(mock_session):
-    from app.services.data_quality_service import get_metrics_freshness
+    from app.services.read_data_quality_service import get_metrics_freshness
 
     now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
     oldest_pr = now - timedelta(days=45, hours=3)
@@ -110,7 +110,7 @@ async def test_freshness_includes_days_of_data(mock_session):
 
 @pytest.mark.asyncio
 async def test_days_of_data_returns_zero_when_no_prs(mock_session):
-    from app.services.data_quality_service import get_days_of_data
+    from app.services.read_data_quality_service import get_days_of_data
 
     mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
 
@@ -121,7 +121,7 @@ async def test_days_of_data_returns_zero_when_no_prs(mock_session):
 
 @pytest.mark.asyncio
 async def test_days_of_data_computes_span_from_oldest_pr(mock_session):
-    from app.services.data_quality_service import get_days_of_data
+    from app.services.read_data_quality_service import get_days_of_data
 
     now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
     oldest = now - timedelta(days=12, hours=5)
@@ -134,7 +134,7 @@ async def test_days_of_data_computes_span_from_oldest_pr(mock_session):
 
 @pytest.mark.asyncio
 async def test_days_of_data_zero_when_pr_is_same_day(mock_session):
-    from app.services.data_quality_service import get_days_of_data
+    from app.services.read_data_quality_service import get_days_of_data
 
     now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
     today = now - timedelta(hours=2)
@@ -179,7 +179,7 @@ async def test_production_envs_returns_empty_when_none(mock_session):
 
 @pytest.mark.asyncio
 async def test_attribution_coverage_computes_percentage(mock_session):
-    from app.services.data_quality_service import get_attribution_coverage
+    from app.services.read_data_quality_service import get_attribution_coverage
 
     mock_session.execute = AsyncMock(
         side_effect=[
@@ -195,7 +195,7 @@ async def test_attribution_coverage_computes_percentage(mock_session):
 
 @pytest.mark.asyncio
 async def test_attribution_coverage_returns_none_when_no_prs(mock_session):
-    from app.services.data_quality_service import get_attribution_coverage
+    from app.services.read_data_quality_service import get_attribution_coverage
 
     mock_session.execute = AsyncMock(
         side_effect=[
@@ -211,7 +211,7 @@ async def test_attribution_coverage_returns_none_when_no_prs(mock_session):
 
 @pytest.mark.asyncio
 async def test_attribution_coverage_100_percent(mock_session):
-    from app.services.data_quality_service import get_attribution_coverage
+    from app.services.read_data_quality_service import get_attribution_coverage
 
     mock_session.execute = AsyncMock(
         side_effect=[

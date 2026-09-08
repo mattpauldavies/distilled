@@ -44,7 +44,7 @@ async def test_recompute_rejects_bad_token(metrics_client):
 
 @pytest.mark.asyncio
 async def test_recompute_success(metrics_client, mock_session):
-    from app.services.metrics_service import RecomputeResult
+    from app.services.batch_metrics_service import RecomputeResult
 
     repo = make_repo(id=REPO_ID, default_branch="main")
     repo_result = MagicMock()
@@ -55,7 +55,7 @@ async def test_recompute_success(metrics_client, mock_session):
 
     with (
         patch("app.routes.internal.settings") as mock_settings,
-        patch("app.services.metrics_service.recompute_repo", new_callable=AsyncMock) as mock_recompute,
+        patch("app.services.batch_metrics_service.recompute_repo", new_callable=AsyncMock) as mock_recompute,
     ):
         mock_settings.internal_cron_secret = "test-secret"
         mock_recompute.return_value = RecomputeResult(status="success")

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services.data_quality_service import MetricsFreshness
+from app.services.read_data_quality_service import MetricsFreshness
 from tests.conftest import REPO_ID, make_environment
 
 
@@ -13,15 +13,15 @@ async def test_data_quality_returns_all_fields(client, mock_session):
 
     with (
         patch(
-            "app.services.dashboard_service.get_production_environments",
+            "app.services.read_metrics_service.get_production_environments",
             new_callable=AsyncMock,
         ) as mock_envs,
         patch(
-            "app.services.dashboard_service.get_metrics_freshness",
+            "app.services.read_metrics_service.get_metrics_freshness",
             new_callable=AsyncMock,
         ) as mock_fresh,
         patch(
-            "app.services.dashboard_service.get_attribution_coverage",
+            "app.services.read_metrics_service.get_attribution_coverage",
             new_callable=AsyncMock,
         ) as mock_cov,
     ):
@@ -49,15 +49,15 @@ async def test_data_quality_returns_all_fields(client, mock_session):
 async def test_data_quality_no_production(client, mock_session):
     with (
         patch(
-            "app.services.dashboard_service.get_production_environments",
+            "app.services.read_metrics_service.get_production_environments",
             new_callable=AsyncMock,
         ) as mock_envs,
         patch(
-            "app.services.dashboard_service.get_metrics_freshness",
+            "app.services.read_metrics_service.get_metrics_freshness",
             new_callable=AsyncMock,
         ) as mock_fresh,
         patch(
-            "app.services.dashboard_service.get_attribution_coverage",
+            "app.services.read_metrics_service.get_attribution_coverage",
             new_callable=AsyncMock,
         ) as mock_cov,
     ):

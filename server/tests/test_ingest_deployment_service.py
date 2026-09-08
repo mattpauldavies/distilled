@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services.deployment_service import handle_deployment_status_event
+from app.services.ingest_deployment_service import handle_deployment_status_event
 from tests.conftest import (
     make_deployment,
     make_environment,
@@ -72,7 +72,7 @@ async def test_skips_non_production_env(mock_session):
 
 
 @pytest.mark.asyncio
-@patch("app.services.deployment_service.attribute_prs_to_deployment", new_callable=AsyncMock)
+@patch("app.services.ingest_deployment_service.attribute_prs_to_deployment", new_callable=AsyncMock)
 async def test_processes_successful_deployment(mock_attribute, mock_session):
     repo = make_repo(github_id=111)
     env = make_environment(repo_id=repo.id)

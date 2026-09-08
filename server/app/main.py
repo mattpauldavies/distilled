@@ -32,9 +32,9 @@ from app.routes import (
 logger = logging.getLogger(__name__)
 
 # Import services to register webhook handlers
-import app.services.deployment_service
-import app.services.installation_service
-import app.services.pr_ingestion_service
+import app.services.ingest_deployment_service
+import app.services.ingest_installation_service
+import app.services.ingest_pr_service
 
 
 @asynccontextmanager

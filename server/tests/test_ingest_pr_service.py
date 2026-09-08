@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.pr_ingestion_service import handle_pull_request_event
+from app.services.ingest_pr_service import handle_pull_request_event
 from tests.conftest import make_repo, mock_insert_result, mock_result
 
 

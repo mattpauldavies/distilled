@@ -28,10 +28,10 @@ listing any open PR raised a validation error and returned 500. Fixed to
 ### S2 — Demo seed re-implemented the metric algorithms, and had drifted (HIGH — fixed)
 
 `scripts/seed_demo.py` carried its own copies of the lead time, cycle time, P75, and
-week-bucketing logic — and they disagreed with `metrics_service` (lead time measured from
+week-bucketing logic — and they disagreed with the metrics service (lead time measured from
 `opened_at` instead of `merged_at`; a different P75 rank). Demo data therefore showed numbers
 the production algorithm would never produce. The script now inserts raw rows only and calls
-`metrics_service.recompute_repo_and_log` per repo, deleting ~130 lines and making drift
+`recompute_repo_and_log` per repo, deleting ~130 lines and making drift
 structurally impossible. Verified end-to-end against a live database.
 
 ### S3 — Internal cron endpoints shared a router with the dashboard API (MEDIUM — fixed)
@@ -47,14 +47,14 @@ cron-secret check at router level; the metrics router gets `require_auth` at rou
 ### S4 — The data-quality write lived in a route handler (HIGH — fixed)
 
 The `MetricsRefreshLog` upsert — the write side of the freshness monitoring that
-`data_quality_service` reads — sat inline in the recompute route. Moved into
-`metrics_service.recompute_repo_and_log`; the route now validates, delegates, and commits.
+the data-quality service reads — sat inline in the recompute route. Moved into
+`recompute_repo_and_log` in the batch metrics service; the route now validates, delegates, and commits.
 
 ### S5 — Live queries hiding in the batch-compute service (MEDIUM — fixed)
 
-`metrics_service` hosted three live aggregates (`get_lead_time_aggregate`,
+The batch metrics service hosted three live aggregates (`get_lead_time_aggregate`,
 `get_pr_cycle_time_aggregate`, `get_pr_throughput_summary`) that contradicted the documented
-"pre-computed vs live" service split. Moved to `pull_request_service`; the delineation table
+"pre-computed vs live" service split. Moved to the read side; the delineation table
 in `docs/architecture.md` now distinguishes pre-computed weekly series from live headline
 numbers.
 
@@ -77,8 +77,8 @@ FastAPI. It now raises a framework-free `AuthError`, translated to 401 in `app/a
 
 ### S9 — PR ingestion had no named home (MEDIUM — fixed)
 
-`handle_pull_request_event` lived inside `deployment_service` along with accreted helpers.
-Extracted to `pr_ingestion_service`; shared payload-parsing helpers (`parse_datetime`,
+`handle_pull_request_event` lived inside the deployment handler module along with accreted
+helpers. Extracted to its own ingestion module; shared payload-parsing helpers (`parse_datetime`,
 `validate_github_url`) moved to `webhook_service`. Tests split accordingly.
 
 ### S10 — `app/middleware/` contained dependencies, not middleware (LOW — documented, not renamed)
@@ -159,3 +159,25 @@ handlers). Pinned to `""` in the vitest env.
 - Client: 62 tests passing; ESLint, Prettier, and `tsc --noEmit` clean.
 - Seed script run against a live local database; all four metric tables and the refresh log
   populated by the production pipeline with `success` status.
+
+---
+
+## Post-review naming pass
+
+On review, the service modules were renamed to make each one's pipeline role explicit —
+`ingest_*` (webhook write side), `batch_*` (scheduled write side), `read_*` (query side) —
+and the read side was consolidated so each metric's full read path lives in one module:
+
+| Before | After |
+| --- | --- |
+| `installation_service` | `ingest_installation_service` |
+| `deployment_service` | `ingest_deployment_service` |
+| `pr_ingestion_service` | `ingest_pr_service` |
+| `metrics_service` (minus its four pre-computed readers) | `batch_metrics_service` |
+| `pull_request_service` + `dashboard_service` + those four readers | `read_metrics_service` |
+| `data_quality_service` | `read_data_quality_service` |
+
+`webhook_service`, `attribution_service`, `environment_service`, the identity services,
+`github_client`, and `pagination` were deliberately left unrenamed: the first three are
+shared domain logic rather than one pipeline stage, and the last two are infrastructure
+(`github_client` keeps "client" because it is an API wrapper, not business logic).
