@@ -46,16 +46,37 @@ docs/     # Architecture, RFCs, ADRs, runbooks
 Makefile  # dev commands + database management
 ```
 
-## Everyday commands
+## Makefile targets
 
-```sh
-make dev          # run server + client
-make test         # run all tests
-make lint         # ruff + mypy + eslint + prettier
-make seed-demo    # seed realistic demo data
-```
+| Target             | Description                                                |
+| ------------------ | ---------------------------------------------------------- |
+| `dev`              | Run server + client concurrently                           |
+| `dev-server`       | Server only (port 8000)                                    |
+| `dev-client`       | Client only (port 5173)                                    |
+| `db-up`            | Start Postgres + pgweb (DB browser at port 5050)           |
+| `db-down`          | Stop Postgres + pgweb                                      |
+| `db-reset`         | Drop volume + restart                                      |
+| `migrate`          | Run Alembic migrations                                     |
+| `create-migration` | Create new migration (`MSG="description"`)                 |
+| `test`             | Run all server + client tests                              |
+| `test-server`      | Server tests only                                          |
+| `test-client`      | Client tests only                                          |
+| `test-coverage`    | Server + client tests with coverage                        |
+| `lint`             | Lint server (ruff + mypy) + client (eslint + prettier)     |
+| `lint-server`      | Server lint only                                           |
+| `lint-client`      | Client lint only                                           |
+| `format`           | Auto-format server (ruff) + client (prettier)              |
+| `format-server`    | Server format only                                         |
+| `format-client`    | Client format only                                         |
+| `seed-demo`        | Seed the database with realistic demo data                 |
+| `seed-reset`       | Remove all demo data from the database                     |
+| `seed-claim`       | Link your Clerk user to seed data (`USER=<clerk_user_id>`) |
+| `smoke-install`    | Install Playwright and download Chromium (first-time)      |
+| `smoke-test`       | Run browser smoke tests against the running app            |
+| `website-build`    | Build the marketing website                                |
+| `website-serve`    | Serve the website locally with live reload                 |
 
-Run `make help` for the full list, including database management, coverage, formatting, and browser smoke tests.
+`make help` prints the same list, grouped.
 
 ## Documentation
 
