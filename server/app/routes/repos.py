@@ -22,7 +22,7 @@ async def list_repos(
 ) -> PaginatedResponse[RepoResponse]:
     stmt = (
         select(Repository)
-        .where(Repository.tenant_id == tenant_id)
+        .where(Repository.tenant_id == tenant_id, Repository.removed_at.is_(None))
         .order_by(Repository.full_name)
     )
     return await paginate(session, stmt, pagination, RepoResponse)

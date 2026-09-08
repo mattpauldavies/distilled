@@ -125,11 +125,20 @@ The `logs/` directory is gitignored.
 
 ## Webhook events
 
-| Event                                          | Trigger             | Action                                                 |
-| ---------------------------------------------- | ------------------- | ------------------------------------------------------ |
-| `installation` (created)                       | App installed       | Upsert installation, sync repos, discover environments |
-| `deployment_status` (success)                  | Deployment succeeds | Create deployment event if production environment      |
-| `pull_request` (opened, reopened, closed, ...) | PR lifecycle event  | Upsert PR record (capture draft, closed_at status)     |
+| Event                                          | Trigger                  | Action                                                     |
+| ---------------------------------------------- | ------------------------ | ---------------------------------------------------------- |
+| `installation` (created)                       | App installed            | Upsert installation, sync repos, discover environments     |
+| `installation` (deleted)                       | App uninstalled          | Soft-delete installation and its repos (`removed_at`)      |
+| `installation_repositories` (added)            | Repos added to install   | Upsert repos, discover environments, clear `removed_at`    |
+| `installation_repositories` (removed)          | Repos removed from install | Soft-delete listed repos (`removed_at`)                  |
+| `deployment_status` (success)                  | Deployment succeeds      | Create deployment event if production environment          |
+| `pull_request` (opened, reopened, closed, ...) | PR lifecycle event       | Upsert PR record (capture draft, closed_at status)         |
+
+Repositories and installations are never hard-deleted: removal stamps
+`removed_at` so historical PRs, deployments, and metrics stay intact, and
+re-adding a repo (or re-installing the App) clears the stamp. `GET /repos`
+excludes soft-deleted repos. See
+[RFC 023](../docs/rfcs/023-installation-repository-lifecycle.md).
 
 ### Webhook delivery audit (`webhook_events`)
 
