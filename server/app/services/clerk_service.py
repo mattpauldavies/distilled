@@ -57,7 +57,7 @@ class ClerkJWTVerifier:
         """
         try:
             profile = await self.get_user(clerk_user_id)
-        except HTTPException:
+        except AuthError:
             return []
         emails: list[str] = []
         for entry in profile.get("email_addresses", []) or []:
