@@ -14,4 +14,6 @@ class User(TimestampMixin, Base):
     email: Mapped[str | None] = mapped_column(Text, nullable=True)
     github_username: Mapped[str | None] = mapped_column(Text, nullable=True)
     github_account_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), nullable=False)
+    last_active_tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tenants.id", ondelete="SET NULL"), nullable=True
+    )

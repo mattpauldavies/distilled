@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { makeApiFetch } from "@/lib/api"
-import { useGetToken } from "@/lib/auth"
+import { useApiFetch } from "@/lib/tenantContext"
 
 export interface MetricSection<T> {
   data: T | null
@@ -13,7 +12,7 @@ export function useMetricSection<T>(
   path: string | null,
   searchParams?: Record<string, string | number>
 ): MetricSection<T> {
-  const getToken = useGetToken()
+  const apiFetch = useApiFetch()
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +36,6 @@ export function useMetricSection<T>(
     let cancelled = false
     setLoading(true)
     setError(null)
-    const apiFetch = makeApiFetch(getToken)
 
     async function fetchSection() {
       try {

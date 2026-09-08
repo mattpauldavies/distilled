@@ -15,7 +15,19 @@ from app.config import settings
 from app.db import dispose_db, init_db
 from app.logging import configure_logging
 from app.rate_limit import limiter
-from app.routes import deployments, environments, health, metrics, pull_requests, repos, webhooks
+from app.routes import (
+    deployments,
+    environments,
+    health,
+    internal,
+    invitations,
+    me,
+    metrics,
+    pull_requests,
+    repos,
+    team,
+    webhooks,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +71,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type"],
+        allow_headers=["Authorization", "Content-Type", "X-Tenant-Id"],
     )
 
     docs_paths = {"/docs", "/redoc", "/openapi.json"}
@@ -84,6 +96,10 @@ def create_app() -> FastAPI:
     app.include_router(deployments.router, dependencies=[Depends(require_auth)])
     app.include_router(pull_requests.router, dependencies=[Depends(require_auth)])
     app.include_router(metrics.router)  # no router-level auth — per-route in metrics.py
+    app.include_router(team.router)  # per-route auth (require_owner / require_auth)
+    app.include_router(me.router)  # tenant-agnostic user endpoints
+    app.include_router(invitations.router)  # JWT-only redeem
+    app.include_router(internal.router)  # cron-secret-only internal endpoints
     return app
 
 

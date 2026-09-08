@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     allowed_origins: list[str] = ["http://localhost:5173"]
+    app_base_url: str = "http://localhost:5173"
     app_name: str = "server"
     clerk_expected_audience: str = ""
     clerk_issuer: str = ""
@@ -14,6 +15,8 @@ class Settings(BaseSettings):
     clerk_secret_key: str = ""
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/dbname"
     debug: bool = False
+    email_from: str = ""
+    email_provider: str = "log"  # "log" (dev) or "resend" (prod)
     environment: str = "production"
     github_app_id: int = 0
     github_app_slug: str = ""
@@ -21,6 +24,8 @@ class Settings(BaseSettings):
     github_private_key: str = ""
     github_webhook_secret: str = ""
     internal_cron_secret: str = ""
+    invitation_ttl_days: int = 14
+    resend_api_key: str = ""
     seed_tenant_id: str = "00000000-0000-0000-0000-000000000001"
     seed_tenant_name: str = "dev"
     sentry_dsn: str = ""
@@ -34,16 +39,16 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
         if self.environment == "production":
-            missing = [
-                field
-                for field in [
-                    "github_webhook_secret",
-                    "internal_cron_secret",
-                    "clerk_secret_key",
-                    "clerk_jwks_url",
-                ]
-                if not getattr(self, field)
+            required = [
+                "github_webhook_secret",
+                "internal_cron_secret",
+                "clerk_secret_key",
+                "clerk_jwks_url",
+                "app_base_url",
             ]
+            if self.email_provider == "resend":
+                required += ["resend_api_key", "email_from"]
+            missing = [field for field in required if not getattr(self, field)]
             if missing:
                 raise ValueError(f"Required secrets not set for production: {', '.join(missing)}")
         return self

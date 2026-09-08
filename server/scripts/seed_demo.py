@@ -35,6 +35,7 @@ from app.models.metrics import (
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 from app.models.tenant import Tenant
+from app.models.tenant_user import TenantUser
 from app.models.user import User
 
 # ── Fixed IDs ────────────────────────────────────────────────────────────────
@@ -457,11 +458,24 @@ async def main() -> None:
         # smoke test user access to all demo data without creating a new tenant.
         clerk_smoke_user_id = os.environ.get("CLERK_SMOKE_USER_ID")
         if clerk_smoke_user_id:
+            smoke_user_id = uuid.uuid4()
             session.add(
                 User(
-                    id=uuid.uuid4(),
+                    id=smoke_user_id,
                     clerk_user_id=clerk_smoke_user_id,
+                    last_active_tenant_id=TENANT_ID,
+                )
+            )
+            # Flush so the user row exists before the membership FK is evaluated.
+            # Without an ORM relationship() mapper, SQLAlchemy's UnitOfWork does
+            # not reorder pending inserts by FK dependency.
+            await session.flush()
+            session.add(
+                TenantUser(
+                    id=uuid.uuid4(),
                     tenant_id=TENANT_ID,
+                    user_id=smoke_user_id,
+                    role="owner",
                 )
             )
 

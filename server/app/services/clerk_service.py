@@ -44,6 +44,27 @@ class ClerkJWTVerifier:
             resp.raise_for_status()
             return resp.json()
 
+    async def get_user_emails(self, clerk_user_id: str) -> list[str]:
+        """Return verified email addresses for a Clerk user, lower-cased.
+
+        Used to match a signed-in user against pending invitations targeted
+        at their email — the GitHub-only sign-in path means we don't see
+        the user's email until we ask Clerk for it.
+        """
+        try:
+            profile = await self.get_user(clerk_user_id)
+        except HTTPException:
+            return []
+        emails: list[str] = []
+        for entry in profile.get("email_addresses", []) or []:
+            verification = (entry.get("verification") or {}).get("status")
+            if verification != "verified":
+                continue
+            address = entry.get("email_address")
+            if address:
+                emails.append(address.lower())
+        return emails
+
     def _find_key(self, jwks: dict, kid: str) -> RSAPublicKey | None:
         for jwk_key in jwks.get("keys", []):
             if jwk_key.get("kid") == kid:

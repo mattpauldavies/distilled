@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.github_installation import GitHubInstallation
 from app.models.repository import Repository
+from app.models.tenant_user import TenantUser
 from app.models.user import User
 from app.services.environment_service import discover_environments
 from app.services.github_client import GitHubClient
@@ -27,7 +28,11 @@ async def handle_installation_event(payload: dict, session: AsyncSession) -> Non
 async def _handle_created(payload: dict, session: AsyncSession) -> None:
     installation_data = payload["installation"]
 
-    # Match installation to tenant by GitHub account ID
+    # Match installation to tenant by GitHub account ID — the user who installs
+    # the App must already have signed in (so we have their github_account_id),
+    # and the tenant is the one where they hold an owner membership. We pick
+    # the owned tenant rather than any membership so a user being a member of
+    # someone else's tenant doesn't cause the install to land there.
     github_account_id = installation_data["account"]["id"]
     user_result = await session.execute(select(User).where(User.github_account_id == github_account_id))
     user = user_result.scalar_one_or_none()
@@ -40,7 +45,20 @@ async def _handle_created(payload: dict, session: AsyncSession) -> None:
         )
         return
 
-    tenant_id = user.tenant_id
+    membership_result = await session.execute(
+        select(TenantUser.tenant_id)
+        .where(TenantUser.user_id == user.id, TenantUser.role == "owner")
+        .limit(1)
+    )
+    tenant_id = membership_result.scalar_one_or_none()
+
+    if tenant_id is None:
+        logger.warning(
+            "installation:created for github account %s but user %s owns no tenant — skipping",
+            installation_data["account"]["login"],
+            user.id,
+        )
+        return
 
     # Upsert installation
     stmt = (
