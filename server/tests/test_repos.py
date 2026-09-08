@@ -38,6 +38,21 @@ async def test_list_repos_empty(client, mock_session):
 
 
 @pytest.mark.asyncio
+async def test_list_repos_excludes_soft_deleted(client, mock_session):
+    """The repo list only returns repos still attached to the installation."""
+    mock_session.execute.side_effect = [
+        mock_count_result(0),
+        mock_result(rows=[]),
+    ]
+
+    response = await client.get("/repos")
+
+    assert response.status_code == 200
+    select_sql = str(mock_session.execute.call_args_list[1][0][0])
+    assert "removed_at IS NULL" in select_sql
+
+
+@pytest.mark.asyncio
 async def test_list_repos_requires_auth(mock_session):
     """Requests without Authorization header must be rejected."""
     from httpx import ASGITransport, AsyncClient

@@ -33,7 +33,7 @@ Conventions the layers follow are recorded as ADRs: transaction ownership in
 
 - **webhook_service** — HMAC signature verification, event handler registry, payload parsing helpers
 - **github_client** — JWT auth, installation token management, GitHub API wrapper
-- **ingest_installation_service** — handles app installation, repo sync, environment discovery
+- **ingest_installation_service** — handles app installation lifecycle (install, uninstall, repos added/removed), repo sync with soft delete, environment discovery
 - **ingest_deployment_service** — processes deployment_status events
 - **ingest_pr_service** — processes pull_request events into the PullRequest table
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
