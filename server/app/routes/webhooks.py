@@ -8,6 +8,7 @@ from app.db import async_session
 from app.rate_limit import limiter
 from app.services.webhook_service import (
     EVENT_HANDLERS,
+    SKIPPED,
     record_webhook_outcome,
     record_webhook_received,
     verify_signature,
@@ -25,17 +26,23 @@ async def _dispatch_event(event_type: str, payload: dict, delivery_id: str) -> N
         await record_webhook_outcome(delivery_id, "no_handler", None)
         return
     first_error: str | None = None
+    outcomes = []
     async with async_session() as session:
         for handler in handlers:
             try:
-                await handler(payload, session)
+                outcomes.append(await handler(payload, session))
                 await session.commit()
             except Exception as exc:
                 await session.rollback()
                 logger.exception("handler failed for event_type=%s", event_type)
                 if first_error is None:
                     first_error = f"{type(exc).__name__}: {exc}"
-    status = "failed" if first_error else "succeeded"
+    if first_error:
+        status = "failed"
+    elif outcomes and all(outcome == SKIPPED for outcome in outcomes):
+        status = "skipped"
+    else:
+        status = "succeeded"
     await record_webhook_outcome(delivery_id, status, first_error)
 
 

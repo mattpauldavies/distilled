@@ -1,6 +1,7 @@
 import pytest
 
 from app.services.ingest_pr_service import handle_pull_request_event
+from app.services.webhook_service import SKIPPED
 from tests.conftest import make_repo, mock_insert_result, mock_result
 
 
@@ -36,8 +37,19 @@ def _pull_request_payload(action="closed", merged=True, repo_github_id=111, draf
 @pytest.mark.asyncio
 async def test_skips_unhandled_action(mock_session):
     payload = _pull_request_payload(action="labeled")
-    await handle_pull_request_event(payload, mock_session)
+    result = await handle_pull_request_event(payload, mock_session)
     mock_session.execute.assert_not_called()
+    assert result == SKIPPED
+
+
+@pytest.mark.asyncio
+async def test_unknown_repo_returns_skipped(mock_session):
+    payload = _pull_request_payload()
+    mock_session.execute.side_effect = [mock_result(scalar_or_none=None)]
+
+    result = await handle_pull_request_event(payload, mock_session)
+
+    assert result == SKIPPED
 
 
 @pytest.mark.asyncio

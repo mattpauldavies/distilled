@@ -211,6 +211,64 @@ class TestDispatchEvent:
 
     @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
     @patch("app.routes.webhooks.async_session")
+    async def test_all_handlers_skipped_records_skipped(
+        self, mock_session_factory, mock_record_webhook_outcome
+    ):
+        """A handler returning SKIPPED signals a deliberate no-op (unknown repo,
+        unhandled action); if every handler skipped, the delivery is 'skipped'."""
+        from app.routes.webhooks import _dispatch_event
+        from app.services.webhook_service import SKIPPED
+
+        handler = AsyncMock(return_value=SKIPPED)
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("app.routes.webhooks.EVENT_HANDLERS", {"test_event": [handler]}):
+            await _dispatch_event("test_event", {}, "delivery-5")
+
+        mock_record_webhook_outcome.assert_awaited_once_with("delivery-5", "skipped", None)
+
+    @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.async_session")
+    async def test_one_handler_working_records_succeeded_despite_other_skipping(
+        self, mock_session_factory, mock_record_webhook_outcome
+    ):
+        from app.routes.webhooks import _dispatch_event
+        from app.services.webhook_service import SKIPPED
+
+        skipping = AsyncMock(return_value=SKIPPED)
+        working = AsyncMock(return_value=None)
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("app.routes.webhooks.EVENT_HANDLERS", {"test_event": [skipping, working]}):
+            await _dispatch_event("test_event", {}, "delivery-6")
+
+        mock_record_webhook_outcome.assert_awaited_once_with("delivery-6", "succeeded", None)
+
+    @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.async_session")
+    async def test_failure_wins_over_skip(self, mock_session_factory, mock_record_webhook_outcome):
+        from app.routes.webhooks import _dispatch_event
+        from app.services.webhook_service import SKIPPED
+
+        skipping = AsyncMock(return_value=SKIPPED)
+        failing = AsyncMock(side_effect=ValueError("boom"))
+        mock_session = AsyncMock()
+        mock_session_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("app.routes.webhooks.EVENT_HANDLERS", {"test_event": [skipping, failing]}):
+            await _dispatch_event("test_event", {}, "delivery-7")
+
+        call = mock_record_webhook_outcome.call_args
+        assert call.args[1] == "failed"
+        assert "boom" in call.args[2]
+
+    @patch("app.routes.webhooks.record_webhook_outcome", new_callable=AsyncMock)
+    @patch("app.routes.webhooks.async_session")
     async def test_handler_exception_rolls_back_and_records_failed(
         self, mock_session_factory, mock_record_webhook_outcome
     ):

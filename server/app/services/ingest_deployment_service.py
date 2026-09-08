@@ -9,15 +9,15 @@ from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.environment import Environment
 from app.models.repository import Repository
 from app.services.attribution_service import attribute_prs_to_deployment
-from app.services.webhook_service import parse_datetime, register_handler, validate_github_url
+from app.services.webhook_service import SKIPPED, parse_datetime, register_handler, validate_github_url
 
 logger = logging.getLogger(__name__)
 
 
 @register_handler("deployment_status")
-async def handle_deployment_status_event(payload: dict, session: AsyncSession) -> None:
+async def handle_deployment_status_event(payload: dict, session: AsyncSession) -> str | None:
     if payload.get("deployment_status", {}).get("state") != "success":
-        return
+        return SKIPPED
 
     deployment = payload["deployment"]
     repo_data = payload["repository"]
@@ -27,7 +27,7 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
     repo = result.scalar_one_or_none()
     if not repo:
         logger.warning("repo not found github_id=%s", repo_data["id"])
-        return
+        return SKIPPED
 
     tenant_id = repo.tenant_id
 
@@ -44,7 +44,7 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
     env = result.scalar_one_or_none()
     if not env:
         logger.info("non-prod environment=%s, skipping", env_name)
-        return
+        return SKIPPED
 
     # Parse timestamps
     deployment_status = payload["deployment_status"]
@@ -78,7 +78,7 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
 
     if insert_result.rowcount == 0:  # type: ignore[attr-defined]
         logger.info("duplicate deployment_id=%s, skipping", deployment["id"])
-        return
+        return None
 
     # Get the inserted event for attribution
     dep_result = await session.execute(
@@ -88,3 +88,4 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
     )
     dep_event = dep_result.scalar_one()
     await attribute_prs_to_deployment(dep_event, repo, session)
+    return None

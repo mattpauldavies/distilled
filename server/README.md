@@ -143,7 +143,10 @@ excludes soft-deleted repos. See
 ### Webhook delivery audit (`webhook_events`)
 
 Every accepted delivery is recorded in the `webhook_events` table with one of
-four statuses: `received`, `succeeded`, `failed`, `no_handler`. The route
+five statuses: `received`, `succeeded`, `failed`, `skipped`, `no_handler`. A
+delivery is `skipped` when every handler deliberately did nothing — an unknown
+repo or installation, or an action we don't process — so silent drops are
+distinguishable from real work. If any handler fails, `failed` wins. The route
 inserts the row in its own transaction immediately after HMAC + content-type
 checks pass; the dispatcher updates it once handlers complete. Receipt and
 outcome use separate sessions so the audit row survives any handler rollback.

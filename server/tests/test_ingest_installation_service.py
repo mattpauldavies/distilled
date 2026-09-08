@@ -10,6 +10,7 @@ from app.services.ingest_installation_service import (
     handle_installation_repositories_event,
     sync_repos,
 )
+from app.services.webhook_service import SKIPPED
 from tests.conftest import (
     TENANT_ID,
     make_installation,
@@ -104,10 +105,22 @@ async def test_deleted_unknown_installation_logs_warning(mock_session):
 
     payload = _installation_payload(action="deleted")
     with patch("app.services.ingest_installation_service.logger") as mock_logger:
-        await handle_installation_event(payload, mock_session)
+        result = await handle_installation_event(payload, mock_session)
 
     mock_logger.warning.assert_called_once()
     assert mock_session.execute.call_count == 1
+    assert result == SKIPPED
+
+
+@pytest.mark.asyncio
+async def test_unhandled_action_returns_skipped(mock_session):
+    """Actions we don't handle (e.g. suspend) are reported as skipped, not succeeded."""
+    payload = _installation_payload(action="suspend")
+
+    result = await handle_installation_event(payload, mock_session)
+
+    mock_session.execute.assert_not_called()
+    assert result == SKIPPED
 
 
 @pytest.mark.asyncio
@@ -161,11 +174,29 @@ async def test_handle_created_unknown_account_logs_warning(mock_session):
     payload = _installation_payload(action="created", github_account_id=99999)
 
     with patch("app.services.ingest_installation_service.logger") as mock_logger:
-        await handle_installation_event(payload, mock_session)
+        result = await handle_installation_event(payload, mock_session)
 
     mock_logger.warning.assert_called_once()
     # No installation upsert should happen
     assert mock_session.execute.call_count == 1
+    assert result == SKIPPED
+
+
+@pytest.mark.asyncio
+async def test_handle_created_no_owned_tenant_returns_skipped(mock_session):
+    """User exists but owns no tenant — the event is skipped."""
+    user = make_test_user()
+    mock_session.execute.side_effect = [
+        mock_result(scalar_or_none=user),  # user lookup
+        mock_result(scalar_or_none=None),  # owner membership lookup
+    ]
+
+    payload = _installation_payload(action="created")
+    with patch("app.services.ingest_installation_service.logger") as mock_logger:
+        result = await handle_installation_event(payload, mock_session)
+
+    mock_logger.warning.assert_called_once()
+    assert result == SKIPPED
 
 
 @pytest.mark.asyncio
@@ -236,12 +267,13 @@ async def test_repositories_added_unknown_installation_logs_warning(mock_session
     mock_session.execute.side_effect = [mock_result(scalar_or_none=None)]
 
     with patch("app.services.ingest_installation_service.logger") as mock_logger:
-        await handle_installation_repositories_event(
+        result = await handle_installation_repositories_event(
             _installation_repositories_payload("added"), mock_session
         )
 
     mock_logger.warning.assert_called_once()
     assert mock_session.execute.call_count == 1
+    assert result == SKIPPED
 
 
 @pytest.mark.asyncio

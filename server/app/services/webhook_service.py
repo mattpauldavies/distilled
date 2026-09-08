@@ -17,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 EVENT_HANDLERS: dict[str, list] = {}
 
+# Sentinel returned by a handler that deliberately did nothing (unknown repo/
+# installation, unhandled action). The dispatcher records the delivery as
+# "skipped" when every handler returned this, making silent drops visible.
+SKIPPED = "skipped"
+
 _MAX_ERROR_LEN = 2048
 
 
