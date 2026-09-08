@@ -1,7 +1,14 @@
 import { useState } from "react"
 import { useDataQuality } from "@/hooks/useDataQuality"
+import { useDeploymentFrequency } from "@/hooks/useDeploymentFrequency"
+import { useLeadTime } from "@/hooks/useLeadTime"
+import { useOpenPRs } from "@/hooks/useOpenPRs"
+import { usePRAgeing } from "@/hooks/usePRAgeing"
+import { usePRCycleTime } from "@/hooks/usePRCycleTime"
+import { useThroughput } from "@/hooks/useThroughput"
 import { DashboardControls } from "@/components/DashboardControls"
 import { isWindowAvailable } from "@/lib/daysWindow"
+import { timeAgo } from "@/lib/format"
 import { DeploymentFrequencyCard } from "@/components/metrics/DeploymentFrequencyCard"
 import { LeadTimeCard } from "@/components/metrics/LeadTimeCard"
 import { PRCycleTimeCard } from "@/components/metrics/PRCycleTimeCard"
@@ -14,17 +21,6 @@ import { PRAgeingChartPanel } from "@/components/metrics/PRAgeingChartPanel"
 import { InvitationBanner } from "@/components/InvitationBanner"
 import { NoMetricsYetDialog } from "@/components/NoMetricsYetDialog"
 import type { DaysWindow, Repo } from "@/types/dashboard"
-
-function timeAgo(isoString: string | null): string {
-  if (!isoString) return "never"
-  const diff = Date.now() - new Date(isoString).getTime()
-  if (diff < 0) return "just now"
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
-}
 
 interface DashboardProps {
   repos: Repo[]
@@ -44,6 +40,13 @@ export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
   const daysWindow: DaysWindow = isWindowAvailable(selectedDaysWindow, daysOfData)
     ? selectedDaysWindow
     : 30
+
+  const deploymentFrequency = useDeploymentFrequency(selectedRepoId, daysWindow)
+  const leadTime = useLeadTime(selectedRepoId, daysWindow)
+  const prCycleTime = usePRCycleTime(selectedRepoId, daysWindow)
+  const throughput = useThroughput(selectedRepoId, daysWindow)
+  const openPRs = useOpenPRs(selectedRepoId)
+  const prAgeing = usePRAgeing(selectedRepoId)
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
@@ -93,11 +96,11 @@ export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <DeploymentFrequencyCard repoId={selectedRepoId} daysWindow={daysWindow} />
-        <LeadTimeCard repoId={selectedRepoId} daysWindow={daysWindow} />
-        <PRCycleTimeCard repoId={selectedRepoId} daysWindow={daysWindow} />
-        <ThroughputCard repoId={selectedRepoId} daysWindow={daysWindow} />
-        <OpenPRsCard repoId={selectedRepoId} />
+        <DeploymentFrequencyCard section={deploymentFrequency} />
+        <LeadTimeCard section={leadTime} />
+        <PRCycleTimeCard section={prCycleTime} />
+        <ThroughputCard section={throughput} />
+        <OpenPRsCard section={openPRs} />
       </div>
 
       <div className="flex items-center gap-3">
@@ -106,10 +109,10 @@ export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <DeploymentFrequencyChartPanel repoId={selectedRepoId} daysWindow={daysWindow} />
-        <LeadTimeChartPanel repoId={selectedRepoId} daysWindow={daysWindow} />
-        <PRCycleTimeChartPanel repoId={selectedRepoId} daysWindow={daysWindow} />
-        <PRAgeingChartPanel repoId={selectedRepoId} />
+        <DeploymentFrequencyChartPanel section={deploymentFrequency} />
+        <LeadTimeChartPanel section={leadTime} />
+        <PRCycleTimeChartPanel section={prCycleTime} />
+        <PRAgeingChartPanel section={prAgeing} />
       </div>
 
       {selectedRepoId && (

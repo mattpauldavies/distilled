@@ -1,3 +1,7 @@
+export type SectionStatus = "ok" | "setup_required"
+
+export type FreshnessStatus = "ok" | "stale" | "no_data"
+
 export interface DailyCount {
   date: string
   count: number
@@ -21,7 +25,7 @@ export interface AgeBucket {
 }
 
 export interface DeploymentFrequencySection {
-  status: string
+  status: SectionStatus
   total: number | null
   days: number | null
   daily_counts: DailyCount[] | null
@@ -29,13 +33,13 @@ export interface DeploymentFrequencySection {
 }
 
 export interface LeadTimeSection {
-  status: string
+  status: SectionStatus
   weekly: WeeklyPercentiles[] | null
   median_seconds: number | null
 }
 
 export interface PRCycleTimeSection {
-  status: string
+  status: SectionStatus
   weekly: WeeklyPercentiles[] | null
   median_seconds: number | null
 }
@@ -58,7 +62,7 @@ export interface PRAgeingSection {
 }
 
 export interface FreshnessInfo {
-  status: string
+  status: FreshnessStatus
   last_refresh_at: string | null
   days_of_data: number
 }

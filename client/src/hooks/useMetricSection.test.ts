@@ -4,9 +4,12 @@ import { server } from "@/test/mocks/server"
 import { TestProviders } from "@/test/render"
 import { useMetricSection } from "./useMetricSection"
 
-vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
-}))
+vi.mock("@clerk/clerk-react", () => {
+  const stableGetToken = async () => "test-clerk-token"
+  return {
+    useAuth: () => ({ getToken: stableGetToken, isSignedIn: true }),
+  }
+})
 
 describe("useMetricSection", () => {
   it("fetches and returns data", async () => {
@@ -80,6 +83,33 @@ describe("useMetricSection", () => {
 
     await waitFor(() => expect(result.current.data).toEqual({ ok: true }))
     expect(result.current.error).toBeNull()
+  })
+
+  it("starts in loading state when a path is given", () => {
+    server.use(http.get("/metrics/initial", () => HttpResponse.json({})))
+
+    const { result } = renderHook(() => useMetricSection("/metrics/initial", { repo_id: "r1" }), {
+      wrapper: TestProviders,
+    })
+    expect(result.current.loading).toBe(true)
+  })
+
+  it("URL-encodes search params", async () => {
+    const urls: string[] = []
+    server.use(
+      http.get("/metrics/encoded", ({ request }) => {
+        urls.push(request.url)
+        return HttpResponse.json({})
+      })
+    )
+
+    const { result } = renderHook(
+      () => useMetricSection("/metrics/encoded", { repo_id: "a&b=c d" }),
+      { wrapper: TestProviders }
+    )
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(urls[0]).toContain(`repo_id=${encodeURIComponent("a&b=c d").replace(/%20/g, "+")}`)
+    expect(new URL(urls[0]).searchParams.get("repo_id")).toBe("a&b=c d")
   })
 
   it("passes search params as querystring", async () => {

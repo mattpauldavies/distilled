@@ -36,8 +36,7 @@ export function OnboardingScreen({
     }, pollIntervalMs)
 
     return () => clearInterval(intervalId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onReposDetected, pollIntervalMs])
+  }, [getToken, onReposDetected, pollIntervalMs])
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6">

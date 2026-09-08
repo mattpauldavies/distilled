@@ -1,15 +1,14 @@
-import { useLeadTime } from "@/hooks/useLeadTime"
 import { MetricCard } from "@/components/MetricCard"
 import { formatDuration } from "@/lib/format"
-import type { DaysWindow } from "@/types/dashboard"
+import type { MetricSection } from "@/hooks/useMetricSection"
+import type { LeadTimeSection } from "@/types/dashboard"
 
 interface Props {
-  repoId: string
-  daysWindow: DaysWindow
+  section: MetricSection<LeadTimeSection>
 }
 
-export function LeadTimeCard({ repoId, daysWindow }: Props) {
-  const { data, loading, error, retry } = useLeadTime(repoId, daysWindow)
+export function LeadTimeCard({ section }: Props) {
+  const { data, loading, error, retry } = section
   const value = data?.median_seconds != null ? formatDuration(data.median_seconds) : "—"
 
   return (

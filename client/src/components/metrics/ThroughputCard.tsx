@@ -1,14 +1,13 @@
-import { useThroughput } from "@/hooks/useThroughput"
 import { MetricCard } from "@/components/MetricCard"
-import type { DaysWindow } from "@/types/dashboard"
+import type { MetricSection } from "@/hooks/useMetricSection"
+import type { ThroughputSection } from "@/types/dashboard"
 
 interface Props {
-  repoId: string
-  daysWindow: DaysWindow
+  section: MetricSection<ThroughputSection>
 }
 
-export function ThroughputCard({ repoId, daysWindow }: Props) {
-  const { data, loading, error, retry } = useThroughput(repoId, daysWindow)
+export function ThroughputCard({ section }: Props) {
+  const { data, loading, error, retry } = section
   const value =
     data?.prs_per_engineer_per_month != null ? data.prs_per_engineer_per_month.toFixed(1) : "—"
 

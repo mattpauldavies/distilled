@@ -14,16 +14,14 @@ export function useMetricSection<T>(
 ): MetricSection<T> {
   const apiFetch = useApiFetch()
   const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(Boolean(path))
   const [error, setError] = useState<string | null>(null)
   const [fetchKey, setFetchKey] = useState(0)
 
   const retry = useCallback(() => setFetchKey((k) => k + 1), [])
 
   const paramsKey = searchParams
-    ? Object.entries(searchParams)
-        .map(([k, v]) => `${k}=${v}`)
-        .join("&")
+    ? new URLSearchParams(Object.entries(searchParams).map(([k, v]) => [k, String(v)])).toString()
     : ""
 
   useEffect(() => {
@@ -61,8 +59,7 @@ export function useMetricSection<T>(
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, paramsKey, fetchKey])
+  }, [path, paramsKey, fetchKey, apiFetch])
 
   return { data, loading, error, retry }
 }

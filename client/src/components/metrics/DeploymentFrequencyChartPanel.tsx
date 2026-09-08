@@ -1,15 +1,14 @@
-import { useDeploymentFrequency } from "@/hooks/useDeploymentFrequency"
 import { ChartPanel } from "@/components/ChartPanel"
 import { DeploymentChart } from "@/components/charts/DeploymentChart"
-import type { DaysWindow } from "@/types/dashboard"
+import type { MetricSection } from "@/hooks/useMetricSection"
+import type { DeploymentFrequencySection } from "@/types/dashboard"
 
 interface Props {
-  repoId: string
-  daysWindow: DaysWindow
+  section: MetricSection<DeploymentFrequencySection>
 }
 
-export function DeploymentFrequencyChartPanel({ repoId, daysWindow }: Props) {
-  const { data, loading } = useDeploymentFrequency(repoId, daysWindow)
+export function DeploymentFrequencyChartPanel({ section }: Props) {
+  const { data, loading, error, retry } = section
   const isSetupRequired = data?.status === "setup_required"
 
   return (
@@ -18,6 +17,8 @@ export function DeploymentFrequencyChartPanel({ repoId, daysWindow }: Props) {
       caption="Deployments per day"
       info="The number of deployments to production per day. A core DORA metric — higher frequency means smaller, safer changes shipped more often."
       loading={loading}
+      error={error}
+      onRetry={retry}
       empty={isSetupRequired || !data?.daily_counts?.length}
       emptyMessage={
         isSetupRequired

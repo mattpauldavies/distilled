@@ -3,9 +3,12 @@ import { http, HttpResponse } from "msw"
 import { server } from "@/test/mocks/server"
 import { OnboardingScreen } from "./OnboardingScreen"
 
-vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token" }),
-}))
+vi.mock("@clerk/clerk-react", () => {
+  const stableGetToken = async () => "test-clerk-token"
+  return {
+    useAuth: () => ({ getToken: stableGetToken }),
+  }
+})
 
 describe("OnboardingScreen", () => {
   it("renders welcome heading and install CTA", () => {

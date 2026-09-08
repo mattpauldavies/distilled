@@ -69,11 +69,12 @@ ESLint enforces TypeScript + React Hooks rules. Prettier handles code style (dou
 
 ```
 src/
-  main.tsx                        # Entry point — wraps app in ClerkProvider
+  main.tsx                        # Entry point — Sentry init, wraps app in ClerkProvider
   App.tsx                         # Auth gate + initialising/error/onboarding/dashboard branch
   index.css                       # Tailwind + theme vars
   lib/
     api.ts                        # makeApiFetch(getToken) factory
+    format.ts                     # formatDuration, timeAgo, toHours
     utils.ts                      # cn() helper for shadcn
   types/dashboard.ts              # TypeScript interfaces for API responses
   hooks/
@@ -91,15 +92,15 @@ src/
     InitialisingScreen.tsx        # Full-screen "Initialising…" state while repos load
     ReposErrorScreen.tsx          # Full-screen error + retry when /repos fails
     OnboardingScreen.tsx          # Guides new tenants to install the GitHub App
-    Dashboard.tsx                 # Main orchestrator — controls, cards, charts
+    Dashboard.tsx                 # Data orchestrator — fetches each metric section once, passes to cards/panels
     NoMetricsYetDialog.tsx        # Cold-start dialog when a repo has no metrics yet
     DashboardControls.tsx         # Repo selector + 30/90/180 day window toggle
     MetricCard.tsx                # Single metric card (loading/empty/value states)
     ChartPanel.tsx                # Chart wrapper (loading/empty/chart states)
+    metrics/                      # Presentational card/panel per metric (data passed in from Dashboard)
     charts/
       DeploymentChart.tsx         # Daily deployment bar chart
-      LeadTimeChart.tsx           # Weekly lead time line chart (median + p75)
-      CycleTimeChart.tsx          # Weekly cycle time line chart (median + p75)
+      WeeklyPercentilesChart.tsx  # Weekly median + p75 line chart (lead time and cycle time)
       PRAgeingChart.tsx           # Open PR age distribution bar chart
     ui/                           # shadcn components (added via CLI)
 ```

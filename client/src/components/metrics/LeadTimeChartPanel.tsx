@@ -1,15 +1,14 @@
-import { useLeadTime } from "@/hooks/useLeadTime"
 import { ChartPanel } from "@/components/ChartPanel"
-import { LeadTimeChart } from "@/components/charts/LeadTimeChart"
-import type { DaysWindow } from "@/types/dashboard"
+import { WeeklyPercentilesChart } from "@/components/charts/WeeklyPercentilesChart"
+import type { MetricSection } from "@/hooks/useMetricSection"
+import type { LeadTimeSection } from "@/types/dashboard"
 
 interface Props {
-  repoId: string
-  daysWindow: DaysWindow
+  section: MetricSection<LeadTimeSection>
 }
 
-export function LeadTimeChartPanel({ repoId, daysWindow }: Props) {
-  const { data, loading } = useLeadTime(repoId, daysWindow)
+export function LeadTimeChartPanel({ section }: Props) {
+  const { data, loading, error, retry } = section
   const isSetupRequired = data?.status === "setup_required"
 
   return (
@@ -18,6 +17,8 @@ export function LeadTimeChartPanel({ repoId, daysWindow }: Props) {
       caption="Median and 75th percentile by week (hours)"
       info="Time from first commit to production deploy, shown as median and 75th percentile (P75). Lower lead time means faster delivery and shorter feedback loops."
       loading={loading}
+      error={error}
+      onRetry={retry}
       empty={isSetupRequired || !data?.weekly?.length}
       emptyMessage={
         isSetupRequired
@@ -25,7 +26,12 @@ export function LeadTimeChartPanel({ repoId, daysWindow }: Props) {
           : "No lead time data for this period"
       }
     >
-      {data?.weekly && <LeadTimeChart weekly={data.weekly} />}
+      {data?.weekly && (
+        <WeeklyPercentilesChart
+          weekly={data.weekly}
+          ariaLabel="Line chart showing weekly lead time: median and 75th percentile in hours"
+        />
+      )}
     </ChartPanel>
   )
 }
