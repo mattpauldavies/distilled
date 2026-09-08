@@ -32,6 +32,41 @@ describe("ChartPanel", () => {
     expect(screen.queryByText("chart")).not.toBeInTheDocument()
   })
 
+  it("shows error state with retry button when error is set", () => {
+    const onRetry = vi.fn()
+    render(
+      <ChartPanel title="Deployments" caption="Daily count" error="boom" onRetry={onRetry}>
+        <div>chart</div>
+      </ChartPanel>
+    )
+    expect(screen.getByText("Failed to load")).toBeInTheDocument()
+    expect(screen.queryByText("chart")).not.toBeInTheDocument()
+
+    const retryButton = screen.getByRole("button", { name: "Retry" })
+    retryButton.click()
+    expect(onRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it("error takes precedence over empty", () => {
+    render(
+      <ChartPanel title="Deployments" caption="Daily count" error="boom" empty>
+        <div>chart</div>
+      </ChartPanel>
+    )
+    expect(screen.getByText("Failed to load")).toBeInTheDocument()
+    expect(screen.queryByText("No data available")).not.toBeInTheDocument()
+  })
+
+  it("omits the retry button when onRetry is not provided", () => {
+    render(
+      <ChartPanel title="Deployments" caption="Daily count" error="boom">
+        <div>chart</div>
+      </ChartPanel>
+    )
+    expect(screen.getByText("Failed to load")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument()
+  })
+
   it("renders InfoButton when info prop is provided", () => {
     render(
       <ChartPanel title="Deployments" caption="Daily count" info="Some info">

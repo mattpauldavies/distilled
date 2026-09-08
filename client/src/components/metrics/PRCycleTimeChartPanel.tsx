@@ -1,15 +1,14 @@
-import { usePRCycleTime } from "@/hooks/usePRCycleTime"
 import { ChartPanel } from "@/components/ChartPanel"
-import { CycleTimeChart } from "@/components/charts/CycleTimeChart"
-import type { DaysWindow } from "@/types/dashboard"
+import { WeeklyPercentilesChart } from "@/components/charts/WeeklyPercentilesChart"
+import type { MetricSection } from "@/hooks/useMetricSection"
+import type { PRCycleTimeSection } from "@/types/dashboard"
 
 interface Props {
-  repoId: string
-  daysWindow: DaysWindow
+  section: MetricSection<PRCycleTimeSection>
 }
 
-export function PRCycleTimeChartPanel({ repoId, daysWindow }: Props) {
-  const { data, loading } = usePRCycleTime(repoId, daysWindow)
+export function PRCycleTimeChartPanel({ section }: Props) {
+  const { data, loading, error, retry } = section
   const isSetupRequired = data?.status === "setup_required"
 
   return (
@@ -18,6 +17,8 @@ export function PRCycleTimeChartPanel({ repoId, daysWindow }: Props) {
       caption="Median and 75th percentile by week (hours)"
       info="Time from PR opened to merged, shown as median and 75th percentile (P75). High cycle time often indicates bottlenecks in the review process."
       loading={loading}
+      error={error}
+      onRetry={retry}
       empty={isSetupRequired || !data?.weekly?.length}
       emptyMessage={
         isSetupRequired
@@ -25,7 +26,12 @@ export function PRCycleTimeChartPanel({ repoId, daysWindow }: Props) {
           : "No cycle time data for this period"
       }
     >
-      {data?.weekly && <CycleTimeChart weekly={data.weekly} />}
+      {data?.weekly && (
+        <WeeklyPercentilesChart
+          weekly={data.weekly}
+          ariaLabel="Line chart showing weekly PR cycle time: median and 75th percentile in hours"
+        />
+      )}
     </ChartPanel>
   )
 }

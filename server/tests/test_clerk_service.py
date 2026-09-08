@@ -80,23 +80,22 @@ async def test_get_jwks_refetches_after_ttl():
 
 @pytest.mark.asyncio
 async def test_verify_token_raises_401_when_jwks_url_not_configured():
-    """verify_token raises 401 HTTPException when CLERK_JWKS_URL is not set."""
-    from fastapi import HTTPException
+    """verify_token raises AuthError when CLERK_JWKS_URL is not set."""
+    from app.services.clerk_service import AuthError
 
     verifier = ClerkJWTVerifier()
 
     with patch("app.services.clerk_service.settings") as mock_settings:
         mock_settings.clerk_jwks_url = ""
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthError):
             await verifier.verify_token("some.jwt.token")
 
-    assert exc_info.value.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_verify_token_raises_401_for_invalid_token():
-    """verify_token raises 401 HTTPException for a malformed JWT."""
-    from fastapi import HTTPException
+    """verify_token raises AuthError for a malformed JWT."""
+    from app.services.clerk_service import AuthError
 
     verifier = ClerkJWTVerifier()
     test_jwks = {"keys": []}
@@ -107,17 +106,17 @@ async def test_verify_token_raises_401_for_invalid_token():
         patch("httpx.AsyncClient", return_value=mock_client),
     ):
         mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthError):
             await verifier.verify_token("not.a.valid.jwt")
 
-    assert exc_info.value.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_verify_token_raises_401_for_unknown_kid():
-    """verify_token raises 401 when the JWT key ID is not found in JWKS."""
+    """verify_token raises AuthError when the JWT key ID is not found in JWKS."""
     import jwt as pyjwt
-    from fastapi import HTTPException
+
+    from app.services.clerk_service import AuthError
 
     verifier = ClerkJWTVerifier()
     test_jwks = {"keys": [{"kid": "different-key", "kty": "RSA"}]}
@@ -131,8 +130,7 @@ async def test_verify_token_raises_401_for_unknown_kid():
         patch("httpx.AsyncClient", return_value=mock_client),
     ):
         mock_settings.clerk_jwks_url = "https://test.clerk.accounts.dev/.well-known/jwks.json"
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthError) as exc_info:
             await verifier.verify_token(fake_token)
 
-    assert exc_info.value.status_code == 401
-    assert "Unknown signing key" in exc_info.value.detail
+    assert "Unknown signing key" in str(exc_info.value)

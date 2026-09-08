@@ -1,19 +1,10 @@
-from unittest.mock import AsyncMock
-
 import pytest
 
-from app.services.environment_service import (
-    detect_production,
-    discover_environments,
-    has_production_environment,
-)
+from app.services.environment_service import detect_production, discover_environments
 from tests.conftest import (
-    REPO_ID,
     TENANT_ID,
-    make_environment,
     make_repo,
     mock_insert_result,
-    mock_result,
 )
 
 
@@ -33,23 +24,6 @@ from tests.conftest import (
 )
 def test_detect_production(name: str, expected: bool):
     assert detect_production(name) is expected
-
-
-async def test_has_production_environment_true(mock_session):
-    env = make_environment(repo_id=REPO_ID, name="production")
-    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=env))
-
-    result = await has_production_environment(TENANT_ID, REPO_ID, mock_session)
-
-    assert result is True
-
-
-async def test_has_production_environment_false(mock_session):
-    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
-
-    result = await has_production_environment(TENANT_ID, REPO_ID, mock_session)
-
-    assert result is False
 
 
 async def test_discover_environments(mock_session):

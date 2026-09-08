@@ -5,12 +5,16 @@ from typing import cast
 import httpx
 import jwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from fastapi import HTTPException
 from jwt.algorithms import RSAAlgorithm
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+class AuthError(Exception):
+    """Authentication failure. Framework-free so this service stays HTTP-agnostic;
+    app.auth translates it to a 401 response."""
 
 
 class ClerkJWTVerifier:
@@ -34,7 +38,7 @@ class ClerkJWTVerifier:
     async def get_user(self, clerk_user_id: str) -> dict:
         """Fetch full user profile from Clerk Backend API."""
         if not settings.clerk_secret_key:
-            raise HTTPException(status_code=503, detail="Clerk secret key not configured")
+            raise AuthError("Clerk secret key not configured")
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 f"https://api.clerk.com/v1/users/{clerk_user_id}",
@@ -53,7 +57,7 @@ class ClerkJWTVerifier:
         """
         try:
             profile = await self.get_user(clerk_user_id)
-        except HTTPException:
+        except AuthError:
             return []
         emails: list[str] = []
         for entry in profile.get("email_addresses", []) or []:
@@ -73,7 +77,7 @@ class ClerkJWTVerifier:
 
     async def verify_token(self, token: str) -> dict:
         if not settings.clerk_jwks_url:
-            raise HTTPException(status_code=401, detail="Auth not configured")
+            raise AuthError("Auth not configured")
         try:
             jwks = await self.get_jwks()
             header = jwt.get_unverified_header(token)
@@ -89,7 +93,7 @@ class ClerkJWTVerifier:
 
             if key is None:
                 logger.warning("clerk_jwt: token presented with unknown signing key")
-                raise HTTPException(status_code=401, detail="Unknown signing key")
+                raise AuthError("Unknown signing key")
 
             claims: dict = jwt.decode(
                 token,
@@ -100,10 +104,10 @@ class ClerkJWTVerifier:
                 options={"verify_aud": False} if not settings.clerk_expected_audience else None,
             )
             return claims
-        except HTTPException:
+        except AuthError:
             raise
         except jwt.ExpiredSignatureError as exc:
-            raise HTTPException(status_code=401, detail="Token expired") from exc
+            raise AuthError("Token expired") from exc
         except jwt.InvalidTokenError as exc:
             logger.warning("clerk_jwt: invalid token: %s", exc)
-            raise HTTPException(status_code=401, detail="Invalid token") from exc
+            raise AuthError("Invalid token") from exc

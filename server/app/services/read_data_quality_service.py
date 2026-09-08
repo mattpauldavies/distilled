@@ -83,16 +83,11 @@ async def get_attribution_coverage(
 ) -> float | None:
     since = datetime.now(UTC) - timedelta(days=days)
 
+    merged_in_window = PullRequest.merged_on_branch(tenant_id, repo_id, default_branch, since=since)
+
     total_result = await session.execute(
         select(func.count()).select_from(
-            select(PullRequest.id)
-            .where(
-                PullRequest.tenant_id == tenant_id,
-                PullRequest.repo_id == repo_id,
-                PullRequest.base_ref == default_branch,
-                PullRequest.merged_at >= since,
-            )
-            .subquery()
+            select(PullRequest.id).where(merged_in_window).subquery()
         )
     )
     total = total_result.scalar_one()
@@ -104,10 +99,7 @@ async def get_attribution_coverage(
         select(func.count()).select_from(
             select(PullRequest.id)
             .where(
-                PullRequest.tenant_id == tenant_id,
-                PullRequest.repo_id == repo_id,
-                PullRequest.base_ref == default_branch,
-                PullRequest.merged_at >= since,
+                merged_in_window,
                 PullRequest.id.in_(
                     select(DeploymentAttribution.pr_id).where(
                         DeploymentAttribution.tenant_id == tenant_id,

@@ -7,13 +7,16 @@ import App from "./App"
 
 let signedIn = true
 
-vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: signedIn }),
-  useClerk: () => ({ signOut: vi.fn() }),
-  SignedIn: ({ children }: { children: ReactNode }) => (signedIn ? <>{children}</> : null),
-  SignedOut: ({ children }: { children: ReactNode }) => (signedIn ? null : <>{children}</>),
-  SignIn: () => <div data-testid="clerk-sign-in" />,
-}))
+vi.mock("@clerk/clerk-react", () => {
+  const stableGetToken = async () => "test-clerk-token"
+  return {
+    useAuth: () => ({ getToken: stableGetToken, isSignedIn: signedIn }),
+    useClerk: () => ({ signOut: vi.fn() }),
+    SignedIn: ({ children }: { children: ReactNode }) => (signedIn ? <>{children}</> : null),
+    SignedOut: ({ children }: { children: ReactNode }) => (signedIn ? null : <>{children}</>),
+    SignIn: () => <div data-testid="clerk-sign-in" />,
+  }
+})
 
 vi.mock("@/components/Dashboard", () => ({
   Dashboard: ({ repos }: { repos: { id: string; full_name: string }[] }) => (

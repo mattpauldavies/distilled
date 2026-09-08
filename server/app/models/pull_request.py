@@ -1,7 +1,16 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    ColumnElement,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    and_,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, TZDatetime
@@ -26,3 +35,42 @@ class PullRequest(TimestampMixin, Base):
     html_url: Mapped[str] = mapped_column(String(2048), default="")
     is_draft: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    @classmethod
+    def merged_on_branch(
+        cls,
+        tenant_id: uuid.UUID,
+        repo_id: uuid.UUID,
+        branch: str,
+        since: datetime | None = None,
+    ) -> ColumnElement[bool]:
+        """Merged PRs targeting a branch — the core filter behind every delivery metric.
+
+        Single definition so a metric can never silently drop the tenant,
+        repo, or branch clause.
+        """
+        clauses = [
+            cls.tenant_id == tenant_id,
+            cls.repo_id == repo_id,
+            cls.base_ref == branch,
+            cls.merged_at.is_not(None),
+        ]
+        if since is not None:
+            clauses.append(cls.merged_at >= since)
+        return and_(*clauses)
+
+    @classmethod
+    def open_on_branch(
+        cls,
+        tenant_id: uuid.UUID,
+        repo_id: uuid.UUID,
+        branch: str,
+    ) -> ColumnElement[bool]:
+        """Open PRs targeting a branch: neither merged nor closed."""
+        return and_(
+            cls.tenant_id == tenant_id,
+            cls.repo_id == repo_id,
+            cls.base_ref == branch,
+            cls.merged_at.is_(None),
+            cls.closed_at.is_(None),
+        )

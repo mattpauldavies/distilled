@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.models.user import User
-from app.services.installation_service import handle_installation_event, sync_repos
+from app.services.ingest_installation_service import handle_installation_event, sync_repos
 from tests.conftest import (
     TENANT_ID,
     make_installation,
@@ -55,8 +55,8 @@ async def test_deleted_action_does_nothing(mock_session):
 
 
 @pytest.mark.asyncio
-@patch("app.services.installation_service.discover_environments", new_callable=AsyncMock)
-@patch("app.services.installation_service.GitHubClient")
+@patch("app.services.ingest_installation_service.discover_environments", new_callable=AsyncMock)
+@patch("app.services.ingest_installation_service.GitHubClient")
 async def test_handle_created_known_account(mock_github_cls, mock_discover, mock_session):
     """When github_account_id matches a User, installation is linked to their tenant."""
     installation = make_installation()
@@ -104,7 +104,7 @@ async def test_handle_created_unknown_account_logs_warning(mock_session):
 
     payload = _installation_payload(action="created", github_account_id=99999)
 
-    with patch("app.services.installation_service.logger") as mock_logger:
+    with patch("app.services.ingest_installation_service.logger") as mock_logger:
         await handle_installation_event(payload, mock_session)
 
     mock_logger.warning.assert_called_once()

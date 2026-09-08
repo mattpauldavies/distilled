@@ -1,26 +1,35 @@
 import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse, delay } from "msw"
 import { server } from "@/test/mocks/server"
-import { makeDataQuality, makeDeploymentFrequency, makeOpenPRs, makeRepo } from "@/test/factories"
+import {
+  makeCycleTime,
+  makeDataQuality,
+  makeDeploymentFrequency,
+  makeLeadTime,
+  makeOpenPRs,
+  makePRAgeing,
+  makeRepo,
+  makeThroughput,
+} from "@/test/factories"
 import { renderWithProviders as render } from "@/test/render"
 import { Dashboard } from "./Dashboard"
 
-vi.mock("@clerk/clerk-react", () => ({
-  useAuth: () => ({ getToken: async () => "test-clerk-token", isSignedIn: true }),
-  useClerk: () => ({ signOut: vi.fn() }),
-  useUser: () => ({
-    user: { fullName: "Test User", primaryEmailAddress: { emailAddress: "test@example.com" } },
-  }),
-}))
+vi.mock("@clerk/clerk-react", () => {
+  const stableGetToken = async () => "test-clerk-token"
+  return {
+    useAuth: () => ({ getToken: stableGetToken, isSignedIn: true }),
+    useClerk: () => ({ signOut: vi.fn() }),
+    useUser: () => ({
+      user: { fullName: "Test User", primaryEmailAddress: { emailAddress: "test@example.com" } },
+    }),
+  }
+})
 
 vi.mock("./charts/DeploymentChart", () => ({
   DeploymentChart: () => <div data-testid="deployment-chart" />,
 }))
-vi.mock("./charts/LeadTimeChart", () => ({
-  LeadTimeChart: () => <div data-testid="lead-time-chart" />,
-}))
-vi.mock("./charts/CycleTimeChart", () => ({
-  CycleTimeChart: () => <div data-testid="cycle-time-chart" />,
+vi.mock("./charts/WeeklyPercentilesChart", () => ({
+  WeeklyPercentilesChart: () => <div data-testid="weekly-percentiles-chart" />,
 }))
 vi.mock("./charts/PRAgeingChart", () => ({
   PRAgeingChart: () => <div data-testid="pr-ageing-chart" />,
@@ -84,6 +93,55 @@ describe("Dashboard", () => {
     // Failed card shows its own error + retry
     expect(screen.getByText("Failed to load")).toBeInTheDocument()
     expect(screen.getByText("Retry")).toBeInTheDocument()
+  })
+
+  it("requests each metric endpoint exactly once per mount", async () => {
+    const counts: Record<string, number> = {}
+    const countingHandler = (path: string, body: object) =>
+      http.get(path, () => {
+        counts[path] = (counts[path] ?? 0) + 1
+        return HttpResponse.json(body)
+      })
+
+    server.use(
+      countingHandler("/metrics/deployment-frequency", makeDeploymentFrequency()),
+      countingHandler("/metrics/lead-time", makeLeadTime()),
+      countingHandler("/metrics/pr-cycle-time", makeCycleTime()),
+      countingHandler("/metrics/throughput", makeThroughput()),
+      countingHandler("/metrics/open-prs", makeOpenPRs()),
+      countingHandler("/metrics/pr-ageing", makePRAgeing()),
+      // days_of_data <= 30 keeps the effective window stable at 30d, so the
+      // only cause of extra requests would be duplicated hook usage
+      countingHandler(
+        "/metrics/data-quality",
+        makeDataQuality({
+          freshness: {
+            status: "ok",
+            last_refresh_at: new Date().toISOString(),
+            days_of_data: 20,
+          },
+        })
+      )
+    )
+
+    render(<Dashboard repos={defaultRepos} />)
+
+    await waitFor(() => {
+      expect(screen.getByText("4.2")).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getAllByTestId("weekly-percentiles-chart")).toHaveLength(2)
+    })
+
+    expect(counts).toEqual({
+      "/metrics/deployment-frequency": 1,
+      "/metrics/lead-time": 1,
+      "/metrics/pr-cycle-time": 1,
+      "/metrics/throughput": 1,
+      "/metrics/open-prs": 1,
+      "/metrics/pr-ageing": 1,
+      "/metrics/data-quality": 1,
+    })
   })
 
   it("renders the profile menu trigger", async () => {

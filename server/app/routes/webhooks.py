@@ -45,6 +45,9 @@ _MAX_WEBHOOK_BODY = 25 * 1024 * 1024  # 25 MB
 @router.post("/webhooks/github")
 @limiter.limit("60/minute")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks) -> Response:
+    # Deliberately returns bare status codes (not HTTPException with detail):
+    # webhook callers are machines, and error detail would leak validation
+    # behaviour to unauthenticated senders.
     # Pre-check Content-Length before reading body into memory
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > _MAX_WEBHOOK_BODY:

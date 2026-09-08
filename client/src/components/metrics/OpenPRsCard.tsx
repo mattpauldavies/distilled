@@ -1,12 +1,13 @@
-import { useOpenPRs } from "@/hooks/useOpenPRs"
 import { MetricCard } from "@/components/MetricCard"
+import type { MetricSection } from "@/hooks/useMetricSection"
+import type { OpenPRsSection } from "@/types/dashboard"
 
 interface Props {
-  repoId: string
+  section: MetricSection<OpenPRsSection>
 }
 
-export function OpenPRsCard({ repoId }: Props) {
-  const { data, loading, error, retry } = useOpenPRs(repoId)
+export function OpenPRsCard({ section }: Props) {
+  const { data, loading, error, retry } = section
   const value = data ? String(data.total) : "—"
   const caption = data ? `${data.live} live · ${data.draft} draft` : "Open pull requests"
 

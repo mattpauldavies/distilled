@@ -86,11 +86,11 @@ async def test_invalid_jwt_returns_401():
     app = make_secured_app()
     _override_session(app, AsyncMock())
 
+    from app.services.clerk_service import AuthError
+
     with patch(
         "app.auth.verifier.verify_token",
-        new=AsyncMock(
-            side_effect=__import__("fastapi").HTTPException(status_code=401, detail="Invalid token")
-        ),
+        new=AsyncMock(side_effect=AuthError("Invalid token")),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/protected", headers={"Authorization": "Bearer invalid.jwt"})

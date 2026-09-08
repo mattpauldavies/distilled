@@ -1,6 +1,5 @@
 import "@/lib/chartSetup"
-import { useEffect, useState } from "react"
-import * as Sentry from "@sentry/react"
+import { useState } from "react"
 import { SignedIn, SignedOut } from "@clerk/clerk-react"
 import { Dashboard } from "@/components/Dashboard"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
@@ -13,20 +12,10 @@ import { AcceptInvitePage } from "@/pages/AcceptInvitePage"
 import { useRepos } from "@/hooks/useRepos"
 import { TenantProvider, useTenantContext } from "@/lib/tenantContext"
 
-const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN ?? ""
-
 function Home() {
   const { loading: tenantLoading, error: tenantError, activeTenant } = useTenantContext()
   const { repos, loading, error, refetch } = useRepos()
   const [showTeam, setShowTeam] = useState(false)
-
-  useEffect(() => {
-    if (SENTRY_DSN) {
-      Sentry.init({
-        dsn: SENTRY_DSN,
-      })
-    }
-  }, [])
 
   if (tenantLoading) return <InitialisingScreen />
   if (tenantError)

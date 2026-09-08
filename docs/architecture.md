@@ -15,20 +15,27 @@ GitHub webhook ──► FastAPI ──► PostgreSQL
 
 ### Layers
 
-| Layer      | Directory         | Responsibility                                 |
-| ---------- | ----------------- | ---------------------------------------------- |
-| Routes     | `app/routes/`     | HTTP handling, request/response serialization  |
-| Services   | `app/services/`   | Business logic, GitHub API, webhook processing |
-| Models     | `app/models/`     | SQLAlchemy ORM, database schema                |
-| Schemas    | `app/schemas/`    | Pydantic validation, API contracts             |
-| Middleware | `app/middleware/` | Request-scoped context (tenant resolution)     |
+| Layer        | Directory           | Responsibility                                            |
+| ------------ | ------------------- | --------------------------------------------------------- |
+| Routes       | `app/routes/`       | HTTP handling, request/response serialization             |
+| Services     | `app/services/`     | Business logic, GitHub API, webhook processing            |
+| Models       | `app/models/`       | SQLAlchemy ORM, database schema, shared query predicates  |
+| Schemas      | `app/schemas/`      | Pydantic validation, API contracts                        |
+| Middleware   | `app/middleware/`   | Request-scoped context via FastAPI dependencies (tenant, repo) |
+
+Note `app/middleware/` holds per-route FastAPI dependencies; cross-cutting ASGI middleware (CORS, security headers, rate limiting) lives in `app/main.py`.
+
+Conventions the layers follow are recorded as ADRs: transaction ownership in
+[ADR 003](adrs/003-transaction-boundaries.md), query placement in
+[ADR 004](adrs/004-query-placement-and-domain-predicates.md).
 
 ### Key services
 
-- **webhook_service** — HMAC signature verification, event handler registry
+- **webhook_service** — HMAC signature verification, event handler registry, payload parsing helpers
 - **github_client** — JWT auth, installation token management, GitHub API wrapper
-- **installation_service** — handles app installation, repo sync, environment discovery
-- **deployment_service** — processes deployment_status and pull_request events
+- **ingest_installation_service** — handles app installation, repo sync, environment discovery
+- **ingest_deployment_service** — processes deployment_status events
+- **ingest_pr_service** — processes pull_request events into the PullRequest table
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
 - **environment_service** — auto-detects production environments by name pattern
 
@@ -36,30 +43,53 @@ GitHub webhook ──► FastAPI ──► PostgreSQL
 
 Metrics are split across three services by **computation pattern**, not data source:
 
-- **metrics_service** — scheduled batch recompute, results persisted to dedicated tables
-- **pull_request_service** — real-time queries against live data, no persistence
-- **data_quality_service** — monitoring/observability of the metrics pipeline itself
+- **batch_metrics_service** — scheduled batch recompute (write side), results persisted to
+  dedicated tables; also writes the `MetricsRefreshLog` row for each run
+- **read_metrics_service** — the whole read side: live queries, reads over the pre-computed
+  tables, and the dashboard section builders the `/metrics/*` routes serve
+- **read_data_quality_service** — monitoring/observability of the metrics pipeline itself
 
-| Metric               | Service      | Pattern             | Source Data       |
-| -------------------- | ------------ | ------------------- | ----------------- |
-| Deployment Frequency | metrics      | pre-computed daily  | deployments       |
-| Lead Time            | metrics      | pre-computed weekly | PRs + deployments |
-| PR Cycle Time        | metrics      | pre-computed weekly | PRs               |
-| PR Throughput        | metrics      | pre-computed weekly | PRs               |
-| Open PR Count        | pull_request | live query          | PRs               |
-| PR Ageing            | pull_request | live query          | PRs               |
-| Metrics Freshness    | data_quality | live query          | MetricsRefreshLog |
-| Attribution Coverage | data_quality | live query          | PRs + deployments |
+Service names carry a role prefix: `ingest_*` consume webhook events (write side),
+`batch_*` run on the scheduler (write side), `read_*` serve queries. Unprefixed modules
+(`webhook_service`, `attribution_service`, `environment_service`, identity services,
+`github_client`, `pagination`) are shared domain logic or infrastructure.
 
-The **dashboard_service** exposes one helper per section; each of the `/metrics/*` endpoints delegates to its corresponding helper. The client fetches all sections in parallel, so one slow query never blocks the rest of the dashboard.
+Note the weekly **chart series** are pre-computed, but the **headline numbers** (lead time
+median, cycle time median, throughput summary) are live queries so they always reflect the
+selected window exactly.
+
+| Metric                          | Service      | Pattern             | Source Data       |
+| ------------------------------- | ------------ | ------------------- | ----------------- |
+| Deployment Frequency            | batch_metrics | pre-computed daily  | deployments       |
+| Lead Time (weekly series)       | batch_metrics | pre-computed weekly | PRs + deployments |
+| Lead Time (headline median)     | read_metrics  | live query          | PRs + deployments |
+| PR Cycle Time (weekly series)   | batch_metrics | pre-computed weekly | PRs               |
+| PR Cycle Time (headline median) | read_metrics  | live query          | PRs               |
+| PR Throughput (weekly series)   | batch_metrics | pre-computed weekly | PRs               |
+| PR Throughput (summary)         | read_metrics  | live query          | PRs               |
+| Open PR Count                   | read_metrics  | live query          | PRs               |
+| PR Ageing                       | read_metrics  | live query          | PRs               |
+| Metrics Freshness               | read_data_quality | live query      | MetricsRefreshLog |
+| Attribution Coverage            | read_data_quality | live query      | PRs + deployments |
+
+The core "merged PRs on the default branch" and "open PRs" filters are defined once as
+class-level predicates on the `PullRequest` model (`merged_on_branch`, `open_on_branch`)
+and reused by every metric query.
+
+**read_metrics_service** exposes one section builder per dashboard section; each of the `/metrics/*` endpoints delegates to its corresponding builder, so a metric's full read path (SQL through to response schema) lives in one module. The client fetches all sections in parallel, so one slow query never blocks the rest of the dashboard.
 
 ### Scheduled jobs
 
 - Scheduled jobs will be triggered via Railway Scheduled Jobs calling authenticated internal endpoints.
+- Internal endpoints live in `app/routes/internal.py` with the cron-secret check applied at
+  router level; user-facing routers get `require_auth` at router level in `main.py`.
 - No in-process schedulers (e.g. APScheduler).
 - No OS-level cron.
 - All scheduled work must be idempotent. (Jobs must be safe to run multiple times.)
 - All scheduled endpoints must require internal authentication.
+- The demo seed script (`scripts/seed_demo.py`) inserts raw rows only and derives metrics by
+  calling the same recompute pipeline the scheduled job uses — demo numbers can never drift
+  from the production algorithm.
 
 ### Data flow: webhook to deployment
 
