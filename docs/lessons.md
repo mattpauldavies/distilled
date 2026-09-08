@@ -4,6 +4,11 @@
 
 - Do not include `Co-Authored-By` trailers in commit messages.
 
+## Documentation
+
+- Keep the full Makefile targets table in the root README — it's a valued
+  quick reference. Trim prose for brevity, not reference tables.
+
 ## Refactoring
 
 - Don't rename established directories/modules purely for conceptual purity
