@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import distinct, func, select
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +14,7 @@ from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.metrics import (
     DeploymentDailyMetric,
     LeadTimeWeeklyMetric,
+    MetricsRefreshLog,
     PRCycleTimeWeeklyMetric,
     PRThroughputWeeklyMetric,
 )
@@ -161,10 +162,7 @@ async def compute_pr_cycle_time(
     cutoff = _cutoff()
     result = await session.execute(
         select(PullRequest).where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo_id,
-            PullRequest.base_ref == default_branch,
-            PullRequest.merged_at >= cutoff,
+            PullRequest.merged_on_branch(tenant_id, repo_id, default_branch, since=cutoff)
         )
     )
     prs = result.scalars().all()
@@ -215,10 +213,7 @@ async def compute_pr_throughput(
     cutoff = _cutoff()
     result = await session.execute(
         select(PullRequest).where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo_id,
-            PullRequest.base_ref == default_branch,
-            PullRequest.merged_at >= cutoff,
+            PullRequest.merged_on_branch(tenant_id, repo_id, default_branch, since=cutoff)
         )
     )
     prs = result.scalars().all()
@@ -348,98 +343,6 @@ async def get_pr_throughput(
     return [{"week_start": m.week_start, "pr_count": m.pr_count} for m in result.scalars().all()]
 
 
-async def get_lead_time_aggregate(
-    tenant_id: uuid.UUID,
-    repo: Repository,
-    session: AsyncSession,
-    days: int,
-) -> dict:
-    since = datetime.now(UTC) - timedelta(days=days)
-    result = await session.execute(
-        select(
-            PullRequest.merged_at,
-            ProductionDeploymentEvent.deployed_at,
-        )
-        .join(DeploymentAttribution, DeploymentAttribution.pr_id == PullRequest.id)
-        .join(ProductionDeploymentEvent, ProductionDeploymentEvent.id == DeploymentAttribution.deployment_id)
-        .where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo.id,
-            PullRequest.base_ref == repo.default_branch,
-            ProductionDeploymentEvent.deployed_at >= since,
-        )
-    )
-    durations = [
-        (row.deployed_at - row.merged_at).total_seconds()
-        for row in result.all()
-        if (row.deployed_at - row.merged_at).total_seconds() > 0
-    ]
-    return {
-        "median_seconds": statistics.median(durations) if durations else None,
-        "sample_size": len(durations),
-    }
-
-
-async def get_pr_cycle_time_aggregate(
-    tenant_id: uuid.UUID,
-    repo: Repository,
-    session: AsyncSession,
-    days: int,
-) -> dict:
-    since = datetime.now(UTC) - timedelta(days=days)
-    result = await session.execute(
-        select(PullRequest).where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo.id,
-            PullRequest.base_ref == repo.default_branch,
-            PullRequest.merged_at >= since,
-            PullRequest.merged_at.is_not(None),
-        )
-    )
-    durations = [
-        (pr.merged_at - pr.opened_at).total_seconds()
-        for pr in result.scalars().all()
-        if pr.merged_at is not None and pr.opened_at is not None and (pr.merged_at - pr.opened_at).total_seconds() > 0
-    ]
-    return {
-        "median_seconds": statistics.median(durations) if durations else None,
-        "sample_size": len(durations),
-    }
-
-
-async def get_pr_throughput_summary(
-    tenant_id: uuid.UUID,
-    repo: Repository,
-    session: AsyncSession,
-    days: int,
-) -> dict:
-    since = date.today() - timedelta(days=days)
-    result = await session.execute(
-        select(
-            func.count(PullRequest.id).label("total_prs"),
-            func.count(distinct(PullRequest.author_login)).label("unique_authors"),
-        ).where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo.id,
-            PullRequest.base_ref == repo.default_branch,
-            PullRequest.merged_at >= since,
-            PullRequest.merged_at.is_not(None),
-        )
-    )
-    row = result.one()
-    total_prs = row.total_prs
-    unique_authors = row.unique_authors
-    if unique_authors > 0 and days > 0:
-        prs_per_engineer_per_month = round(total_prs / unique_authors / (days / 30), 1)
-    else:
-        prs_per_engineer_per_month = None
-    return {
-        "total_prs": total_prs,
-        "unique_authors": unique_authors,
-        "prs_per_engineer_per_month": prs_per_engineer_per_month,
-    }
-
-
 @dataclass
 class RecomputeResult:
     status: str = "success"
@@ -478,3 +381,45 @@ async def recompute_repo(
             errors=errors,
         )
     return RecomputeResult(status="success")
+
+
+async def recompute_repo_and_log(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+) -> RecomputeResult:
+    """Recompute all metrics for a repo and upsert the hourly refresh log.
+
+    The refresh log is what data_quality_service reads for freshness, so the
+    write lives here in the service layer alongside its readers. The caller
+    owns the commit.
+    """
+    now = datetime.now(UTC)
+    hour = now.replace(minute=0, second=0, microsecond=0)
+
+    result = await recompute_repo(tenant_id, repo.id, repo.default_branch, session)
+
+    stmt = (
+        insert(MetricsRefreshLog)
+        .values(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            repo_id=repo.id,
+            hour=hour,
+            started_at=now,
+            completed_at=datetime.now(UTC),
+            status=result.status,
+            error_message=result.error_message,
+        )
+        .on_conflict_do_update(
+            index_elements=["tenant_id", "repo_id", "hour"],
+            set_={
+                "started_at": now,
+                "completed_at": datetime.now(UTC),
+                "status": result.status,
+                "error_message": result.error_message,
+            },
+        )
+    )
+    await session.execute(stmt)
+    return result

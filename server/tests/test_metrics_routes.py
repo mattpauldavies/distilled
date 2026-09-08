@@ -54,8 +54,8 @@ async def test_recompute_success(metrics_client, mock_session):
     mock_session.execute = AsyncMock(side_effect=[repo_result, MagicMock(), MagicMock()])
 
     with (
-        patch("app.routes.metrics.settings") as mock_settings,
-        patch("app.routes.metrics.recompute_repo", new_callable=AsyncMock) as mock_recompute,
+        patch("app.routes.internal.settings") as mock_settings,
+        patch("app.services.metrics_service.recompute_repo", new_callable=AsyncMock) as mock_recompute,
     ):
         mock_settings.internal_cron_secret = "test-secret"
         mock_recompute.return_value = RecomputeResult(status="success")
@@ -76,7 +76,7 @@ async def test_recompute_repo_not_found(metrics_client, mock_session):
     repo_result.scalar_one_or_none.return_value = None
     mock_session.execute = AsyncMock(return_value=repo_result)
 
-    with patch("app.routes.metrics.settings") as mock_settings:
+    with patch("app.routes.internal.settings") as mock_settings:
         mock_settings.internal_cron_secret = "test-secret"
 
         resp = await metrics_client.post(
@@ -109,7 +109,7 @@ async def test_recompute_targets_returns_empty_list(metrics_client, mock_session
     result_mock.all.return_value = []
     mock_session.execute = AsyncMock(return_value=result_mock)
 
-    with patch("app.routes.metrics.settings") as mock_settings:
+    with patch("app.routes.internal.settings") as mock_settings:
         mock_settings.internal_cron_secret = "test-secret"
         resp = await metrics_client.get(
             "/metrics/recompute-targets",
@@ -133,7 +133,7 @@ async def test_recompute_targets_returns_sorted_list(metrics_client, mock_sessio
     result_mock.all.return_value = rows
     mock_session.execute = AsyncMock(return_value=result_mock)
 
-    with patch("app.routes.metrics.settings") as mock_settings:
+    with patch("app.routes.internal.settings") as mock_settings:
         mock_settings.internal_cron_secret = "test-secret"
         resp = await metrics_client.get(
             "/metrics/recompute-targets",

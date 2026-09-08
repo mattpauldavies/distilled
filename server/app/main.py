@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 # Import services to register webhook handlers
 import app.services.deployment_service
 import app.services.installation_service
+import app.services.pr_ingestion_service
 
 
 @asynccontextmanager
@@ -95,11 +96,12 @@ def create_app() -> FastAPI:
     app.include_router(environments.router, dependencies=[Depends(require_auth)])
     app.include_router(deployments.router, dependencies=[Depends(require_auth)])
     app.include_router(pull_requests.router, dependencies=[Depends(require_auth)])
-    app.include_router(metrics.router)  # no router-level auth — per-route in metrics.py
+    app.include_router(metrics.router, dependencies=[Depends(require_auth)])
     app.include_router(team.router)  # per-route auth (require_owner / require_auth)
     app.include_router(me.router)  # tenant-agnostic user endpoints
     app.include_router(invitations.router)  # JWT-only redeem
-    app.include_router(internal.router)  # cron-secret-only internal endpoints
+    app.include_router(internal.router)  # cron-secret auth at router level
+    app.include_router(internal.metrics_router)  # cron recompute at pinned /metrics/* paths
     return app
 
 

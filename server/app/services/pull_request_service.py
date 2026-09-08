@@ -1,10 +1,14 @@
+import statistics
 import uuid
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import func, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.deployment_attribution import DeploymentAttribution
+from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 
@@ -31,13 +35,7 @@ async def get_open_pr_count(
             func.count().label("total"),
             func.sum(func.cast(PullRequest.is_draft == False, sa.Integer)).label("live"),
             func.sum(func.cast(PullRequest.is_draft == True, sa.Integer)).label("draft"),
-        ).where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo.id,
-            PullRequest.base_ref == repo.default_branch,
-            PullRequest.merged_at.is_(None),
-            PullRequest.closed_at.is_(None),
-        )
+        ).where(PullRequest.open_on_branch(tenant_id, repo.id, repo.default_branch))
     )
     row = result.one()
     return {
@@ -60,11 +58,7 @@ async def get_pr_ageing(
             func.count().label("count"),
         )
         .where(
-            PullRequest.tenant_id == tenant_id,
-            PullRequest.repo_id == repo.id,
-            PullRequest.base_ref == repo.default_branch,
-            PullRequest.merged_at.is_(None),
-            PullRequest.closed_at.is_(None),
+            PullRequest.open_on_branch(tenant_id, repo.id, repo.default_branch),
             PullRequest.is_draft.is_(False),
         )
         .group_by(sa.text("bucket"))
@@ -72,3 +66,86 @@ async def get_pr_ageing(
     _order = {"<2d": 0, "2-7d": 1, "7-14d": 2, ">14d": 3}
     counts = {row.bucket: row.count for row in result.all()}
     return [{"bucket": bucket, "count": counts.get(bucket, 0)} for bucket in sorted(_order, key=_order.__getitem__)]
+
+
+async def get_lead_time_aggregate(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    """Live headline median: merge to production deploy, over the window."""
+    since = datetime.now(UTC) - timedelta(days=days)
+    result = await session.execute(
+        select(
+            PullRequest.merged_at,
+            ProductionDeploymentEvent.deployed_at,
+        )
+        .join(DeploymentAttribution, DeploymentAttribution.pr_id == PullRequest.id)
+        .join(ProductionDeploymentEvent, ProductionDeploymentEvent.id == DeploymentAttribution.deployment_id)
+        .where(
+            PullRequest.merged_on_branch(tenant_id, repo.id, repo.default_branch),
+            ProductionDeploymentEvent.deployed_at >= since,
+        )
+    )
+    durations = [
+        (row.deployed_at - row.merged_at).total_seconds()
+        for row in result.all()
+        if (row.deployed_at - row.merged_at).total_seconds() > 0
+    ]
+    return {
+        "median_seconds": statistics.median(durations) if durations else None,
+        "sample_size": len(durations),
+    }
+
+
+async def get_pr_cycle_time_aggregate(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    """Live headline median: PR opened to merged, over the window."""
+    since = datetime.now(UTC) - timedelta(days=days)
+    result = await session.execute(
+        select(PullRequest).where(
+            PullRequest.merged_on_branch(tenant_id, repo.id, repo.default_branch, since=since)
+        )
+    )
+    durations = [
+        (pr.merged_at - pr.opened_at).total_seconds()
+        for pr in result.scalars().all()
+        if pr.merged_at is not None and pr.opened_at is not None and (pr.merged_at - pr.opened_at).total_seconds() > 0
+    ]
+    return {
+        "median_seconds": statistics.median(durations) if durations else None,
+        "sample_size": len(durations),
+    }
+
+
+async def get_pr_throughput_summary(
+    tenant_id: uuid.UUID,
+    repo: Repository,
+    session: AsyncSession,
+    days: int,
+) -> dict:
+    """Live summary: merged PR count and per-engineer rate over the window."""
+    since = datetime.combine(date.today() - timedelta(days=days), datetime.min.time(), tzinfo=UTC)
+    result = await session.execute(
+        select(
+            func.count(PullRequest.id).label("total_prs"),
+            func.count(distinct(PullRequest.author_login)).label("unique_authors"),
+        ).where(PullRequest.merged_on_branch(tenant_id, repo.id, repo.default_branch, since=since))
+    )
+    row = result.one()
+    total_prs = row.total_prs
+    unique_authors = row.unique_authors
+    if unique_authors > 0 and days > 0:
+        prs_per_engineer_per_month = round(total_prs / unique_authors / (days / 30), 1)
+    else:
+        prs_per_engineer_per_month = None
+    return {
+        "total_prs": total_prs,
+        "unique_authors": unique_authors,
+        "prs_per_engineer_per_month": prs_per_engineer_per_month,
+    }

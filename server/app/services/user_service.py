@@ -16,6 +16,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _extract_github_identity(profile: dict) -> tuple[str | None, int | None]:
+    """Pull (username, account_id) from a Clerk profile's GitHub external account."""
+    for account in profile.get("external_accounts", []):
+        if account.get("provider") == "oauth_github":
+            username = account.get("username")
+            account_id = None
+            provider_user_id = account.get("provider_user_id")
+            if provider_user_id:
+                try:
+                    account_id = int(provider_user_id)
+                except (ValueError, TypeError):
+                    pass
+            return username, account_id
+    return None, None
+
+
 async def _backfill_github_data(
     user: User,
     verifier: "ClerkJWTVerifier",
@@ -29,19 +45,13 @@ async def _backfill_github_data(
     """
     try:
         profile = await verifier.get_user(user.clerk_user_id)
-        for account in profile.get("external_accounts", []):
-            if account.get("provider") != "oauth_github":
-                continue
-            user.github_username = account.get("username")
-            provider_user_id = account.get("provider_user_id")
-            if provider_user_id:
-                try:
-                    user.github_account_id = int(provider_user_id)
-                except (ValueError, TypeError):
-                    pass
-            await session.commit()
-            logger.info("clerk_api: backfilled github data for %s", user.clerk_user_id)
+        github_username, github_account_id = _extract_github_identity(profile)
+        if github_username is None and github_account_id is None:
             return
+        user.github_username = github_username
+        user.github_account_id = github_account_id
+        await session.commit()
+        logger.info("clerk_api: backfilled github data for %s", user.clerk_user_id)
     except Exception as exc:
         logger.warning("clerk_api: backfill failed for %s: %s", user.clerk_user_id, exc)
 
@@ -76,16 +86,7 @@ async def get_or_create_user(
     if verifier is not None:
         try:
             profile = await verifier.get_user(clerk_user_id)
-            for account in profile.get("external_accounts", []):
-                if account.get("provider") == "oauth_github":
-                    github_username = account.get("username")
-                    provider_user_id = account.get("provider_user_id")
-                    if provider_user_id:
-                        try:
-                            github_account_id = int(provider_user_id)
-                        except (ValueError, TypeError):
-                            pass
-                    break
+            github_username, github_account_id = _extract_github_identity(profile)
         except Exception as exc:
             logger.warning("clerk_api: failed to fetch profile for %s: %s", clerk_user_id, exc)
 

@@ -22,14 +22,17 @@ from app.services.data_quality_service import get_attribution_coverage, get_metr
 from app.services.environment_service import get_production_environments
 from app.services.metrics_service import (
     get_deployment_frequency,
-    get_lead_time_aggregate,
     get_lead_time_summary,
-    get_pr_cycle_time_aggregate,
     get_pr_cycle_time_summary,
     get_pr_throughput,
+)
+from app.services.pull_request_service import (
+    get_lead_time_aggregate,
+    get_open_pr_count,
+    get_pr_ageing,
+    get_pr_cycle_time_aggregate,
     get_pr_throughput_summary,
 )
-from app.services.pull_request_service import get_open_pr_count, get_pr_ageing
 
 
 async def get_deployment_frequency_section(

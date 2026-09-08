@@ -2,12 +2,12 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.middleware.repo import get_verified_repo
-from app.middleware.tenant import get_tenant_id
+from app.dependencies.repo import get_verified_repo
+from app.dependencies.tenant import get_tenant_id
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.deployment_event import ProductionDeploymentEvent
 from app.models.pull_request import PullRequest
@@ -15,6 +15,7 @@ from app.models.repository import Repository
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.deployments import DeploymentDetailResponse, DeploymentResponse
 from app.schemas.pull_requests import PullRequestResponse
+from app.services.pagination import paginate
 
 router = APIRouter(prefix="/deployments")
 
@@ -40,20 +41,8 @@ async def list_deployments(
     if until:
         base = base.where(ProductionDeploymentEvent.deployed_at <= until)
 
-    total_result = await session.execute(select(func.count()).select_from(base.subquery()))
-    total = total_result.scalar_one()
-
-    result = await session.execute(
-        base.order_by(ProductionDeploymentEvent.deployed_at.desc()).offset(pagination.offset).limit(pagination.limit)
-    )
-    deployments = result.scalars().all()
-
-    return PaginatedResponse(
-        items=[DeploymentResponse.model_validate(d) for d in deployments],
-        total=total,
-        offset=pagination.offset,
-        limit=pagination.limit,
-    )
+    stmt = base.order_by(ProductionDeploymentEvent.deployed_at.desc())
+    return await paginate(session, stmt, pagination, DeploymentResponse)
 
 
 @router.get("/{deployment_id}")

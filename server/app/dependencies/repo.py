@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.middleware.tenant import get_tenant_id
+from app.dependencies.tenant import get_tenant_id
 from app.models.repository import Repository
 
 

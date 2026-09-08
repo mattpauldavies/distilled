@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+import re
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -86,3 +87,27 @@ async def record_webhook_outcome(delivery_id: str, status: str, error: str | Non
     async with async_session() as session:
         await session.execute(stmt)
         await session.commit()
+
+
+# --- GitHub payload parsing helpers (shared by webhook event handlers) ---
+
+_GITHUB_URL_PATTERN = re.compile(r"^https://github\.com/[\w.\-]+/[\w.\-]+")
+
+
+def validate_github_url(url: str) -> str:
+    """Return url only if it points at github.com; webhook payloads are untrusted."""
+    if url and not _GITHUB_URL_PATTERN.match(url):
+        return ""
+    return url
+
+
+def parse_datetime(value: str) -> datetime:
+    if not value:
+        return datetime(2000, 1, 1)
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def parse_datetime_optional(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))

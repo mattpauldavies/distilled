@@ -18,23 +18,6 @@ def detect_production(name: str) -> bool:
     return bool(PRODUCTION_PATTERN.match(name))
 
 
-async def has_production_environment(
-    tenant_id: uuid.UUID,
-    repo_id: uuid.UUID,
-    session: AsyncSession,
-) -> bool:
-    result = await session.execute(
-        select(Environment)
-        .where(
-            Environment.tenant_id == tenant_id,
-            Environment.repo_id == repo_id,
-            Environment.is_production.is_(True),
-        )
-        .limit(1)
-    )
-    return result.scalar_one_or_none() is not None
-
-
 async def get_production_environments(
     tenant_id: uuid.UUID,
     repo_id: uuid.UUID,

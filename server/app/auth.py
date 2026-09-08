@@ -12,7 +12,7 @@ from app.db import get_session
 from app.models.tenant import Tenant
 from app.models.tenant_user import TenantUser
 from app.models.user import User
-from app.services.clerk_service import ClerkJWTVerifier
+from app.services.clerk_service import AuthError, ClerkJWTVerifier
 from app.services.user_service import get_or_create_user
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,10 @@ async def require_auth(
 
     requested_tenant_id = _parse_tenant_header(x_tenant_id)
 
-    claims = await verifier.verify_token(credentials.credentials)
+    try:
+        claims = await verifier.verify_token(credentials.credentials)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
     user = await get_or_create_user(claims, session, verifier)
 
     resolved = await _resolve_active_tenant(user, requested_tenant_id, session)

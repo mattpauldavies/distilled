@@ -298,7 +298,7 @@ async def test_get_pr_throughput_returns_weekly_counts(mock_session):
 
 @pytest.mark.asyncio
 async def test_get_pr_throughput_summary_calculates_rate(mock_session):
-    from app.services.metrics_service import get_pr_throughput_summary
+    from app.services.pull_request_service import get_pr_throughput_summary
 
     repo = make_repo(id=REPO_ID)
     row_mock = MagicMock(total_prs=12, unique_authors=4)
@@ -316,7 +316,7 @@ async def test_get_pr_throughput_summary_calculates_rate(mock_session):
 
 @pytest.mark.asyncio
 async def test_get_pr_throughput_summary_no_authors_returns_none_rate(mock_session):
-    from app.services.metrics_service import get_pr_throughput_summary
+    from app.services.pull_request_service import get_pr_throughput_summary
 
     repo = make_repo(id=REPO_ID)
     row_mock = MagicMock(total_prs=0, unique_authors=0)
@@ -332,7 +332,7 @@ async def test_get_pr_throughput_summary_no_authors_returns_none_rate(mock_sessi
 @pytest.mark.asyncio
 async def test_get_lead_time_aggregate_computes_median(mock_session):
 
-    from app.services.metrics_service import get_lead_time_aggregate
+    from app.services.pull_request_service import get_lead_time_aggregate
 
     repo = make_repo(id=REPO_ID)
     now = datetime(2026, 3, 18, 12, 0, tzinfo=UTC)
@@ -350,7 +350,7 @@ async def test_get_lead_time_aggregate_computes_median(mock_session):
 
 @pytest.mark.asyncio
 async def test_get_lead_time_aggregate_empty_returns_none(mock_session):
-    from app.services.metrics_service import get_lead_time_aggregate
+    from app.services.pull_request_service import get_lead_time_aggregate
 
     repo = make_repo(id=REPO_ID)
     result_mock = MagicMock()
@@ -366,7 +366,7 @@ async def test_get_lead_time_aggregate_empty_returns_none(mock_session):
 @pytest.mark.asyncio
 async def test_get_pr_cycle_time_aggregate_computes_median(mock_session):
 
-    from app.services.metrics_service import get_pr_cycle_time_aggregate
+    from app.services.pull_request_service import get_pr_cycle_time_aggregate
 
     repo = make_repo(id=REPO_ID)
     now = datetime(2026, 3, 18, 12, 0, tzinfo=UTC)
@@ -395,7 +395,7 @@ async def test_get_pr_cycle_time_aggregate_computes_median(mock_session):
 
 @pytest.mark.asyncio
 async def test_get_pr_cycle_time_aggregate_empty_returns_none(mock_session):
-    from app.services.metrics_service import get_pr_cycle_time_aggregate
+    from app.services.pull_request_service import get_pr_cycle_time_aggregate
 
     repo = make_repo(id=REPO_ID)
     result_mock = MagicMock()
