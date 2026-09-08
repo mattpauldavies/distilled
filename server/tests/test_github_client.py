@@ -249,6 +249,30 @@ async def test_terminal_401_after_eviction_surfaces():
     assert mock_http.request.call_count == 3  # No further loop after second 401
 
 
+async def test_list_environments_returns_empty_on_403():
+    """GitHub plan-gates the environments API: private repos on Free personal
+    accounts get 403 ("Upgrade to GitHub Pro...") — treat as no environments,
+    like the 404 case."""
+    installation_id = 777
+    _token_cache[installation_id] = ("good-token", datetime.now(UTC) + timedelta(hours=1))
+
+    mock_http = _make_mock_http(
+        request_returns=_make_response(
+            403,
+            {"message": "Upgrade to GitHub Pro or make this repository public to enable this feature."},
+        )
+    )
+
+    with (
+        patch("httpx.AsyncClient", return_value=mock_http),
+        patch.object(GitHubClient, "_generate_jwt", return_value="jwt"),
+    ):
+        client = GitHubClient()
+        envs = await client.list_environments("org", "repo", installation_id)
+
+    assert envs == []
+
+
 async def test_200_does_not_evict_token_cache():
     """Sanity check: a successful call must not perturb the cache."""
     installation_id = 999
