@@ -76,7 +76,7 @@ Makefile  # dev commands + database management
 | `website-build`    | Build the marketing website                                |
 | `website-serve`    | Serve the website locally with live reload                 |
 
-`make help` prints the same list, grouped.
+`make help` prints the same list.
 
 ## Documentation
 
