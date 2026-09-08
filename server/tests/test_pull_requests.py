@@ -25,6 +25,23 @@ async def test_list_pull_requests(client, mock_session):
 
 
 @pytest.mark.asyncio
+async def test_list_pull_requests_includes_open_pr(client, mock_session):
+    """An open PR (merged_at NULL) must serialise, not 500."""
+    pr = make_pr(merged_at=None)
+    mock_session.execute.side_effect = [
+        mock_count_result(1),
+        mock_result(rows=[pr]),
+    ]
+
+    response = await client.get(f"/pull-requests?repo_id={REPO_ID}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["merged_at"] is None
+
+
+@pytest.mark.asyncio
 async def test_list_pull_requests_empty(client, mock_session):
     mock_session.execute.side_effect = [
         mock_count_result(0),

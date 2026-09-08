@@ -11,7 +11,7 @@ class PullRequestResponse(BaseModel):
     title: str
     base_ref: str
     opened_at: datetime
-    merged_at: datetime
+    merged_at: datetime | None = None
     author_login: str
     html_url: str
     created_at: datetime
