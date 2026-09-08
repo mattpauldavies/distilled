@@ -13,22 +13,23 @@ from app.models.tenant_user import TenantUser
 from app.models.user import User
 from app.services.environment_service import discover_environments
 from app.services.github_client import GitHubClient
-from app.services.webhook_service import register_handler
+from app.services.webhook_service import SKIPPED, register_handler
 
 logger = logging.getLogger(__name__)
 
 
 @register_handler("installation")
-async def handle_installation_event(payload: dict, session: AsyncSession) -> None:
+async def handle_installation_event(payload: dict, session: AsyncSession) -> str | None:
     action = payload.get("action")
     if action == "created":
-        await _handle_created(payload, session)
-    elif action == "deleted":
-        await _handle_deleted(payload, session)
+        return await _handle_created(payload, session)
+    if action == "deleted":
+        return await _handle_deleted(payload, session)
+    return SKIPPED
 
 
 @register_handler("installation_repositories")
-async def handle_installation_repositories_event(payload: dict, session: AsyncSession) -> None:
+async def handle_installation_repositories_event(payload: dict, session: AsyncSession) -> str | None:
     action = payload.get("action")
     installation = await _get_installation(payload["installation"]["id"], session)
     if installation is None:
@@ -37,12 +38,15 @@ async def handle_installation_repositories_event(payload: dict, session: AsyncSe
             action,
             payload["installation"]["id"],
         )
-        return
+        return SKIPPED
 
     if action == "added":
         await _handle_repositories_added(payload, installation, session)
     elif action == "removed":
         await _handle_repositories_removed(payload, installation, session)
+    else:
+        return SKIPPED
+    return None
 
 
 async def _get_installation(installation_id: int, session: AsyncSession) -> GitHubInstallation | None:
@@ -52,7 +56,7 @@ async def _get_installation(installation_id: int, session: AsyncSession) -> GitH
     return result.scalar_one_or_none()
 
 
-async def _handle_created(payload: dict, session: AsyncSession) -> None:
+async def _handle_created(payload: dict, session: AsyncSession) -> str | None:
     installation_data = payload["installation"]
 
     # Match installation to tenant by GitHub account ID — the user who installs
@@ -70,7 +74,7 @@ async def _handle_created(payload: dict, session: AsyncSession) -> None:
             installation_data["account"]["login"],
             github_account_id,
         )
-        return
+        return SKIPPED
 
     membership_result = await session.execute(
         select(TenantUser.tenant_id)
@@ -85,7 +89,7 @@ async def _handle_created(payload: dict, session: AsyncSession) -> None:
             installation_data["account"]["login"],
             user.id,
         )
-        return
+        return SKIPPED
 
     # Upsert installation; clearing removed_at resurrects a soft-deleted install
     stmt = (
@@ -130,16 +134,17 @@ async def _handle_created(payload: dict, session: AsyncSession) -> None:
         )
     )
     await _discover_repo_environments(tenant_id, installation, repo_result.scalars().all(), session)
+    return None
 
 
-async def _handle_deleted(payload: dict, session: AsyncSession) -> None:
+async def _handle_deleted(payload: dict, session: AsyncSession) -> str | None:
     installation = await _get_installation(payload["installation"]["id"], session)
     if installation is None:
         logger.warning(
             "installation:deleted received for unknown installation_id=%s — skipping",
             payload["installation"]["id"],
         )
-        return
+        return SKIPPED
 
     now = datetime.now(UTC)
     await session.execute(
@@ -158,6 +163,7 @@ async def _handle_deleted(payload: dict, session: AsyncSession) -> None:
         "installation deleted, soft-deleted installation_id=%s and its repos",
         installation.installation_id,
     )
+    return None
 
 
 async def _handle_repositories_added(

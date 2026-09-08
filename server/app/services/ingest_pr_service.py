@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 from app.services.webhook_service import (
+    SKIPPED,
     parse_datetime,
     parse_datetime_optional,
     register_handler,
@@ -27,12 +28,12 @@ HANDLED_PR_ACTIONS = {"opened", "reopened", "closed", "converted_to_draft", "rea
 
 
 @register_handler("pull_request")
-async def handle_pull_request_event(payload: dict, session: AsyncSession) -> None:
+async def handle_pull_request_event(payload: dict, session: AsyncSession) -> str | None:
     action = payload.get("action")
     pr_data = payload.get("pull_request", {})
 
     if action not in HANDLED_PR_ACTIONS:
-        return
+        return SKIPPED
 
     repo_data = payload["repository"]
 
@@ -41,7 +42,7 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
     repo = result.scalar_one_or_none()
     if not repo:
         logger.warning("repo not found for PR, github_id=%s", repo_data["id"])
-        return
+        return SKIPPED
 
     tenant_id = repo.tenant_id
 
@@ -98,3 +99,4 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> Non
         )
     )
     await session.execute(stmt)
+    return None

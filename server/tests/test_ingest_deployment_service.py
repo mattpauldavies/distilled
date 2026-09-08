@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.services.ingest_deployment_service import handle_deployment_status_event
+from app.services.webhook_service import SKIPPED
 from tests.conftest import (
     make_deployment,
     make_environment,
@@ -40,8 +41,9 @@ def _deployment_status_payload(state="success", repo_github_id=111, env_name="pr
 @pytest.mark.asyncio
 async def test_skips_non_success(mock_session):
     payload = _deployment_status_payload(state="failure")
-    await handle_deployment_status_event(payload, mock_session)
+    result = await handle_deployment_status_event(payload, mock_session)
     mock_session.execute.assert_not_called()
+    assert result == SKIPPED
 
 
 @pytest.mark.asyncio
@@ -51,9 +53,10 @@ async def test_skips_unknown_repo(mock_session):
         mock_result(scalar_or_none=None),
     ]
 
-    await handle_deployment_status_event(payload, mock_session)
+    result = await handle_deployment_status_event(payload, mock_session)
 
     assert mock_session.execute.call_count == 1
+    assert result == SKIPPED
 
 
 @pytest.mark.asyncio
@@ -66,9 +69,10 @@ async def test_skips_non_production_env(mock_session):
         mock_result(scalar_or_none=None),
     ]
 
-    await handle_deployment_status_event(payload, mock_session)
+    result = await handle_deployment_status_event(payload, mock_session)
 
     assert mock_session.execute.call_count == 2
+    assert result == SKIPPED
 
 
 @pytest.mark.asyncio

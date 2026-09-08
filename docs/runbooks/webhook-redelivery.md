@@ -15,8 +15,8 @@ capability without any custom tooling.
 ## 1. Confirm what arrived
 
 Query `webhook_events` for the relevant time window. The table is keyed on
-`delivery_id` (GitHub's `X-GitHub-Delivery` header) and tracks one of four
-statuses: `received`, `succeeded`, `failed`, `no_handler`.
+`delivery_id` (GitHub's `X-GitHub-Delivery` header) and tracks one of five
+statuses: `received`, `succeeded`, `failed`, `skipped`, `no_handler`.
 
 ```sql
 SELECT delivery_id, event_type, action, status, error_message, received_at, processed_at
@@ -35,6 +35,11 @@ What to look for:
 - **`status = 'failed'`** → handler exception. `error_message` has the first
   exception's `Type: message` (truncated to 2 KB). Decide whether the underlying
   bug needs fixing before redelivery, or whether redelivery alone will succeed.
+- **`status = 'skipped'`** → every handler deliberately did nothing: the repo or
+  installation isn't in our database, or the action isn't one we process. A run
+  of `skipped` `pull_request`/`deployment_status` events usually means the
+  `installation` event that should have created the repos was never processed —
+  fix that first, then redeliver the skipped events.
 - **`status = 'no_handler'`** → we received the event but have no handler
   registered for that `event_type`. Either the GitHub App is subscribed to an
   event we don't process, or we're missing a handler.
