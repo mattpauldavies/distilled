@@ -62,6 +62,17 @@ Use `{% extends "base.njk" %}` instead of `legal.njk` if the page needs a custom
 
 ## Deployment
 
-Deploy the contents of `_site/` to any static host. The build output is plain HTML with no runtime dependencies.
+The build output is plain HTML with no runtime dependencies, so `_site/` can be
+served by any static host.
 
-We make use of Cloudflare pages which should deploy automatically on merge to the `main` branch.
+`Dockerfile` packages that for container hosts: a Node stage runs `npm run build`,
+then the output is copied into a `caddy:2-alpine` stage that serves it on `$PORT`
+using `Caddyfile`. There is deliberately no SPA history fallback — a missing page
+must 404 rather than render the homepage under the wrong URL.
+
+Build and run it locally with:
+
+```bash
+docker build -t distilled-website .
+docker run --rm -e PORT=8080 -p 8080:8080 distilled-website
+```

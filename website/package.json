@@ -6,7 +6,6 @@
     "serve": "eleventy --serve"
   },
   "devDependencies": {
-    "@11ty/eleventy": "^3.0.0",
-    "wrangler": "^4.82.2"
+    "@11ty/eleventy": "^3.0.0"
   }
 }
