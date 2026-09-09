@@ -137,6 +137,9 @@ PostgreSQL 16 via Docker. Async access via SQLAlchemy + asyncpg. Migrations mana
 
 GitHub App authentication (not OAuth):
 
-- Server generates JWT signed with App private key
+- Server generates JWT signed with App private key (9-minute expiry, backdated
+  `iat` — GitHub validates both claims against its own clock and 401s on skew)
 - JWT exchanged for installation access tokens (cached, auto-refreshed)
+- Token mint failures are triaged via
+  [docs/runbooks/github-app-auth.md](runbooks/github-app-auth.md)
 - Webhooks verified via HMAC-SHA256

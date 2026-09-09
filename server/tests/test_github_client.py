@@ -1,9 +1,11 @@
+import logging
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 
+from app.config import settings
 from app.services.github_client import GitHubClient, _token_cache
 
 
@@ -290,3 +292,65 @@ async def test_200_does_not_evict_token_cache():
     assert envs == []
     assert mock_http.request.call_count == 1  # just the GET, no token refresh
     assert _token_cache[installation_id][0] == "good-token"
+
+
+# --- JWT minting ---
+
+
+def _rsa_pem() -> str:
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    return key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode()
+
+
+def test_generate_jwt_stays_inside_githubs_ten_minute_window():
+    """GitHub rejects a JWT whose `exp` is more than 10 minutes ahead of *its* clock
+    with a 401. Leave headroom so modest clock skew on our side doesn't tip us over."""
+    import time as time_mod
+
+    import jwt as jwt_lib
+
+    pem = _rsa_pem()
+    mock_http = _make_mock_http(request_returns=_make_response(200))
+
+    with (
+        patch("httpx.AsyncClient", return_value=mock_http),
+        patch.object(settings, "github_private_key", pem),
+        patch.object(settings, "github_app_id", 12345),
+    ):
+        token = GitHubClient()._generate_jwt()
+
+    claims = jwt_lib.decode(token, options={"verify_signature": False})
+    now = time_mod.time()
+
+    assert claims["iss"] == "12345"
+    assert claims["iat"] <= now  # never issued in the future
+    assert claims["exp"] - claims["iat"] <= 600  # total lifetime within the documented cap
+    assert claims["exp"] - now <= 540  # >= 60s of headroom if our clock runs fast
+    assert claims["exp"] - now > 300  # ...but still a usable lifetime
+
+
+async def test_token_mint_failure_logs_githubs_message(caplog):
+    """A 401 from the access_tokens endpoint carries the reason in the body — log it,
+    or the cause (bad key, wrong app id, clock skew) is invisible in production."""
+    mock_http = _make_mock_http(
+        request_returns=_make_response(401, {"message": "'Expiration time' claim ('exp') is too far in the future"})
+    )
+
+    with (
+        patch("httpx.AsyncClient", return_value=mock_http),
+        patch.object(GitHubClient, "_generate_jwt", return_value="jwt"),
+        caplog.at_level(logging.ERROR, logger="app.services.github_client"),
+    ):
+        client = GitHubClient()
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.get_installation_token(160402800)
+
+    assert "160402800" in caplog.text
+    assert "too far in the future" in caplog.text

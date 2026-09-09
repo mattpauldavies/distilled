@@ -3,6 +3,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
+import httpx
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -214,7 +215,21 @@ async def _discover_repo_environments(
     try:
         for repo in repos:
             owner, name = repo.full_name.split("/", 1)
-            envs = await github.list_environments(owner, name, installation.installation_id)
+            try:
+                envs = await github.list_environments(owner, name, installation.installation_id)
+            except httpx.HTTPError:
+                # Environment discovery is enrichment; the installation and repo rows
+                # are not. The dispatcher commits once per handler, so letting this
+                # propagate would roll back the whole install — and GitHub does not
+                # redeliver installation events on its own. Log loudly and carry on;
+                # recover by redelivering the event (see docs/runbooks/webhook-redelivery.md).
+                logger.exception(
+                    "environment discovery failed for %s installation_id=%s — "
+                    "installation kept, environments not recorded",
+                    repo.full_name,
+                    installation.installation_id,
+                )
+                continue
             await discover_environments(tenant_id, repo, envs, session)
     finally:
         await github.close()

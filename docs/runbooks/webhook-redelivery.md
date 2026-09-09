@@ -82,7 +82,9 @@ button next to the delivery in GitHub. Notes:
 - The original delivery's `webhook_events.status` is already `succeeded`. The
   state we'd produce is identical; redelivery just adds noise to the table.
 - The handler is currently broken and you haven't shipped a fix. Redelivery
-  will just produce another `failed` row.
+  will just produce another `failed` row. If `error_message` names an
+  `HTTPStatusError ... 401 ... access_tokens`, the GitHub App credentials are
+  the problem — see [github-app-auth.md](./github-app-auth.md) first.
 - The event was deliberately ignored (`no_handler`) — adding a handler is the
   right action, not redelivery.
 

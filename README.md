@@ -85,3 +85,4 @@ Everything lives in `/docs`; key starting points:
 - [Architecture](docs/architecture.md)
 - [Metrics](docs/metrics.md)
 - [Local Setup Runbook](docs/runbooks/local-setup.md)
+- [GitHub App Auth Runbook](docs/runbooks/github-app-auth.md)
