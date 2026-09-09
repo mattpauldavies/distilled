@@ -78,6 +78,14 @@ and reused by every metric query.
 
 **read_metrics_service** exposes one section builder per dashboard section; each of the `/metrics/*` endpoints delegates to its corresponding builder, so a metric's full read path (SQL through to response schema) lives in one module. The client fetches all sections in parallel, so one slow query never blocks the rest of the dashboard.
 
+### Deployment
+
+- The server, client and website are each built as a container; the platform runs the
+  image rather than inferring a build. See
+  [ADR 005](adrs/005-containerised-server-build.md).
+- Database migrations run as an explicit release-phase command (`alembic upgrade head`),
+  never from a container entrypoint.
+
 ### Scheduled jobs
 
 - Scheduled jobs will be triggered via Railway Scheduled Jobs calling authenticated internal endpoints.
