@@ -37,7 +37,10 @@ Conventions the layers follow are recorded as ADRs: transaction ownership in
 - **ingest_deployment_service** — processes deployment_status events
 - **ingest_pr_service** — processes pull_request events into the PullRequest table
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
-- **environment_service** — auto-detects production environments by name pattern
+- **environment_service** — auto-detects production environments by name pattern: any name
+  containing `prod` or `live` (case-insensitive substring, so `distilled / production` and
+  `prod-eu` both qualify). Classification happens once, at discovery; `PATCH /environments/{id}`
+  overrides it
 
 ### Metrics service delineation
 
