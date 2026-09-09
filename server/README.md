@@ -169,6 +169,31 @@ Installation tokens are cached in-process for ~1 hour. On a 401 against an
 authenticated call the cached token is evicted and the request is retried
 once with a freshly-minted token; a second 401 surfaces normally.
 
+## Deployment
+
+The server ships as a container (`server/Dockerfile`), matching the client and
+website. Building explicitly means the platform never has to guess a Python
+toolchain — Railway's Railpack builder installs interpreters through `mise`,
+and recent `mise` releases refuse any python-build-standalone release without a
+GitHub build attestation, which fails the build for older 3.12 patches.
+
+```sh
+docker build -t distilled-server server/
+docker run --rm -p 8000:8000 --env-file server/.env distilled-server
+```
+
+The image runs `uvicorn app.main:app` on `$PORT` (default `8000`) as a
+non-root user. Python is pinned to the same patch release in the `Dockerfile`
+and in `server/.python-version`; bump both together.
+
+On Railway, set the service's root directory to `server/` so the `Dockerfile`
+is detected, supply the environment variables above, and run migrations as the
+deploy's release/pre-deploy command:
+
+```sh
+alembic upgrade head
+```
+
 ## Testing
 
 ```sh
