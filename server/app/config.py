@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     allowed_origins: list[str] = ["http://localhost:5173"]
-    app_base_url: str = "http://localhost:5173"
     app_name: str = "server"
     clerk_expected_audience: str = ""
     clerk_issuer: str = ""
@@ -15,6 +14,7 @@ class Settings(BaseSettings):
     clerk_secret_key: str = ""
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/dbname"
     debug: bool = False
+    email_base_url: str = "http://localhost:5173"
     email_from: str = ""
     email_provider: str = "log"  # "log" (dev) or "resend" (prod)
     environment: str = "production"
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
                 "internal_cron_secret",
                 "clerk_secret_key",
                 "clerk_jwks_url",
-                "app_base_url",
+                "email_base_url",
             ]
             if self.email_provider == "resend":
                 required += ["resend_api_key", "email_from"]

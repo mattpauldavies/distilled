@@ -52,7 +52,7 @@ database/          # Alembic migrations
 | `CLERK_JWKS_URL`          | Clerk JWKS endpoint for JWT verification | — (required in production)                                          |
 | `CLERK_PUBLISHABLE_KEY`   | Clerk publishable key (for reference)    | —                                                                   |
 | `GITHUB_APP_SLUG`         | GitHub App slug for install links        | —                                                                   |
-| `APP_BASE_URL`            | Public URL of the frontend (for invite accept links) | `http://localhost:5173`                                  |
+| `EMAIL_BASE_URL`          | Public URL of the frontend (for invite accept links) | `http://localhost:5173`                                  |
 | `EMAIL_PROVIDER`          | `log` (dev) or `resend` (prod)           | `log`                                                               |
 | `RESEND_API_KEY`          | Resend API key (required when `EMAIL_PROVIDER=resend`) | —                                                       |
 | `EMAIL_FROM`              | RFC 5322 from address for invitations    | —                                                                   |
