@@ -47,7 +47,7 @@ def _hash_token(raw: str) -> str:
 
 
 def _build_accept_url(token: str) -> str:
-    base = (settings.app_base_url or "").rstrip("/")
+    base = (settings.email_base_url or "").rstrip("/")
     return f"{base}/invitations/accept?token={token}"
 
 

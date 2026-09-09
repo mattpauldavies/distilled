@@ -54,6 +54,17 @@ class StubEmail:
         self.calls.append(kwargs)
 
 
+# --- _build_accept_url ---
+
+
+def test_build_accept_url_uses_email_base_url(monkeypatch):
+    monkeypatch.setattr(invitation_service.settings, "email_base_url", "https://app.example.com/")
+    assert (
+        invitation_service._build_accept_url("tok123")
+        == "https://app.example.com/invitations/accept?token=tok123"
+    )
+
+
 # --- create_invitation ---
 
 
