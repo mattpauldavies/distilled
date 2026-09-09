@@ -11,11 +11,13 @@ from app.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-PRODUCTION_PATTERN = re.compile(r"^(production|prod|live)$", re.IGNORECASE)
+# Substring match, not exact: environments are commonly namespaced or suffixed
+# ("distilled / production", "prod-eu"). "production" is covered by "prod".
+PRODUCTION_PATTERN = re.compile(r"prod|live", re.IGNORECASE)
 
 
 def detect_production(name: str) -> bool:
-    return bool(PRODUCTION_PATTERN.match(name))
+    return bool(PRODUCTION_PATTERN.search(name))
 
 
 async def get_production_environments(
