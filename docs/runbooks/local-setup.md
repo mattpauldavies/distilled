@@ -159,9 +159,9 @@ Edit `.env`:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://distilled:distilled@localhost:5432/distilled
-GITHUB_APP_ID=123456                    # your App ID from step 2
+GITHUB_APP_ID=123456                    # your App ID from step 3
 GITHUB_PRIVATE_KEY_PATH=github-app.pem  # path to your .pem file
-GITHUB_WEBHOOK_SECRET=your_secret_here  # the webhook secret from step 2
+GITHUB_WEBHOOK_SECRET=your_secret_here  # the webhook secret from step 3
 SEED_TENANT_ID=00000000-0000-0000-0000-000000000001
 SEED_TENANT_NAME=dev
 ```
