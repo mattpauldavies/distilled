@@ -19,6 +19,7 @@ from app.routes import (
     deployments,
     environments,
     health,
+    installations,
     internal,
     invitations,
     me,
@@ -103,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(me.router)  # tenant-agnostic user endpoints
     app.include_router(invitations.router)  # JWT-only redeem
     app.include_router(workspaces.router)  # JWT-only workspace creation
+    app.include_router(installations.router)  # per-route auth (owner / user / member)
     app.include_router(internal.router)  # cron-secret auth at router level
     app.include_router(internal.metrics_router)  # cron recompute at pinned /metrics/* paths
     return app

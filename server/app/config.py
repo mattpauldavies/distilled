@@ -46,6 +46,7 @@ class Settings(BaseSettings):
                 "clerk_secret_key",
                 "clerk_jwks_url",
                 "email_base_url",
+                "github_app_slug",  # load-bearing for install-intent URLs
             ]
             if self.email_provider == "resend":
                 required += ["resend_api_key", "email_from"]
