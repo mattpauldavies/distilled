@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     github_webhook_secret: str = ""
     internal_cron_secret: str = ""
     invitation_ttl_days: int = 14
+    installation_intent_ttl_minutes: int = 30
     resend_api_key: str = ""
     seed_tenant_id: str = "00000000-0000-0000-0000-000000000001"
     seed_tenant_name: str = "dev"
