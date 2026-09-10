@@ -68,10 +68,13 @@ served by any static host.
 ### Analytics
 
 Setting `POSTHOG_KEY` at build time embeds the PostHog web analytics snippet in
-every page (`POSTHOG_HOST` overrides the default `https://eu.i.posthog.com`).
-The snippet runs in PostHog's cookieless mode — anonymous, nothing stored on the
-visitor's device — so no consent banner is required. Without `POSTHOG_KEY` the
-build ships no analytics at all. See [docs/analytics.md](../docs/analytics.md).
+every page. Events go to `https://d.distilledmetrics.com`, a managed PostHog
+reverse proxy, so that content blockers and tracking protection do not silently
+drop them; `POSTHOG_HOST` and `POSTHOG_UI_HOST` override that. The snippet runs
+in PostHog's cookieless mode — anonymous, nothing stored on the visitor's device
+— so no consent banner is required. Without `POSTHOG_KEY` the build ships no
+analytics at all. See [docs/analytics.md](../docs/analytics.md) and
+[ADR 006](../docs/adrs/006-posthog-reverse-proxy.md).
 
 `Dockerfile` packages that for container hosts: a Node stage runs `npm run build`,
 then the output is copied into a `caddy:2-alpine` stage that serves it on `$PORT`

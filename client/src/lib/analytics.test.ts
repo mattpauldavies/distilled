@@ -17,14 +17,44 @@ describe("initAnalytics", () => {
     expect(posthog.init).not.toHaveBeenCalled()
   })
 
-  it("initialises PostHog in cookieless mode when a key is configured", () => {
+  it("sends events through the first-party reverse proxy by default", () => {
+    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key")
+    initAnalytics()
+    expect(posthog.init).toHaveBeenCalledWith(
+      "phc_test_key",
+      expect.objectContaining({ api_host: "https://d.distilledmetrics.com" })
+    )
+  })
+
+  it("points UI links back at PostHog rather than the proxy", () => {
+    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key")
+    initAnalytics()
+    expect(posthog.init).toHaveBeenCalledWith(
+      "phc_test_key",
+      expect.objectContaining({ ui_host: "https://eu.posthog.com" })
+    )
+  })
+
+  it("stays cookieless and never builds person profiles", () => {
     vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key")
     initAnalytics()
     expect(posthog.init).toHaveBeenCalledWith(
       "phc_test_key",
       expect.objectContaining({
-        api_host: "https://eu.i.posthog.com",
         cookieless_mode: "always",
+        person_profiles: "identified_only",
+      })
+    )
+  })
+
+  it("captures pageviews on load and on SPA route changes", () => {
+    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key")
+    initAnalytics()
+    expect(posthog.init).toHaveBeenCalledWith(
+      "phc_test_key",
+      expect.objectContaining({
+        capture_pageview: "history_change",
+        capture_pageleave: true,
       })
     )
   })
