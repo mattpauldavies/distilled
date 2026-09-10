@@ -25,9 +25,10 @@ import type { DaysWindow, Repo } from "@/types/dashboard"
 interface DashboardProps {
   repos: Repo[]
   onOpenTeam?: () => void
+  onOpenRepos?: () => void
 }
 
-export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
+export function Dashboard({ repos, onOpenTeam, onOpenRepos }: DashboardProps) {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [selectedDaysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
@@ -85,6 +86,7 @@ export function Dashboard({ repos, onOpenTeam }: DashboardProps) {
           onDaysWindowChange={setDaysWindow}
           daysOfData={daysOfData}
           onOpenTeam={onOpenTeam}
+          onOpenRepos={onOpenRepos}
         />
       </div>
 

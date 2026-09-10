@@ -7,6 +7,7 @@ import { useWorkspaceContext } from "@/lib/workspaceContext"
 
 interface Props {
   onOpenTeam?: () => void
+  onOpenRepos?: () => void
 }
 
 /**
@@ -17,7 +18,7 @@ interface Props {
  * the dashboard header focused on metrics controls and folds account
  * actions behind one affordance.
  */
-export function ProfileMenu({ onOpenTeam }: Props) {
+export function ProfileMenu({ onOpenTeam, onOpenRepos }: Props) {
   const { user } = useUser()
   const { signOut } = useClerk()
   const { memberships, activeWorkspace, setActiveWorkspace } = useWorkspaceContext()
@@ -91,15 +92,26 @@ export function ProfileMenu({ onOpenTeam }: Props) {
           </div>
         ) : null}
 
-        {activeWorkspace?.role === "owner" && onOpenTeam ? (
+        {activeWorkspace?.role === "owner" && (onOpenTeam || onOpenRepos) ? (
           <div className="border-b border-border py-1">
-            <button
-              type="button"
-              onClick={onOpenTeam}
-              className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
-            >
-              Team Settings
-            </button>
+            {onOpenTeam ? (
+              <button
+                type="button"
+                onClick={onOpenTeam}
+                className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
+              >
+                Team Settings
+              </button>
+            ) : null}
+            {onOpenRepos ? (
+              <button
+                type="button"
+                onClick={onOpenRepos}
+                className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
+              >
+                Repositories
+              </button>
+            ) : null}
           </div>
         ) : null}
 

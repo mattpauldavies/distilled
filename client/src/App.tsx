@@ -8,6 +8,7 @@ import { NoWorkspaceScreen } from "@/components/NoWorkspaceScreen"
 import { OnboardingScreen } from "@/components/OnboardingScreen"
 import { ReposErrorScreen } from "@/components/ReposErrorScreen"
 import { SignInPage } from "@/components/SignInPage"
+import { RepositoriesPage } from "@/components/repos/RepositoriesPage"
 import { TeamPage } from "@/components/team/TeamPage"
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage"
 import { GitHubSetupPage } from "@/pages/GitHubSetupPage"
@@ -21,19 +22,28 @@ function Home() {
     activeWorkspace,
   } = useWorkspaceContext()
   const { repos, loading, error, refetch } = useRepos()
-  const [showTeam, setShowTeam] = useState(false)
+  const [settingsPage, setSettingsPage] = useState<"none" | "team" | "repos">("none")
 
   if (workspaceLoading) return <InitialisingScreen />
   if (workspaceError)
     return <ReposErrorScreen error={workspaceError} onRetry={() => window.location.reload()} />
   if (!activeWorkspace) return <NoWorkspaceScreen />
-  if (showTeam && activeWorkspace.role === "owner") {
-    return <TeamPage onClose={() => setShowTeam(false)} />
+  if (settingsPage === "team" && activeWorkspace.role === "owner") {
+    return <TeamPage onClose={() => setSettingsPage("none")} />
+  }
+  if (settingsPage === "repos" && activeWorkspace.role === "owner") {
+    return <RepositoriesPage onClose={() => setSettingsPage("none")} />
   }
   if (loading) return <InitialisingScreen />
   if (error) return <ReposErrorScreen error={error} onRetry={refetch} />
   if (repos.length === 0) return <OnboardingScreen onReposDetected={refetch} />
-  return <Dashboard repos={repos} onOpenTeam={() => setShowTeam(true)} />
+  return (
+    <Dashboard
+      repos={repos}
+      onOpenTeam={() => setSettingsPage("team")}
+      onOpenRepos={() => setSettingsPage("repos")}
+    />
+  )
 }
 
 function AcceptInviteRoute() {
