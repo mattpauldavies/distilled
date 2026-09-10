@@ -139,6 +139,4 @@ GitHub App authentication (not OAuth):
 
 - Server generates JWT signed with App private key
 - JWT exchanged for installation access tokens (cached, auto-refreshed)
-- Token mint failures are triaged via
-  [docs/runbooks/github-app-auth.md](runbooks/github-app-auth.md)
 - Webhooks verified via HMAC-SHA256
