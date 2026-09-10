@@ -146,7 +146,39 @@ def test_main_exits_1_on_enumeration_failure(monkeypatch):
         assert sut.main() == 1
 
 
-def test_main_exits_0_on_partial_per_repo_failure(monkeypatch):
+def test_main_exits_1_on_partial_per_repo_failure(monkeypatch, capsys):
+    monkeypatch.setenv("API_BASE_URL", "http://test")
+    monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
+    monkeypatch.setenv("RECOMPUTE_JITTER_MS", "0")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("recompute-targets"):
+            return httpx.Response(
+                200,
+                json={
+                    "targets": [
+                        {"tenant_id": "t1", "repo_id": "r1"},
+                        {"tenant_id": "t1", "repo_id": "r2"},
+                    ],
+                    "count": 2,
+                },
+            )
+        # r1 succeeds, r2 fails — a partial run must still fail the job.
+        return httpx.Response(200 if request.read().count(b"r1") else 500)
+
+    with (
+        patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)),
+        patch.object(sut.asyncio, "sleep", new=AsyncMock()),
+    ):
+        assert sut.main() == 1
+
+    # The summary goes to stderr so Railway reports the run as an error.
+    captured = capsys.readouterr()
+    assert "succeeded=1 failed=1" in captured.err
+    assert captured.out == ""
+
+
+def test_main_exits_0_when_every_repo_succeeds(monkeypatch, capsys):
     monkeypatch.setenv("API_BASE_URL", "http://test")
     monkeypatch.setenv("INTERNAL_CRON_SECRET", "s")
     monkeypatch.setenv("RECOMPUTE_JITTER_MS", "0")
@@ -157,11 +189,11 @@ def test_main_exits_0_on_partial_per_repo_failure(monkeypatch):
                 200,
                 json={"targets": [{"tenant_id": "t1", "repo_id": "r1"}], "count": 1},
             )
-        return httpx.Response(500)
+        return httpx.Response(200, json={"status": "success"})
 
-    with (
-        patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)),
-        patch.object(sut.asyncio, "sleep", new=AsyncMock()),
-    ):
-        # Per-repo failures are NOT a scheduler-level failure.
+    with patch.object(sut.httpx, "AsyncClient", _patched_client_factory(handler)):
         assert sut.main() == 0
+
+    captured = capsys.readouterr()
+    assert "succeeded=1 failed=0" in captured.out
+    assert captured.err == ""
