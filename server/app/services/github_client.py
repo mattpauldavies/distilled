@@ -194,6 +194,22 @@ class GitHubClient:
         _token_cache[installation_id] = (token, expires_at)
         return token
 
+    async def get_installation(self, installation_id: int) -> dict:
+        """Fetch installation details with the app JWT (no installation token needed).
+
+        Used when binding an installation to a workspace before its
+        installation.created webhook has been processed.
+        """
+        token_jwt = self._generate_jwt()
+        resp = await self._request_with_retry(
+            "GET",
+            f"/app/installations/{installation_id}",
+            headers={"Authorization": f"Bearer {token_jwt}"},
+        )
+        resp.raise_for_status()
+        data: dict = resp.json()
+        return data
+
     _MAX_REPOS = 10_000
 
     async def list_repos(self, installation_id: int) -> list[dict]:
