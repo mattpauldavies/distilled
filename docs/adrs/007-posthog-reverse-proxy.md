@@ -1,4 +1,4 @@
-# ADR 006: Route PostHog Analytics Through a First-Party Reverse Proxy
+# ADR 007: Route PostHog Analytics Through a First-Party Reverse Proxy
 
 **Date:** 2026-09-10
 **Status:** Accepted

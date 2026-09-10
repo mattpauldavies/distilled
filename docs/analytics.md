@@ -33,7 +33,7 @@ PostHog's own domains are on the default block lists shipped with uBlock Origin,
 AdGuard, Brave, and Safari and Firefox tracking protection, so a large share of
 requests never leaves the browser — silently, since `posthog-js` cannot see a
 request blocked at the network layer. Sending to a first-party domain avoids
-that. See [ADR 006](adrs/006-posthog-reverse-proxy.md) for the full rationale,
+that. See [ADR 007](adrs/007-posthog-reverse-proxy.md) for the full rationale,
 including why this is compatible with the privacy posture.
 
 Because `api_host` is no longer a PostHog domain, **`ui_host` must be set** to
