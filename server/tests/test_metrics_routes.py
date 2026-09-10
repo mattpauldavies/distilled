@@ -154,3 +154,42 @@ async def test_recompute_targets_returns_sorted_list(metrics_client, mock_sessio
 async def test_unified_endpoint_removed(client):
     resp = await client.get("/metrics/unified?window=30")
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_recompute_allows_a_full_hourly_fan_out(metrics_client, mock_session):
+    """The hourly job calls this once per repo, so a per-minute cap throttles itself.
+
+    scripts/run_hourly_recompute.py fans out one request per repository with
+    CONCURRENCY=3. Under the old 10/minute limit every repo past the tenth got a
+    429, which recompute_one records as a failure without retrying — metrics went
+    stale while the run still exited 0.
+    """
+    from app.services.batch_metrics_service import RecomputeResult
+
+    repo = make_repo(id=REPO_ID, default_branch="main")
+
+    def repo_lookup():
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = repo
+        return result
+
+    mock_session.execute = AsyncMock(side_effect=lambda *a, **kw: repo_lookup())
+
+    with (
+        patch("app.routes.internal.settings") as mock_settings,
+        patch("app.services.batch_metrics_service.recompute_repo", new_callable=AsyncMock) as mock_recompute,
+    ):
+        mock_settings.internal_cron_secret = "test-secret"
+        mock_recompute.return_value = RecomputeResult(status="success")
+
+        statuses = []
+        for _ in range(25):
+            resp = await metrics_client.post(
+                "/metrics/recompute",
+                json={"repo_id": str(REPO_ID), "tenant_id": str(TENANT_ID)},
+                headers={"Authorization": "Bearer test-secret"},
+            )
+            statuses.append(resp.status_code)
+
+    assert 429 not in statuses, f"fan-out was rate limited: {statuses}"

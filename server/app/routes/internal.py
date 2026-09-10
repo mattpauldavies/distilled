@@ -59,8 +59,13 @@ class RecomputeRequest(BaseModel):
     tenant_id: uuid.UUID
 
 
+# The hourly job fans out one call per repository, so the legitimate traffic
+# shape is a single burst of N calls once an hour. A per-minute cap cannot
+# express that without throttling the burst; an hourly one accommodates a
+# fan-out of up to 1,000 repos while still bounding a leaked cron secret to
+# roughly one fan-out's worth of work per hour.
 @metrics_router.post("/recompute")
-@limiter.limit("10/minute")
+@limiter.limit("1000/hour")
 async def recompute_metrics(
     request: Request,
     body: RecomputeRequest,
