@@ -1,17 +1,7 @@
 import posthog from "posthog-js"
 
-/**
- * Events are sent through a first-party reverse proxy (a CNAME onto PostHog's
- * managed proxy) rather than straight to `eu.i.posthog.com`. Requests to
- * PostHog's own domains are blocked by most content blockers and by Safari and
- * Firefox tracking protection, which silently drops a large share of events.
- */
 const DEFAULT_HOST = "https://d.distilledmetrics.com"
 
-/**
- * Where the PostHog app itself lives. Required whenever `api_host` is a proxy,
- * otherwise in-app links (toolbar, session links) point at the proxy domain.
- */
 const UI_HOST = "https://eu.posthog.com"
 
 /**
