@@ -47,18 +47,6 @@ describe("initAnalytics", () => {
     )
   })
 
-  it("captures pageviews on load and on SPA route changes", () => {
-    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key")
-    initAnalytics()
-    expect(posthog.init).toHaveBeenCalledWith(
-      "phc_test_key",
-      expect.objectContaining({
-        capture_pageview: "history_change",
-        capture_pageleave: true,
-      })
-    )
-  })
-
   it("uses the configured host override when provided", () => {
     vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key")
     vi.stubEnv("VITE_POSTHOG_HOST", "https://ph.example.com")

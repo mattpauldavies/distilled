@@ -74,9 +74,7 @@ PostHog region, which the privacy policy already fixes to the EU.
 
 For container builds, pass them as `--build-arg`s (see `client/Dockerfile`).
 Pageviews and page-leaves are captured automatically, including SPA route
-changes: `capture_pageview: "history_change"` instruments `pushState`,
-`replaceState`, `popstate` and `hashchange`, and captures an initial pageview on
-load.
+changes (via the `defaults: "2026-05-30"` preset's history instrumentation).
 
 ### Website (web analytics)
 
@@ -96,34 +94,6 @@ The inline snippet is the one PostHog's dashboard generates. It is a stub that
 queues calls until `array.js` loads from `POSTHOG_HOST`, so it has to be
 replaced wholesale (not hand-edited) when PostHog updates it — the method list
 inside it has to match the SDK version being loaded.
-
-## Troubleshooting
-
-### `$pageleave` events arrive but `$pageview` events do not
-
-`$pageleave` arriving is **not** evidence that pageview capture is working. The
-SDK gates the two independently: `capture_pageleave` is checked against config
-alone, whereas the initial `$pageview` has extra runtime conditions. So the two
-can and do diverge. In order of likelihood:
-
-1. **The requests are being blocked.** `$pageview` goes out as a `fetch`/`XHR`
-   at page load; `$pageleave` is flushed with `navigator.sendBeacon` on unload.
-   Some content blockers filter those request types differently, so the pageview
-   is dropped while the beacon gets through. This is what the reverse proxy
-   above is for. Confirm in DevTools → Network with the blocker enabled: a
-   blocked request shows as failed or does not appear at all.
-2. **The tab was never visible.** The initial pageview is only captured when
-   `document.visibilityState === "visible"`; otherwise the SDK waits for a
-   `visibilitychange` event. A page opened in a background tab, prerendered, or
-   prefetched and then discarded produces a `$pageleave` with no `$pageview`.
-3. **Cookieless server hash mode is off** in PostHog project settings, in which
-   case cookieless events are rejected at ingestion. This drops everything, not
-   just pageviews, so it is easy to rule out.
-
-To verify capture itself is working, ignore the PostHog UI and watch the wire:
-`posthog.debug()` in the console, or filter Network on the `api_host` domain.
-A `$pageview` POST within a second of load means the SDK is behaving and the
-problem is downstream.
 
 ## Privacy policy
 

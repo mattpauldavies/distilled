@@ -37,10 +37,5 @@ export function initAnalytics(): void {
     // processing entirely.
     person_profiles: "identified_only",
     defaults: "2026-05-30",
-    // Both are implied by the `defaults` preset above, but pageview capture is
-    // the thing we actually care about here, so pin it rather than leaving it
-    // to an opaque version string. "history_change" also covers SPA routing.
-    capture_pageview: "history_change",
-    capture_pageleave: true,
   })
 }

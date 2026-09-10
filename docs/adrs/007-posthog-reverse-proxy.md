@@ -9,20 +9,14 @@
 Both surfaces (the client application and the marketing website) send PostHog
 events directly to `https://eu.i.posthog.com`. PostHog's own domains appear on
 the default block lists shipped with uBlock Origin, AdGuard, Brave, and Safari
-and Firefox tracking protection, so a meaningful share of requests never leave
-the browser. The loss is silent — `posthog-js` reports no error when a request
-is blocked at the network layer.
+and Firefox tracking protection, so a share of requests never leaves the
+browser. The loss is silent — `posthog-js` reports no error when a request is
+blocked at the network layer, so the numbers look plausible while being biased
+by whichever browsers and blockers our users happen to run.
 
-The loss is not uniform across event types, which is what made it visible:
-
-- `$pageview` is captured on init with `send_instantly: true`, so it goes out as
-  its own `fetch`/`XHR` at page load.
-- `$pageleave` is captured in the unload handler and flushed with
-  `navigator.sendBeacon`.
-
-Some blockers filter the two request types differently, so a project can receive
-`$pageleave` events while `$pageview` events go missing, giving the misleading
-impression that pageview capture is misconfigured.
+Distilled's whole proposition is delivery data an engineering leader can act on
+without second-guessing it. Analytics we cannot trust to be complete is worth
+noticeably less than analytics we can.
 
 A managed PostHog reverse proxy has been provisioned at
 `d.distilledmetrics.com` — a CNAME onto PostHog's infrastructure.
@@ -40,11 +34,9 @@ Both hosts stay overridable by environment variable (`VITE_POSTHOG_HOST`,
 `POSTHOG_HOST`, `POSTHOG_UI_HOST`) so a deployment can be pointed straight at
 PostHog if the proxy is ever unavailable.
 
-Alongside this, `capture_pageview: "history_change"` and
-`capture_pageleave: true` are now set explicitly rather than being inherited
-from the `defaults: "2026-05-30"` preset. They resolve to the same values; the
-point is that pageview capture is the behaviour we care about most and should
-not be readable only by cross-referencing a version string.
+The website's inline snippet is replaced with the one PostHog's dashboard now
+generates, which carries the proxy settings and a stub method list matching the
+current SDK.
 
 ## Consequences
 
@@ -64,10 +56,10 @@ not be readable only by cross-referencing a version string.
   stops — silently, in the same way blocked requests do.
 - The proxy defeats tracker blocking, which some users deliberately enable. This
   is defensible here only because the analytics are genuinely anonymous and
-  cookieless (ADR-level context: nothing is stored on the device, no person
-  profile is ever created, `identify()` is never called) and because the privacy
-  policy discloses PostHog by name. It would not be defensible if the privacy
-  posture changed.
+  cookieless (nothing is stored on the device, no person profile is ever
+  created, `identify()` is never called) and because the privacy policy
+  discloses PostHog by name. It would not be defensible if the privacy posture
+  changed.
 - The client bundle now hard-codes a Distilled-owned domain as its default,
   which makes the default less obvious to a reader who does not know the proxy
   exists. Mitigated by comments at both call sites and by this ADR.
@@ -75,8 +67,7 @@ not be readable only by cross-referencing a version string.
 ## Alternatives considered
 
 **Leave requests going to `eu.i.posthog.com`:** zero work, but keeps losing a
-share of events with no signal that it is happening. Rejected — the whole point
-of the analytics is to be trustworthy enough to act on.
+share of events with no signal that it is happening.
 
 **Self-host the proxy (Caddy/Cloudflare Worker in front of PostHog):** more
 control, but adds an availability-critical service we would have to operate,
