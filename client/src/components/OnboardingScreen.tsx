@@ -1,10 +1,7 @@
-import { useEffect } from "react"
-import { makeApiFetch } from "@/lib/api"
-import { useGetToken } from "@/lib/auth"
+import { useEffect, useState } from "react"
+import { useApiFetch, useWorkspaceContext } from "@/lib/workspaceContext"
 import type { Repo, PaginatedResponse } from "@/types/dashboard"
 
-const GITHUB_APP_SLUG = import.meta.env.VITE_GITHUB_APP_SLUG ?? ""
-const INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
 const DEFAULT_POLL_INTERVAL_MS = 5000
 
 interface OnboardingScreenProps {
@@ -16,11 +13,39 @@ export function OnboardingScreen({
   onReposDetected,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
 }: OnboardingScreenProps) {
-  const getToken = useGetToken()
+  const apiFetch = useApiFetch()
+  const { activeWorkspace } = useWorkspaceContext()
+  const isOwner = activeWorkspace?.role === "owner"
+
+  const [installUrl, setInstallUrl] = useState<string | null>(null)
+  const [intentError, setIntentError] = useState(false)
+
+  // The install link carries a workspace-bound state nonce, so GitHub's
+  // redirect (and the webhook sender) can bind the installation to THIS
+  // workspace rather than inferring one.
+  useEffect(() => {
+    if (!isOwner) return
+    let cancelled = false
+    apiFetch("/installations/intents", { method: "POST" })
+      .then(async (res) => {
+        if (cancelled) return
+        if (!res.ok) {
+          setIntentError(true)
+          return
+        }
+        const data = (await res.json()) as { install_url: string }
+        setInstallUrl(data.install_url)
+        setIntentError(false)
+      })
+      .catch(() => {
+        if (!cancelled) setIntentError(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [apiFetch, isOwner])
 
   useEffect(() => {
-    const apiFetch = makeApiFetch(getToken)
-
     const intervalId = setInterval(async () => {
       try {
         const res = await apiFetch("/repos?limit=1")
@@ -36,7 +61,7 @@ export function OnboardingScreen({
     }, pollIntervalMs)
 
     return () => clearInterval(intervalId)
-  }, [getToken, onReposDetected, pollIntervalMs])
+  }, [apiFetch, onReposDetected, pollIntervalMs])
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -44,7 +69,11 @@ export function OnboardingScreen({
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Welcome to Distilled</h1>
           <p className="text-muted-foreground">
-            Connect your GitHub repositories to start tracking your engineering delivery metrics.
+            Connect GitHub repositories to{" "}
+            <span className="font-medium text-foreground">
+              {activeWorkspace?.name ?? "this workspace"}
+            </span>{" "}
+            to start tracking your engineering delivery metrics.
           </p>
         </div>
 
@@ -55,13 +84,27 @@ export function OnboardingScreen({
               Grant access to the repositories you want to track. You can add more repos later.
             </p>
           </div>
-          <a
-            href={INSTALL_URL}
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            Install GitHub App →
-          </a>
+          {isOwner ? (
+            installUrl ? (
+              <a
+                href={installUrl}
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                Install GitHub App →
+              </a>
+            ) : intentError ? (
+              <p className="text-sm text-destructive">
+                Could not prepare the GitHub connection. Refresh the page to try again.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Preparing GitHub connection…</p>
+            )
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Ask the workspace owner to connect GitHub — only owners can install repositories.
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">

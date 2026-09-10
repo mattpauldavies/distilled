@@ -6,29 +6,28 @@ import { makeApiFetch } from "@/lib/api"
 import { ACTIVE_WORKSPACE_STORAGE_KEY } from "@/lib/workspaceContext"
 
 interface Props {
-  token: string
+  installationId: number
+  state: string
 }
 
 type State =
   | { kind: "idle" }
-  | { kind: "redeeming" }
-  | { kind: "ok"; workspaceId: string }
+  | { kind: "claiming" }
+  | { kind: "ok" }
   | { kind: "error"; message: string }
 
 /**
- * Public entry for invitation links. Redemption is bundled into the first
- * sign-in: we land here, sign the user in if needed, then auto-fire
- * /invitations/redeem and route them home with the joined workspace active.
- *
- * Per the RFC: no preview, no extra confirm step. The user has already read
- * the inviter's name and workspace in the email; we don't repeat that here.
+ * GitHub App Setup URL callback. GitHub redirects here after an install or
+ * re-configure with ?installation_id=…&state=<intent nonce>. Claiming the
+ * intent binds the installation to the workspace it was minted for, then we
+ * land on that workspace's dashboard.
  */
-export function AcceptInvitePage({ token }: Props) {
+export function GitHubSetupPage({ installationId, state: nonce }: Props) {
   const { isSignedIn, getToken, isLoaded } = useAuth()
   const [state, setState] = useState<State>({ kind: "idle" })
   // Start-once guard as a ref, NOT state in the effect deps: setState inside
   // the effect would re-run it and the cleanup would cancel the in-flight
-  // redemption before its response arrived (dropping the redirect).
+  // claim before its response arrived.
   const startedRef = useRef(false)
 
   useEffect(() => {
@@ -38,13 +37,13 @@ export function AcceptInvitePage({ token }: Props) {
 
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState({ kind: "redeeming" })
+    setState({ kind: "claiming" })
 
     const apiFetch = makeApiFetch(getToken)
-    apiFetch("/invitations/redeem", {
+    apiFetch("/installations/claim", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ installation_id: installationId, state: nonce }),
     })
       .then(async (res) => {
         if (cancelled) return
@@ -57,42 +56,40 @@ export function AcceptInvitePage({ token }: Props) {
           } catch {
             /* keep raw body */
           }
-          setState({ kind: "error", message: detail || `Redeem failed: ${res.status}` })
+          setState({ kind: "error", message: detail || `Connection failed: ${res.status}` })
           return
         }
         const data = (await res.json()) as { workspace_id: string }
-        // Store the new workspace as the active choice so the dashboard switches
-        // to it on the next reload.
+        // Land on the workspace the installation was bound to.
         try {
           window.localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, data.workspace_id)
         } catch {
           /* ignore */
         }
-        // Hard redirect: the simplest way to drop the ?token query string and
-        // re-mount the app under the new workspace context.
         window.location.replace("/")
-        setState({ kind: "ok", workspaceId: data.workspace_id })
+        setState({ kind: "ok" })
       })
       .catch((err) => {
         if (cancelled) return
         setState({
           kind: "error",
-          message: err instanceof Error ? err.message : "Could not redeem invitation",
+          message: err instanceof Error ? err.message : "Could not connect the installation",
         })
       })
     return () => {
       cancelled = true
     }
-  }, [isLoaded, isSignedIn, getToken, token])
+  }, [isLoaded, isSignedIn, getToken, installationId, nonce])
 
   if (!isLoaded) {
     return null
   }
 
   if (!isSignedIn) {
+    const returnUrl = `/github/setup?installation_id=${installationId}&state=${encodeURIComponent(nonce)}`
     return (
       <main className="flex min-h-screen items-center justify-center bg-background p-6">
-        <SignIn redirectUrl={`/invitations/accept?token=${encodeURIComponent(token)}`} />
+        <SignIn redirectUrl={returnUrl} />
       </main>
     )
   }
@@ -101,15 +98,20 @@ export function AcceptInvitePage({ token }: Props) {
     <main className="flex min-h-screen items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md">
         <CardContent className="space-y-3 p-6 text-center">
-          {state.kind === "redeeming" || state.kind === "idle" ? (
+          {state.kind === "claiming" || state.kind === "idle" ? (
             <>
-              <h1 className="text-lg font-semibold">Joining your team…</h1>
-              <p className="text-sm text-muted-foreground">Hold on while we set things up.</p>
+              <h1 className="text-lg font-semibold">Connecting GitHub…</h1>
+              <p className="text-sm text-muted-foreground">
+                Linking the installation to your workspace and syncing repositories.
+              </p>
             </>
           ) : state.kind === "error" ? (
             <>
-              <h1 className="text-lg font-semibold">We couldn’t accept that invitation</h1>
+              <h1 className="text-lg font-semibold">We couldn’t connect that installation</h1>
               <p className="text-sm text-muted-foreground">{state.message}</p>
+              <p className="text-sm text-muted-foreground">
+                Return to Distilled and reconnect GitHub from your workspace to get a fresh link.
+              </p>
               <Button onClick={() => window.location.replace("/")}>Go to dashboard</Button>
             </>
           ) : (

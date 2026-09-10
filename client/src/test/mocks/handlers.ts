@@ -17,6 +17,12 @@ export const handlers = [
     })
   }),
 
+  http.post("/installations/intents", () => {
+    return HttpResponse.json({
+      install_url: "https://github.com/apps/test-app/installations/new?state=test-nonce",
+    })
+  }),
+
   http.get("/repos", () => {
     return HttpResponse.json({
       items: [makeRepo(), makeRepo({ id: "repo-2", full_name: "org/other-repo" })],

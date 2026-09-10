@@ -1,39 +1,61 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { server } from "@/test/mocks/server"
+import { renderWithProviders } from "@/test/render"
 import { OnboardingScreen } from "./OnboardingScreen"
 
 vi.mock("@clerk/clerk-react", () => {
   const stableGetToken = async () => "test-clerk-token"
   return {
-    useAuth: () => ({ getToken: stableGetToken }),
+    useAuth: () => ({ getToken: stableGetToken, isSignedIn: true }),
   }
 })
 
 describe("OnboardingScreen", () => {
-  it("renders welcome heading and install CTA", () => {
-    render(<OnboardingScreen onReposDetected={vi.fn()} />)
+  it("mints an installation intent and links to the returned install URL", async () => {
+    let workspaceHeader: string | null = null
+    server.use(
+      http.post("/installations/intents", ({ request }) => {
+        workspaceHeader = request.headers.get("X-Workspace-Id")
+        return HttpResponse.json({
+          install_url: "https://github.com/apps/test-app/installations/new?state=nonce-1",
+        })
+      })
+    )
 
-    expect(screen.getByText("Welcome to Distilled")).toBeInTheDocument()
-    expect(screen.getByText("Install GitHub App →")).toBeInTheDocument()
-    expect(screen.getByText(/Already installed/)).toBeInTheDocument()
-  })
+    renderWithProviders(<OnboardingScreen onReposDetected={vi.fn()} />)
 
-  it("install button has correct GitHub App URL", () => {
-    render(<OnboardingScreen onReposDetected={vi.fn()} />)
-
-    const installLink = screen.getByRole("link", { name: /Install GitHub App/ })
+    expect(await screen.findByText("Welcome to Distilled")).toBeInTheDocument()
+    const installLink = await screen.findByRole("link", { name: /Install GitHub App/ })
     expect(installLink).toHaveAttribute(
       "href",
-      "https://github.com/apps/test-app/installations/new"
+      "https://github.com/apps/test-app/installations/new?state=nonce-1"
     )
+    expect(workspaceHeader).toBe("workspace-1")
   })
 
-  it("calls onReposDetected when polling detects repos", async () => {
+  it("tells members to ask the workspace owner", async () => {
+    server.use(
+      http.get("/me/workspaces", () =>
+        HttpResponse.json({
+          items: [{ id: "workspace-1", name: "Test Workspace", slug: null, role: "member" }],
+        })
+      )
+    )
+
+    renderWithProviders(<OnboardingScreen onReposDetected={vi.fn()} />)
+
+    expect(await screen.findByText(/Ask the workspace owner/)).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Install GitHub App/ })).not.toBeInTheDocument()
+  })
+
+  it("calls onReposDetected when polling detects repos, scoped to the workspace", async () => {
     const onReposDetected = vi.fn()
+    let workspaceHeader: string | null = null
 
     server.use(
-      http.get("/repos", () => {
+      http.get("/repos", ({ request }) => {
+        workspaceHeader = request.headers.get("X-Workspace-Id")
         return HttpResponse.json({
           items: [{ id: "repo-1", full_name: "org/repo", default_branch: "main" }],
           total: 1,
@@ -43,12 +65,12 @@ describe("OnboardingScreen", () => {
       })
     )
 
-    // Use a very short poll interval so the test completes quickly without fake timers
-    render(<OnboardingScreen onReposDetected={onReposDetected} pollIntervalMs={50} />)
+    renderWithProviders(<OnboardingScreen onReposDetected={onReposDetected} pollIntervalMs={50} />)
 
     await waitFor(() => {
       expect(onReposDetected).toHaveBeenCalledOnce()
     })
+    expect(workspaceHeader).toBe("workspace-1")
   })
 
   it("does not call onReposDetected when repos list is empty", async () => {
@@ -60,9 +82,8 @@ describe("OnboardingScreen", () => {
       })
     )
 
-    render(<OnboardingScreen onReposDetected={onReposDetected} pollIntervalMs={50} />)
+    renderWithProviders(<OnboardingScreen onReposDetected={onReposDetected} pollIntervalMs={50} />)
 
-    // Wait two poll intervals and confirm callback was not called
     await new Promise((r) => setTimeout(r, 150))
 
     expect(onReposDetected).not.toHaveBeenCalled()

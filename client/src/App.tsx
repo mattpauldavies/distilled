@@ -4,11 +4,13 @@ import { SignedIn, SignedOut } from "@clerk/clerk-react"
 import { Dashboard } from "@/components/Dashboard"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { InitialisingScreen } from "@/components/InitialisingScreen"
+import { NoWorkspaceScreen } from "@/components/NoWorkspaceScreen"
 import { OnboardingScreen } from "@/components/OnboardingScreen"
 import { ReposErrorScreen } from "@/components/ReposErrorScreen"
 import { SignInPage } from "@/components/SignInPage"
 import { TeamPage } from "@/components/team/TeamPage"
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage"
+import { GitHubSetupPage } from "@/pages/GitHubSetupPage"
 import { useRepos } from "@/hooks/useRepos"
 import { WorkspaceProvider, useWorkspaceContext } from "@/lib/workspaceContext"
 
@@ -24,7 +26,7 @@ function Home() {
   if (workspaceLoading) return <InitialisingScreen />
   if (workspaceError)
     return <ReposErrorScreen error={workspaceError} onRetry={() => window.location.reload()} />
-  if (!activeWorkspace) return <OnboardingScreen onReposDetected={refetch} />
+  if (!activeWorkspace) return <NoWorkspaceScreen />
   if (showTeam && activeWorkspace.role === "owner") {
     return <TeamPage onClose={() => setShowTeam(false)} />
   }
@@ -44,15 +46,36 @@ function AcceptInviteRoute() {
   return <AcceptInvitePage token={token} />
 }
 
+function GitHubSetupRoute() {
+  const params = new URLSearchParams(window.location.search)
+  const installationId = Number(params.get("installation_id"))
+  const state = params.get("state") ?? ""
+  if (!installationId || !state) {
+    window.location.replace("/")
+    return null
+  }
+  return <GitHubSetupPage installationId={installationId} state={state} />
+}
+
 export default function App() {
-  // Minimal path-based routing: the only non-dashboard route is the
-  // invitation accept page, which must work both signed-out and signed-in.
+  // Minimal path-based routing: the non-dashboard routes are the invitation
+  // accept page and the GitHub App setup callback, both of which must work
+  // signed-out and signed-in.
   const isAcceptInvite = window.location.pathname === "/invitations/accept"
+  const isGitHubSetup = window.location.pathname === "/github/setup"
 
   if (isAcceptInvite) {
     return (
       <ErrorBoundary>
         <AcceptInviteRoute />
+      </ErrorBoundary>
+    )
+  }
+
+  if (isGitHubSetup) {
+    return (
+      <ErrorBoundary>
+        <GitHubSetupRoute />
       </ErrorBoundary>
     )
   }
