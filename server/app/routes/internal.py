@@ -94,7 +94,9 @@ async def list_recompute_targets(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     result = await session.execute(
-        select(Repository.tenant_id, Repository.id).order_by(Repository.tenant_id, Repository.id)
+        select(Repository.tenant_id, Repository.id)
+        .where(Repository.removed_at.is_(None))
+        .order_by(Repository.tenant_id, Repository.id)
     )
     rows = result.all()
     targets = [{"tenant_id": str(tenant_id), "repo_id": str(repo_id)} for tenant_id, repo_id in rows]
