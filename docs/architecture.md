@@ -37,7 +37,10 @@ Conventions the layers follow are recorded as ADRs: transaction ownership in
 - **ingest_deployment_service** — processes deployment_status events
 - **ingest_pr_service** — processes pull_request events into the PullRequest table
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
-- **environment_service** — auto-detects production environments by name pattern
+- **environment_service** — auto-detects production environments by name pattern: any name
+  containing `prod` or `live` (case-insensitive substring, so `distilled / production` and
+  `prod-eu` both qualify). Classification happens once, at discovery; `PATCH /environments/{id}`
+  overrides it
 
 ### Metrics service delineation
 
@@ -77,6 +80,14 @@ class-level predicates on the `PullRequest` model (`merged_on_branch`, `open_on_
 and reused by every metric query.
 
 **read_metrics_service** exposes one section builder per dashboard section; each of the `/metrics/*` endpoints delegates to its corresponding builder, so a metric's full read path (SQL through to response schema) lives in one module. The client fetches all sections in parallel, so one slow query never blocks the rest of the dashboard.
+
+### Deployment
+
+- The server, client and website are each built as a container; the platform runs the
+  image rather than inferring a build. See
+  [ADR 005](adrs/005-containerised-server-build.md).
+- Database migrations run as an explicit release-phase command (`alembic upgrade head`),
+  never from a container entrypoint.
 
 ### Scheduled jobs
 
