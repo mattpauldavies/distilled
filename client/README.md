@@ -17,13 +17,13 @@ Copy `.env.example` to `.env.local` and fill in the values:
 cp .env.example .env.local
 ```
 
-| Variable                     | Description                                     |
-| ---------------------------- | ----------------------------------------------- |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)    |
-| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL  |
-| `VITE_API_BASE_URL`          | Backend base URL (e.g. `http://localhost:8000`) |
-| `VITE_SENTRY_DSN`            | Sentry DSN; error reporting is off when unset   |
-| `VITE_POSTHOG_KEY`           | PostHog project API key; analytics is off when unset |
+| Variable                     | Description                                               |
+| ---------------------------- | --------------------------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)              |
+| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL            |
+| `VITE_API_BASE_URL`          | Backend base URL (e.g. `http://localhost:8000`)           |
+| `VITE_SENTRY_DSN`            | Sentry DSN; error reporting is off when unset             |
+| `VITE_POSTHOG_KEY`           | PostHog project API key; analytics is off when unset      |
 | `VITE_POSTHOG_HOST`          | PostHog API host (defaults to `https://eu.i.posthog.com`) |
 
 ## Run
