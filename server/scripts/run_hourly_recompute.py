@@ -9,8 +9,13 @@ Usage:
         PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
 
 Exit codes:
-    0 — run completed (per-repo failures are reported, not raised).
-    1 — scheduler-level failure (missing config, enumeration unreachable).
+    0 — every target recomputed successfully.
+    1 — the run needs attention: missing config, enumeration unreachable, or at
+        least one repo failed to recompute.
+
+A single repo's failure still never aborts the run — the fan-out completes and
+every outcome is reported — but it does fail the run, so a partial success is
+not silently indistinguishable from a clean one.
 """
 
 import asyncio
@@ -99,10 +104,14 @@ def main() -> int:
     except (httpx.HTTPError, KeyError) as exc:
         print(f"enumeration failed: {exc}", file=sys.stderr)
         return 1
-    print(
+    line = (
         f"recompute_run_complete total={summary.total} succeeded={summary.succeeded} "
         f"failed={summary.failed} duration_s={summary.duration_s:.1f}"
     )
+    if summary.failed:
+        print(line, file=sys.stderr)
+        return 1
+    print(line)
     return 0
 
 
