@@ -29,6 +29,12 @@ from app.routes import (
     webhooks,
 )
 
+# Configured at import rather than in lifespan: uvicorn imports the app
+# (Server._serve -> config.load()) *before* it logs "Started server process" and
+# runs the lifespan hook, so configuring any later left those boot lines on
+# stderr — where Railway reports them as errors.
+configure_logging(settings)
+
 logger = logging.getLogger(__name__)
 
 # Import services to register webhook handlers
@@ -39,7 +45,6 @@ import app.services.ingest_pr_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    configure_logging(settings)
     if settings.sentry_dsn:
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
