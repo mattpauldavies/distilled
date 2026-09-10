@@ -49,6 +49,7 @@ database/          # Alembic migrations
 | `SEED_TENANT_NAME`        | Dev tenant name                          | `dev`                                                               |
 | `ENVIRONMENT`             | `development` enables local file logging | `production`                                                        |
 | `INTERNAL_CRON_SECRET`    | Bearer token for scheduled recompute     | —                                                                   |
+| `FORWARDED_ALLOW_IPS`     | Upstream addresses uvicorn trusts `X-Forwarded-For` from (read by uvicorn, not `Settings`). Set to `*` behind a trusted proxy — see [Rate limiting](#rate-limiting) | `127.0.0.1` |
 | `CLERK_JWKS_URL`          | Clerk JWKS endpoint for JWT verification | — (required in production)                                          |
 | `CLERK_PUBLISHABLE_KEY`   | Clerk publishable key (for reference)    | —                                                                   |
 | `GITHUB_APP_SLUG`         | GitHub App slug for install links        | —                                                                   |
@@ -102,6 +103,8 @@ Metric aggregation runs hourly for every `(tenant, repo)` pair. The server expos
 
 - `GET /metrics/recompute-targets` — returns every `(tenant_id, repo_id)` pair.
 - `POST /metrics/recompute` — recomputes all four metrics for one repo; idempotent per hour.
+  Rate limited to `1000/hour` rather than per minute: the fan-out is one call per repo in a
+  single hourly burst, so a per-minute cap throttled the job against itself.
 
 A standalone script, [`scripts/run_hourly_recompute.py`](scripts/run_hourly_recompute.py), enumerates targets and fans out per-repo recompute calls with bounded concurrency and small jitter. It exits `1` on scheduler-level failure (missing config, enumeration unreachable) and `0` otherwise — per-repo failures are surfaced in `metrics_refresh_log`.
 
@@ -117,11 +120,52 @@ In production the script is invoked by a dedicated Railway cron service (configu
 
 Optional tuning env vars (script-only): `RECOMPUTE_CONCURRENCY` (default `3`), `RECOMPUTE_JITTER_MS` (default `2000`), `RECOMPUTE_TIMEOUT_S` (default `120`). See [RFC 018](../docs/rfcs/018-batch-metrics-scheduling.md) for the full design.
 
-## Local dev logging
+## Logging
 
-When `ENVIRONMENT=development` (set in `.env`), logs are written to `logs/dev.log` in addition to stdout.
-The file is truncated on each app restart. In production (default), only stdout logging is used.
-The `logs/` directory is gitignored.
+All logs go to **stdout**. This matters on Railway, which classifies anything a container
+writes to stderr as `level.error` regardless of the record's own level — a bare
+`logging.StreamHandler()` defaults to stderr, which made every `INFO` line arrive in the
+log explorer coloured red and buried genuine failures. See
+[ADR 008](../docs/adrs/008-structured-production-logging.md).
+
+**In production**, each record is one JSON line in Railway's field contract:
+
+```json
+{"message": "attributed 1 PRs to deployment=397bb8f3", "level": "info", "logger": "app.services.attribution_service", "timestamp": "2026-09-10T11:57:30.360000+00:00"}
+```
+
+Railway reads `message` as the log text and `level` as the severity, and exposes the
+remaining keys as attributes you can filter on — `@level:error` for real failures,
+`@logger:app.services.invitation_service` to follow one module. Exceptions add a rendered
+`exception` field.
+
+**In development** (`ENVIRONMENT=development`), the console keeps the human-readable
+`%(asctime)s %(levelname)s %(name)s: %(message)s` format and logs are additionally written
+to `logs/dev.log`, truncated on each restart. The `logs/` directory is gitignored.
+
+`httpx` and `httpcore` are pinned to `WARNING`: they log one `INFO` line per outbound
+request, so every Clerk lookup and GitHub call would otherwise produce a log line we did
+not ask for. Uvicorn's own loggers are reparented onto the root handler so the whole
+process emits one consistent stream. The handful of lines uvicorn emits before the app's
+`lifespan` hook runs ("Started server process", "Waiting for application startup") are the
+one exception — they predate our configuration and stay plain text on stderr.
+
+## Rate limiting
+
+`slowapi` applies a `200/minute` default to every route, with tighter per-route limits on
+webhooks and the internal cron endpoints. Limits are keyed on the client IP via
+`request.client.host`.
+
+**Behind a proxy this needs `FORWARDED_ALLOW_IPS`.** Uvicorn only rewrites
+`request.client.host` from `X-Forwarded-For` when the immediate peer is listed in
+`forwarded_allow_ips`, which defaults to `127.0.0.1`. A platform proxy is never
+`127.0.0.1`, so without this variable every public request keys on the *proxy's* address
+and the whole user base shares one bucket. Set `FORWARDED_ALLOW_IPS=*` on Railway, where
+the container port is reachable only through Railway's edge. Do **not** set it where the
+container is directly reachable: a client could then spoof the header and evade limits.
+
+`POST /metrics/recompute` is limited per *hour*, not per minute, because the hourly job
+fans out one call per repository — see [Scheduled metrics](#scheduled-metrics).
 
 ## Webhook events
 
@@ -193,6 +237,9 @@ deploy's release/pre-deploy command:
 ```sh
 alembic upgrade head
 ```
+
+Set `FORWARDED_ALLOW_IPS=*` on the web service so rate limits key on the real
+client IP rather than Railway's edge proxy — see [Rate limiting](#rate-limiting).
 
 ## Testing
 
