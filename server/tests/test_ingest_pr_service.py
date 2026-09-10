@@ -45,7 +45,7 @@ async def test_skips_unhandled_action(mock_session):
 @pytest.mark.asyncio
 async def test_unknown_repo_returns_skipped(mock_session):
     payload = _pull_request_payload()
-    mock_session.execute.side_effect = [mock_result(scalar_or_none=None)]
+    mock_session.execute.side_effect = [mock_result(rows=[])]
 
     result = await handle_pull_request_event(payload, mock_session)
 
@@ -58,7 +58,7 @@ async def test_opened_pr_inserts(mock_session):
     payload = _pull_request_payload(action="opened", merged=False)
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -72,7 +72,7 @@ async def test_opened_draft_pr_inserts(mock_session):
     payload = _pull_request_payload(action="opened", merged=False, draft=True)
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -86,7 +86,7 @@ async def test_closed_without_merge_sets_closed_at(mock_session):
     payload = _pull_request_payload(action="closed", merged=False)
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -100,7 +100,7 @@ async def test_converted_to_draft(mock_session):
     payload = _pull_request_payload(action="converted_to_draft", merged=False)
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -114,7 +114,7 @@ async def test_ready_for_review(mock_session):
     payload = _pull_request_payload(action="ready_for_review", merged=False)
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -128,7 +128,7 @@ async def test_reopened_pr(mock_session):
     payload = _pull_request_payload(action="reopened", merged=False)
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -142,7 +142,7 @@ async def test_inserts_merged_pr(mock_session):
     payload = _pull_request_payload()
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -160,7 +160,7 @@ async def test_pull_request_event_stores_opened_at(mock_session):
     payload["pull_request"]["created_at"] = "2025-01-10T09:00:00Z"
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_insert_result(1),
     ]
 
@@ -172,3 +172,25 @@ async def test_pull_request_event_stores_opened_at(mock_session):
     sql = str(compiled)
     assert "opened_at" in sql
     assert "2025-01-10" in sql
+
+
+@pytest.mark.asyncio
+async def test_same_repo_in_two_workspaces_upserts_into_both(mock_session):
+    """A GitHub repo tracked by two workspaces gets one PullRequest row per workspace."""
+    import uuid as _uuid
+
+    tenant_b = _uuid.uuid4()
+    repo_a = make_repo(github_id=222)
+    repo_b = make_repo(github_id=222, tenant_id=tenant_b)
+    payload = _pull_request_payload(action="opened", merged=False, repo_github_id=222)
+
+    mock_session.execute.side_effect = [
+        mock_result(rows=[repo_a, repo_b]),
+        mock_insert_result(1),  # upsert into workspace A
+        mock_insert_result(1),  # upsert into workspace B
+    ]
+
+    result = await handle_pull_request_event(payload, mock_session)
+
+    assert result is None
+    assert mock_session.execute.call_count == 3
