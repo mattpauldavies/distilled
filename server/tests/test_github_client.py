@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -290,3 +291,27 @@ async def test_200_does_not_evict_token_cache():
     assert envs == []
     assert mock_http.request.call_count == 1  # just the GET, no token refresh
     assert _token_cache[installation_id][0] == "good-token"
+
+
+# --- token minting ---
+
+
+async def test_token_mint_failure_logs_githubs_message(caplog):
+    """A 401 from the access_tokens endpoint carries the reason in the body — log it,
+    or the cause (wrong key for the app, bad app id) is invisible in production: Sentry
+    scrubs the response object, so the log line is the only place it survives."""
+    mock_http = _make_mock_http(
+        request_returns=_make_response(401, {"message": "A JSON web token could not be decoded"})
+    )
+
+    with (
+        patch("httpx.AsyncClient", return_value=mock_http),
+        patch.object(GitHubClient, "_generate_jwt", return_value="jwt"),
+        caplog.at_level(logging.ERROR, logger="app.services.github_client"),
+    ):
+        client = GitHubClient()
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.get_installation_token(160402800)
+
+    assert "160402800" in caplog.text
+    assert "could not be decoded" in caplog.text

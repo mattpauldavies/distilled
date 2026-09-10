@@ -40,6 +40,20 @@ def _is_rate_limited(response: httpx.Response) -> bool:
     return False
 
 
+def _github_message(response: httpx.Response) -> str:
+    """GitHub puts the reason for a rejected request in the body's `message` field.
+
+    For the app-JWT endpoints that is the only thing distinguishing a bad private
+    key from a wrong app id from clock skew, so it belongs in the log line.
+    """
+    try:
+        body = response.json()
+    except Exception:
+        return "<unparseable body>"
+    message = body.get("message") if isinstance(body, dict) else None
+    return str(message)[:200] if message else "<no message>"
+
+
 def _server_supplied_wait(response: httpx.Response) -> float | None:
     """Extract a wait duration from Retry-After or x-ratelimit-reset, capped at _MAX_SERVER_WAIT_S."""
     retry_after = response.headers.get("retry-after")
@@ -162,6 +176,17 @@ class GitHubClient:
             f"/app/installations/{installation_id}/access_tokens",
             headers={"Authorization": f"Bearer {token_jwt}"},
         )
+        if resp.status_code >= 400:
+            # A 401 here means GitHub rejected the app JWT itself (a private key that
+            # isn't the app's, a wrong GITHUB_APP_ID), not the installation. The body
+            # says which; Sentry scrubs the response, so this log line is the only record.
+            logger.error(
+                "installation_token_failed installation_id=%s status=%s app_id=%s github_message=%s",
+                installation_id,
+                resp.status_code,
+                settings.github_app_id,
+                _github_message(resp),
+            )
         resp.raise_for_status()
         data = resp.json()
         token = data["token"]
