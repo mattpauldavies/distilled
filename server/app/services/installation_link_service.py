@@ -110,8 +110,8 @@ async def claim_intent(
     intent.consumed_at = datetime.now(UTC)
     await bind_installation(intent.tenant_id, installation_id, session)
 
-    result = await session.execute(select(Tenant).where(Tenant.id == intent.tenant_id))
-    return result.scalar_one()
+    tenant_result = await session.execute(select(Tenant).where(Tenant.id == intent.tenant_id))
+    return tenant_result.scalar_one()
 
 
 async def claim_by_sender(
@@ -126,21 +126,21 @@ async def claim_by_sender(
     if github_account_id is None:
         return False
 
-    result = await session.execute(
+    user_result = await session.execute(
         select(User).where(User.github_account_id == github_account_id)
     )
-    user = result.scalar_one_or_none()
+    user = user_result.scalar_one_or_none()
     if user is None:
         return False
 
-    result = await session.execute(
+    intent_result = await session.execute(
         select(InstallationIntent).where(
             InstallationIntent.user_id == user.id,
             InstallationIntent.consumed_at.is_(None),
             InstallationIntent.expires_at > datetime.now(UTC),
         )
     )
-    intent = result.scalar_one_or_none()
+    intent = intent_result.scalar_one_or_none()
     if intent is None:
         return False
 
@@ -163,6 +163,39 @@ async def get_installation_by_github_id(
     return result.scalar_one_or_none()
 
 
+async def upsert_installation(
+    installation_id: int, account_login: str, account_type: str, session: AsyncSession
+) -> GitHubInstallation:
+    """Create or refresh the global installation record; resurrects on conflict.
+
+    Race-safe between the webhook and the setup callback: whichever lands
+    second updates rather than violating the installation_id constraint.
+    """
+    stmt = (
+        insert(GitHubInstallation)
+        .values(
+            id=uuid.uuid4(),
+            installation_id=installation_id,
+            account_login=account_login,
+            account_type=account_type.lower(),
+        )
+        .on_conflict_do_update(
+            index_elements=["installation_id"],
+            set_={
+                "account_login": account_login,
+                "account_type": account_type.lower(),
+                "removed_at": None,
+            },
+        )
+    )
+    await session.execute(stmt)
+    await session.flush()
+    result = await session.execute(
+        select(GitHubInstallation).where(GitHubInstallation.installation_id == installation_id)
+    )
+    return result.scalar_one()
+
+
 async def bind_installation(
     tenant_id: uuid.UUID, installation_id: int, session: AsyncSession
 ) -> GitHubInstallation:
@@ -177,14 +210,9 @@ async def bind_installation(
         installation = await get_installation_by_github_id(installation_id, session)
         if installation is None:
             data = await github.get_installation(installation_id)
-            installation = GitHubInstallation(
-                id=uuid.uuid4(),
-                installation_id=installation_id,
-                account_login=data["account"]["login"],
-                account_type=data["account"]["type"].lower(),
+            installation = await upsert_installation(
+                installation_id, data["account"]["login"], data["account"]["type"], session
             )
-            session.add(installation)
-            await session.flush()
         else:
             installation.removed_at = None
 

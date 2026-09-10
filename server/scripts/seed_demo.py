@@ -26,6 +26,7 @@ from app.models.github_installation import GitHubInstallation
 from app.models.pull_request import PullRequest
 from app.models.repository import Repository
 from app.models.tenant import Tenant
+from app.models.tenant_installation import TenantInstallation
 from app.models.tenant_user import TenantUser
 from app.models.user import User
 from app.services.batch_metrics_service import recompute_repo_and_log
@@ -382,10 +383,16 @@ async def main() -> None:
         session.add(
             GitHubInstallation(
                 id=INSTALLATION_UUID,
-                tenant_id=TENANT_ID,
                 installation_id=GITHUB_INSTALLATION_ID,
                 account_login="acme-corp",
                 account_type="organization",
+            )
+        )
+        session.add(
+            TenantInstallation(
+                id=uuid.UUID("00000000-0000-0000-0000-00000000f001"),
+                tenant_id=TENANT_ID,
+                github_installation_id=INSTALLATION_UUID,
             )
         )
         repos_config = [

@@ -1,11 +1,9 @@
 import uuid
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy.dialects import postgresql
 
-from app.models.github_installation import GitHubInstallation
 from app.services.ingest_installation_service import (
     handle_installation_event,
     handle_installation_repositories_event,
@@ -90,10 +88,11 @@ async def test_created_claims_via_sender_and_syncs_linked_workspaces(
     the sender drives the claim (the old account-matching heuristic silently dropped
     organisation installs)."""
     mock_claim.return_value = True
-    mock_session.add = MagicMock()
+    installation = make_installation(installation_id=42, account_login="org")
     repo_rows = [make_repo(github_id=101), make_repo(github_id=102)]
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=None),  # global installation lookup → new
+        mock_insert_result(1),  # upsert global installation
+        mock_result(scalar=installation),  # re-select installation
         _tenant_ids_result([TENANT_ID]),  # linked workspaces
         mock_insert_result(1),  # sync repo 1
         mock_insert_result(1),  # sync repo 2
@@ -104,11 +103,9 @@ async def test_created_claims_via_sender_and_syncs_linked_workspaces(
 
     assert result is None
     mock_claim.assert_awaited_once_with(SENDER_ID, 42, mock_session)
-    added = mock_session.add.call_args[0][0]
-    assert isinstance(added, GitHubInstallation)
-    assert added.installation_id == 42
-    assert added.account_login == "org"
-    assert added.account_type == "organization"
+    upsert_sql = _compiled(mock_session.execute.call_args_list[0][0][0])
+    assert "INSERT INTO github_installations" in upsert_sql
+    assert "ON CONFLICT" in upsert_sql
     mock_discover.assert_awaited()
 
 
@@ -118,9 +115,10 @@ async def test_created_without_intent_or_links_is_held_unclaimed(mock_claim, moc
     """No open intent and no existing links: the global installation row is recorded
     but no workspace gets repos."""
     mock_claim.return_value = False
-    mock_session.add = MagicMock()
+    installation = make_installation(installation_id=42, account_login="org")
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=None),  # global installation lookup → new
+        mock_insert_result(1),  # upsert global installation
+        mock_result(scalar=installation),  # re-select installation
         _tenant_ids_result([]),  # no linked workspaces
     ]
 
@@ -129,7 +127,8 @@ async def test_created_without_intent_or_links_is_held_unclaimed(mock_claim, moc
 
     assert result == SKIPPED
     mock_logger.warning.assert_called_once()
-    assert isinstance(mock_session.add.call_args[0][0], GitHubInstallation)
+    upsert_sql = _compiled(mock_session.execute.call_args_list[0][0][0])
+    assert "INSERT INTO github_installations" in upsert_sql
 
 
 @pytest.mark.asyncio
@@ -141,9 +140,10 @@ async def test_created_reinstall_resurrects_and_respects_sticky_removals(
     """Re-installing resurrects the installation row; the webhook resync must not
     resurrect repos a workspace deliberately removed."""
     mock_claim.return_value = False
-    installation = make_installation(installation_id=42, removed_at=datetime.now(UTC))
+    installation = make_installation(installation_id=42)
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=installation),  # global installation lookup
+        mock_insert_result(1),  # upsert global installation (clears removed_at)
+        mock_result(scalar=installation),  # re-select installation
         _tenant_ids_result([TENANT_ID]),  # linked workspaces
         mock_insert_result(1),  # sync repo 1
         mock_insert_result(1),  # sync repo 2
@@ -153,8 +153,9 @@ async def test_created_reinstall_resurrects_and_respects_sticky_removals(
     result = await handle_installation_event(_installation_payload(), mock_session)
 
     assert result is None
-    assert installation.removed_at is None
-    sync_sql = _compiled(mock_session.execute.call_args_list[2][0][0])
+    upsert_sql = _compiled(mock_session.execute.call_args_list[0][0][0])
+    assert "removed_at" in upsert_sql.split("DO UPDATE SET")[1]  # re-install resurrects
+    sync_sql = _compiled(mock_session.execute.call_args_list[3][0][0])
     assert "removed_at IS NULL" in sync_sql  # respect_removed=True
 
 

@@ -199,10 +199,13 @@ async def test_claim_by_sender_no_open_intent(mock_session):
 @pytest.mark.asyncio
 async def test_bind_installation_creates_installation_link_and_syncs(mock_session):
     mock_session.add = MagicMock()
+    created = make_installation(installation_id=INSTALLATION_ID, account_login="acme")
     repo_rows = [make_repo(github_id=101, full_name="acme/api"), make_repo(github_id=102, full_name="acme/web")]
     mock_session.execute = AsyncMock(
         side_effect=[
             mock_result(scalar_or_none=None),  # installation lookup
+            MagicMock(),  # upsert installation
+            mock_result(scalar=created),  # re-select installation
             mock_result(scalar_or_none=None),  # link lookup
             MagicMock(),  # sync repo 1
             MagicMock(),  # sync repo 2
@@ -214,13 +217,10 @@ async def test_bind_installation_creates_installation_link_and_syncs(mock_sessio
     with patch.object(installation_link_service, "GitHubClient", return_value=github):
         installation = await bind_installation(TENANT_ID, INSTALLATION_ID, mock_session)
 
-    assert installation.installation_id == INSTALLATION_ID
-    assert installation.account_login == "acme"
-    assert installation.account_type == "organization"
+    assert installation is created
 
     added_types = [type(call.args[0]).__name__ for call in mock_session.add.call_args_list]
-    assert "GitHubInstallation" in added_types
-    assert "TenantInstallation" in added_types
+    assert added_types == ["TenantInstallation"]
     github.get_installation.assert_called_once_with(INSTALLATION_ID)
     github.list_repos.assert_called_once_with(INSTALLATION_ID)
     github.close.assert_called_once()

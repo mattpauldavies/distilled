@@ -74,20 +74,12 @@ async def _handle_created(payload: dict, session: AsyncSession) -> str | None:
     installation_id = installation_data["id"]
 
     # Upsert the global installation record; re-install resurrects it.
-    installation = await get_installation_by_github_id(installation_id, session)
-    if installation is None:
-        installation = GitHubInstallation(
-            id=uuid.uuid4(),
-            installation_id=installation_id,
-            account_login=installation_data["account"]["login"],
-            account_type=installation_data["account"]["type"].lower(),
-        )
-        session.add(installation)
-        await session.flush()
-    else:
-        installation.account_login = installation_data["account"]["login"]
-        installation.account_type = installation_data["account"]["type"].lower()
-        installation.removed_at = None
+    installation = await installation_link_service.upsert_installation(
+        installation_id,
+        installation_data["account"]["login"],
+        installation_data["account"]["type"],
+        session,
+    )
 
     # The sender is the person who completed the install on GitHub; if they
     # hold an open intent, this binds the installation to their workspace
