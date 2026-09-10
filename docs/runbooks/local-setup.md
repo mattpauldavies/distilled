@@ -91,8 +91,15 @@ Go to **GitHub Settings > Developer settings > GitHub Apps > New GitHub App**.
 | -------------- | ------------------------------------ |
 | App name       | `distilled-dev` (or anything unique) |
 | Homepage URL   | `http://localhost:8000`              |
+| Setup URL      | `http://localhost:5173/github/setup` — and tick **Redirect on update** |
 | Webhook URL    | Your smee/ngrok URL (see step 3)     |
 | Webhook secret | Generate one: `openssl rand -hex 20` |
+
+The Setup URL is how an installation gets bound to a workspace: Distilled mints
+a workspace-bound `state` nonce for the install link, and GitHub carries it
+back to `/github/setup` after the install (or after re-configuring an existing
+installation, hence **Redirect on update**). The webhook `sender` is matched
+against open install intents as a fallback.
 
 Note: the webhook secret is used to authenticate the webhook, it is separate from the app client secret key.
 
@@ -189,10 +196,15 @@ API docs available at http://localhost:8000/docs
 
 ## 7. Install the GitHub App
 
-1. Go to your GitHub App settings page
-2. Click **Install App** in the sidebar
-3. Choose your account/org and select the repos you want to test with
-4. Click **Install**
+Install from **inside Distilled** so the installation binds to your workspace:
+sign in, and on the onboarding screen (or Settings → Repositories → Connect
+GitHub) click **Install GitHub App**. The link carries a workspace-bound
+`state` nonce; choose your account/org, select the repos to test with, and
+GitHub returns you to Distilled with the installation linked and repos synced.
+
+Installing directly from the GitHub App settings page also works, but the
+installation arrives **unclaimed** (no workspace) — the server logs a warning
+and holds it until you run the connect flow from a workspace.
 
 This triggers an `installation` webhook. Check your server logs — you should see:
 

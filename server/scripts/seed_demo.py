@@ -35,6 +35,7 @@ from app.services.batch_metrics_service import recompute_repo_and_log
 
 TENANT_ID = UUID("00000000-0000-0000-0000-000000000001")
 INSTALLATION_UUID = UUID("00000000-0000-0000-0000-000000000099")
+SECOND_TENANT_ID = UUID("00000000-0000-0000-0000-000000000002")
 WEB_REPO_ID = UUID("00000000-0000-0000-0000-000000000010")
 API_REPO_ID = UUID("00000000-0000-0000-0000-000000000011")
 GITHUB_INSTALLATION_ID = 99_000_001
@@ -395,6 +396,55 @@ async def main() -> None:
                 github_installation_id=INSTALLATION_UUID,
             )
         )
+        # ── Second workspace sharing the installation ─────────────────────────
+        # Exercises the multi-workspace paths: the same installation linked to
+        # two workspaces, the same GitHub repo tracked by both (ingest fan-out),
+        # and a sticky-removed repo that webhook syncs must not resurrect.
+        existing_second_tenant = await session.get(Tenant, SECOND_TENANT_ID)
+        if existing_second_tenant is None:
+            session.add(Tenant(id=SECOND_TENANT_ID, name="Side Projects"))
+        # Flush so the tenant (and the installation above) exist before rows
+        # that reference them — without relationship() mappers the UnitOfWork
+        # does not reorder pending inserts by FK dependency.
+        await session.flush()
+        if clerk_smoke_user_id:
+            session.add(
+                TenantUser(
+                    id=uuid.uuid4(),
+                    tenant_id=SECOND_TENANT_ID,
+                    user_id=smoke_user_id,
+                    role="owner",
+                )
+            )
+        session.add(
+            TenantInstallation(
+                id=uuid.UUID("00000000-0000-0000-0000-00000000f002"),
+                tenant_id=SECOND_TENANT_ID,
+                github_installation_id=INSTALLATION_UUID,
+            )
+        )
+        session.add(
+            Repository(
+                id=uuid.UUID("00000000-0000-0000-0000-000000000012"),
+                tenant_id=SECOND_TENANT_ID,
+                installation_id=INSTALLATION_UUID,
+                github_id=GITHUB_ID_WEB,  # same repo as the dev workspace
+                full_name="acme-corp/web",
+                default_branch="main",
+            )
+        )
+        session.add(
+            Repository(
+                id=uuid.UUID("00000000-0000-0000-0000-000000000013"),
+                tenant_id=SECOND_TENANT_ID,
+                installation_id=INSTALLATION_UUID,
+                github_id=GITHUB_ID_API,
+                full_name="acme-corp/api",
+                default_branch="main",
+                removed_at=now,  # sticky removal
+            )
+        )
+
         repos_config = [
             dict(id=WEB_REPO_ID, github_id=GITHUB_ID_WEB, full_name="acme-corp/web"),
             dict(id=API_REPO_ID, github_id=GITHUB_ID_API, full_name="acme-corp/api"),

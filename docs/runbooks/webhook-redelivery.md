@@ -39,7 +39,14 @@ What to look for:
   installation isn't in our database, or the action isn't one we process. A run
   of `skipped` `pull_request`/`deployment_status` events usually means the
   `installation` event that should have created the repos was never processed —
-  fix that first, then redeliver the skipped events.
+  fix that first, then redeliver the skipped events. A `skipped`
+  `installation:created` with a "held unclaimed" warning means nobody had an
+  open install intent (e.g. the App was installed directly from GitHub): the
+  installation is recorded globally but attached to no workspace — have the
+  user run **Connect GitHub** from their workspace rather than redelivering.
+  Note `pull_request`/`deployment_status` events fan out to every workspace
+  tracking the repo; a redelivery re-runs the fan-out and stays idempotent per
+  workspace.
 - **`status = 'no_handler'`** → we received the event but have no handler
   registered for that `event_type`. Either the GitHub App is subscribed to an
   event we don't process, or we're missing a handler.

@@ -20,7 +20,6 @@ cp .env.example .env.local
 | Variable                     | Description                                                                       |
 | ---------------------------- | --------------------------------------------------------------------------------- |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (from Clerk dashboard)                                      |
-| `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL                                    |
 | `VITE_API_BASE_URL`          | Backend base URL (e.g. `http://localhost:8000`)                                   |
 | `VITE_SENTRY_DSN`            | Sentry DSN; error reporting is off when unset                                     |
 | `VITE_POSTHOG_KEY`           | PostHog project API key; analytics is off when unset                              |
@@ -123,7 +122,7 @@ src/
     SignInPage.tsx                # Clerk sign-in page (GitHub OAuth)
     InitialisingScreen.tsx        # Full-screen "Initialising…" state while repos load
     ReposErrorScreen.tsx          # Full-screen error + retry when /repos fails
-    OnboardingScreen.tsx          # Guides new tenants to install the GitHub App
+    OnboardingScreen.tsx          # Guides new workspaces through the GitHub App install (workspace-bound intent link)
     Dashboard.tsx                 # Data orchestrator — fetches each metric section once, passes to cards/panels
     NoMetricsYetDialog.tsx        # Cold-start dialog when a repo has no metrics yet
     DashboardControls.tsx         # Repo selector + 30/90/180 day window toggle
