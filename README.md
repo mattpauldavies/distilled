@@ -75,6 +75,7 @@ Makefile  # dev commands + database management
 | `smoke-test`       | Run browser smoke tests against the running app            |
 | `website-build`    | Build the marketing website                                |
 | `website-serve`    | Serve the website locally with live reload                 |
+| `website-test`     | Test the website's URL contract (needs `caddy`)            |
 
 `make help` prints the same list.
 

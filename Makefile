@@ -1,4 +1,4 @@
-.PHONY: help dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset seed-claim lint lint-server lint-client format format-server format-client smoke-install smoke-test website-install website-build website-serve
+.PHONY: help dev dev-server dev-client db-up db-down db-reset migrate create-migration test test-server test-client test-coverage seed-demo seed-reset seed-claim lint lint-server lint-client format format-server format-client smoke-install smoke-test website-install website-build website-serve website-test
 
 help:
 	@echo "Usage: make <target>"
@@ -41,6 +41,7 @@ help:
 	@echo "Website"
 	@echo "  website-build     Build the marketing website"
 	@echo "  website-serve     Serve the website locally with live reload"
+	@echo "  website-test      Run the website routing tests (needs caddy)"
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -118,3 +119,6 @@ website-build:  ## Build the website to website/_site/
 
 website-serve:  ## Serve the website locally with live reload
 	cd website && npm run serve
+
+website-test:  ## Run the website routing tests against the real Caddyfile
+	cd website && npm test
