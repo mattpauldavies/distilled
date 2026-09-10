@@ -84,4 +84,5 @@ Everything lives in `/docs`; key starting points:
 
 - [Architecture](docs/architecture.md)
 - [Metrics](docs/metrics.md)
+- [Analytics](docs/analytics.md)
 - [Local Setup Runbook](docs/runbooks/local-setup.md)

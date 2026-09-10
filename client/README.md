@@ -23,6 +23,8 @@ cp .env.example .env.local
 | `VITE_GITHUB_APP_SLUG`       | GitHub App slug for the GitHub App install URL  |
 | `VITE_API_BASE_URL`          | Backend base URL (e.g. `http://localhost:8000`) |
 | `VITE_SENTRY_DSN`            | Sentry DSN; error reporting is off when unset   |
+| `VITE_POSTHOG_KEY`           | PostHog project API key; analytics is off when unset |
+| `VITE_POSTHOG_HOST`          | PostHog API host (defaults to `https://eu.i.posthog.com`) |
 
 ## Run
 
@@ -99,7 +101,7 @@ ESLint enforces TypeScript + React Hooks rules. Prettier handles code style (dou
 
 ```
 src/
-  main.tsx                        # Entry point — Sentry init, wraps app in ClerkProvider
+  main.tsx                        # Entry point — Sentry + analytics init, wraps app in ClerkProvider
   App.tsx                         # Auth gate + initialising/error/onboarding/dashboard branch
   index.css                       # Tailwind + theme vars
   lib/
