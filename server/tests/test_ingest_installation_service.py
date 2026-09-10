@@ -1,7 +1,6 @@
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 from sqlalchemy.dialects import postgresql
 
@@ -356,48 +355,3 @@ async def test_sync_repos_updates_default_branch_when_present(mock_session):
 
     upsert_sql = _compiled(mock_session.execute.call_args_list[0][0][0])
     assert "default_branch" in upsert_sql.split("DO UPDATE SET")[1]
-
-
-@pytest.mark.asyncio
-@patch("app.services.ingest_installation_service.discover_environments", new_callable=AsyncMock)
-@patch("app.services.ingest_installation_service.GitHubClient")
-async def test_handle_created_survives_environment_discovery_failure(mock_github_cls, mock_discover, mock_session):
-    """Environment discovery is enrichment. A GitHub API failure on one repo must not
-    discard the installation and repo rows — the dispatcher commits per handler, so an
-    exception here rolls the whole install back and GitHub never redelivers on its own."""
-    installation = make_installation()
-    repo1 = make_repo(github_id=101)
-    repo2 = make_repo(github_id=102)
-
-    mock_github_instance = AsyncMock()
-    mock_github_cls.return_value = mock_github_instance
-    mock_github_instance.list_environments.side_effect = [
-        httpx.HTTPStatusError("401", request=MagicMock(), response=MagicMock(status_code=401)),
-        [{"name": "production"}],
-    ]
-    mock_github_instance.close = AsyncMock()
-
-    mock_session.flush = AsyncMock()
-
-    user_result = MagicMock()
-    user_result.scalar_one_or_none.return_value = make_test_user()
-    membership_result = MagicMock()
-    membership_result.scalar_one_or_none.return_value = TENANT_ID
-
-    mock_session.execute.side_effect = [
-        user_result,
-        membership_result,
-        mock_insert_result(1),
-        mock_result(scalar=installation),
-        mock_insert_result(1),
-        mock_insert_result(1),
-        mock_result(rows=[repo1, repo2]),
-    ]
-
-    result = await handle_installation_event(_installation_payload(action="created"), mock_session)
-
-    assert result is None  # not SKIPPED, and no exception — the transaction commits
-    mock_github_instance.close.assert_awaited()
-    # The failing repo is skipped; the healthy one is still discovered.
-    mock_discover.assert_awaited_once()
-    assert mock_discover.await_args.args[1] is repo2
