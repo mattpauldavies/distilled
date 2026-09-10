@@ -23,11 +23,30 @@ If we ever want identified product analytics, that is a privacy-posture change:
 it requires a consent flow, a different PostHog configuration, and a privacy
 policy update. Raise an RFC first.
 
+## Reverse proxy
+
+Both surfaces send events to **`https://d.distilledmetrics.com`**, a managed
+PostHog reverse proxy (a CNAME onto PostHog's EU infrastructure), rather than
+straight to `https://eu.i.posthog.com`.
+
+PostHog's own domains are on the default block lists shipped with uBlock Origin,
+AdGuard, Brave, and Safari and Firefox tracking protection, so a large share of
+requests never leaves the browser — silently, since `posthog-js` cannot see a
+request blocked at the network layer. Sending to a first-party domain avoids
+that. See [ADR 007](adrs/007-posthog-reverse-proxy.md) for the full rationale,
+including why this is compatible with the privacy posture.
+
+Because `api_host` is no longer a PostHog domain, **`ui_host` must be set** to
+`https://eu.posthog.com`, otherwise links the SDK generates (toolbar, session
+links) point at the proxy.
+
+Nothing about what is collected, who processes it, or where it is stored
+changes — the proxy terminates on PostHog's EU infrastructure.
+
 ## Setup
 
-Both surfaces expect a **PostHog EU Cloud** project (`https://eu.i.posthog.com`),
-consistent with the privacy policy, which states analytics data is hosted in
-the EU.
+Both surfaces expect a **PostHog EU Cloud** project, consistent with the privacy
+policy, which states analytics data is hosted in the EU.
 
 One-time manual steps in PostHog:
 
@@ -36,6 +55,9 @@ One-time manual steps in PostHog:
    this, events sent in cookieless mode are rejected.
 3. Enable **Web analytics** for the site domain if you want the web analytics
    dashboard.
+4. Set up the **managed reverse proxy** and point a CNAME at it. The proxy must
+   serve every path the SDK uses, including `/e/`, `/i/v0/e/`, `/batch/`,
+   `/flags/`, `/array/` and `/static/` — PostHog's managed proxy does.
 
 ### Client (product analytics)
 
@@ -45,7 +67,10 @@ Configuration comes from Vite env vars (build-time):
 | Variable | Purpose |
 | --- | --- |
 | `VITE_POSTHOG_KEY` | Project API key. Analytics is entirely off when unset. |
-| `VITE_POSTHOG_HOST` | API host; defaults to `https://eu.i.posthog.com`. |
+| `VITE_POSTHOG_HOST` | API host; defaults to `https://d.distilledmetrics.com`. |
+
+`ui_host` is a constant in `analytics.ts` rather than an env var — it tracks the
+PostHog region, which the privacy policy already fixes to the EU.
 
 For container builds, pass them as `--build-arg`s (see `client/Dockerfile`).
 Pageviews and page-leaves are captured automatically, including SPA route
@@ -60,9 +85,15 @@ global data). Without the env var, the built site contains no analytics code.
 | Variable | Purpose |
 | --- | --- |
 | `POSTHOG_KEY` | Project API key. Snippet omitted when unset. |
-| `POSTHOG_HOST` | API host; defaults to `https://eu.i.posthog.com`. |
+| `POSTHOG_HOST` | API host; defaults to `https://d.distilledmetrics.com`. |
+| `POSTHOG_UI_HOST` | PostHog app host for SDK-generated links; defaults to `https://eu.posthog.com`. |
 
 For container builds: `docker build --build-arg POSTHOG_KEY=phc_... .`
+
+The inline snippet is the one PostHog's dashboard generates. It is a stub that
+queues calls until `array.js` loads from `POSTHOG_HOST`, so it has to be
+replaced wholesale (not hand-edited) when PostHog updates it — the method list
+inside it has to match the SDK version being loaded.
 
 ## Privacy policy
 

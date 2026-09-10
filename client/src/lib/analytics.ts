@@ -1,6 +1,8 @@
 import posthog from "posthog-js"
 
-const DEFAULT_HOST = "https://eu.i.posthog.com"
+const DEFAULT_HOST = "https://d.distilledmetrics.com"
+
+const UI_HOST = "https://eu.posthog.com"
 
 /**
  * Initialise PostHog product analytics in cookieless mode.
@@ -18,7 +20,12 @@ export function initAnalytics(): void {
 
   posthog.init(key, {
     api_host: import.meta.env.VITE_POSTHOG_HOST ?? DEFAULT_HOST,
+    ui_host: UI_HOST,
     cookieless_mode: "always",
+    // Cookieless mode never identifies anyone, so no person profile is ever
+    // created. Stating it explicitly keeps anonymous events out of person
+    // processing entirely.
+    person_profiles: "identified_only",
     defaults: "2026-05-30",
   })
 }
