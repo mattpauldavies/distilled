@@ -22,11 +22,6 @@ _token_cache: dict[int, tuple[str, datetime]] = {}
 
 _TOKEN_EXPIRY_MARGIN = timedelta(seconds=60)
 
-# GitHub caps app-JWT lifetime at 10 minutes and validates `exp` against its own
-# clock — stay a minute inside both bounds so clock skew can't cause a 401.
-_JWT_CLOCK_SKEW_MARGIN_S = 60
-_JWT_LIFETIME_S = 9 * 60
-
 _TRANSIENT_5XX = {502, 503, 504}
 _MAX_ATTEMPTS = 4
 _MAX_SERVER_WAIT_S = 30.0
@@ -155,18 +150,10 @@ class GitHubClient:
         raise RuntimeError("unreachable")  # for type checker; tenacity always returns or raises
 
     def _generate_jwt(self) -> str:
-        """Mint an app JWT.
-
-        GitHub rejects (401) a JWT whose `exp` is more than 10 minutes ahead of
-        *its own* clock, so we ask for 9 minutes rather than the full 10: that
-        leaves a minute of tolerance for our clock running fast. `iat` is
-        backdated by the same margin for the opposite skew ("'Issued at' claim
-        ('iat') is in the future"). Total lifetime stays within the 10-minute cap.
-        """
         now = int(time.time())
         payload = {
-            "iat": now - _JWT_CLOCK_SKEW_MARGIN_S,
-            "exp": now + _JWT_LIFETIME_S,
+            "iat": now - 60,
+            "exp": now + (10 * 60),
             "iss": str(settings.github_app_id),
         }
         if settings.github_private_key:
@@ -190,8 +177,9 @@ class GitHubClient:
             headers={"Authorization": f"Bearer {token_jwt}"},
         )
         if resp.status_code >= 400:
-            # A 401 here means GitHub rejected the app JWT itself (bad or rotated
-            # private key, wrong GITHUB_APP_ID, clock skew), not the installation.
+            # A 401 here means GitHub rejected the app JWT itself (a private key that
+            # isn't the app's, a wrong GITHUB_APP_ID), not the installation. The body
+            # says which; Sentry scrubs the response, so this log line is the only record.
             logger.error(
                 "installation_token_failed installation_id=%s status=%s app_id=%s github_message=%s",
                 installation_id,

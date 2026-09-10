@@ -21,36 +21,71 @@ Every failed mint logs the reason GitHub gave:
 ERROR app.services.github_client: installation_token_failed installation_id=160402800 status=401 app_id=123456 github_message=...
 ```
 
-`github_message` is the diagnosis. The four we expect:
+`github_message` is the diagnosis, and it is the *only* place it survives:
+Sentry's scrubber filters the `resp` local out of the stack trace, so an alert
+alone will not tell you which of these it is.
+
+The four we expect:
 
 | `github_message` | Cause | Fix |
 | --- | --- | --- |
-| `'Expiration time' claim ('exp') is too far in the future` | Our clock is ahead of GitHub's. We mint 9-minute JWTs to absorb a minute of skew, so this means skew larger than that. | Check host clock/NTP on the app container. |
-| `'Issued at' claim ('iat') is in the future` | Our clock is behind GitHub's by more than the 60s backdate. | Same — fix NTP. |
-| `A JSON web token could not be decoded` | `GITHUB_PRIVATE_KEY` is malformed — usually newlines mangled when the PEM was pasted into the environment. | Re-set the secret; see step 2. |
-| `Integration not found` | The JWT is signed by a key that doesn't belong to `GITHUB_APP_ID` — mismatched app/key pair, or the key was revoked in GitHub. | Confirm `app_id` in the log line matches the app the key came from; regenerate if revoked. |
+| `A JSON web token could not be decoded` | GitHub found the app but could not verify our signature: the private key is not one of that app's keys — a different app's key, or one deleted in GitHub. It also covers a PEM too malformed to parse, but that fails locally before any request goes out, so on a 401 suspect the key/app pairing first. | Generate a fresh private key on the app named by `GITHUB_APP_ID`, set `GITHUB_PRIVATE_KEY`, redeploy, then delete the old key in GitHub. |
+| `Integration not found` | No app matches the `iss` we sent — `GITHUB_APP_ID` is wrong (an installation id or a client id), or the app was deleted. | Correct `GITHUB_APP_ID` from the app's General settings page. |
+| `'Expiration time' claim ('exp') is too far in the future` | Our clock is ahead of GitHub's. `exp` is minted at the full 10-minute maximum, so any positive skew crosses it. | Fix NTP on the app container. Measure the skew in step 2 before assuming this — do not infer it from the failure alone. |
+| `'Issued at' claim ('iat') is in the future` | Our clock is behind GitHub's by more than the 60s backdate on `iat`. | Same — fix NTP. |
 
-## 2. Verify the credentials
+## 2. Ask GitHub directly
 
-`GITHUB_APP_ID` must be the **App ID** from the app's settings page (a number),
-not the installation id and not the client id. `GITHUB_PRIVATE_KEY` holds the
-PEM with real newlines; `GITHUB_PRIVATE_KEY_PATH` is the alternative when the
-key is mounted as a file. If both are set, the inline key wins.
-
-Confirm the key parses at all:
+Signing a JWT locally proves only that the PEM parses. It says nothing about
+whether GitHub will accept it, so go and ask. Run this on the app container —
+there is no `curl` in the image, but `httpx` and `PyJWT` are runtime
+dependencies and the interpreter is at `/app/.venv/bin/python`:
 
 ```bash
-python - <<'PY'
-import os, jwt, time
-key = os.environ["GITHUB_PRIVATE_KEY"]
-print(jwt.encode({"iat": int(time.time()) - 60, "exp": int(time.time()) + 540,
-                  "iss": os.environ["GITHUB_APP_ID"]}, key, algorithm="RS256")[:32], "...")
-PY
+/app/.venv/bin/python - <<'PYEOF'
+import os, time, httpx, jwt
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
+
+app_id = os.environ["GITHUB_APP_ID"]
+pem = os.environ.get("GITHUB_PRIVATE_KEY") or open(os.environ["GITHUB_PRIVATE_KEY_PATH"]).read()
+now = int(time.time())
+mint = lambda iss: jwt.encode({"iat": now - 60, "exp": now + 540, "iss": str(iss)}, pem, algorithm="RS256")
+
+with httpx.Client(base_url="https://api.github.com", timeout=30) as c:
+    for label, iss in (("configured", app_id), ("bogus", 1)):
+        r = c.get("/app", headers={"Authorization": f"Bearer {mint(iss)}",
+                                   "Accept": "application/vnd.github+json"})
+        if label == "configured":
+            skew = (datetime.now(timezone.utc) - parsedate_to_datetime(r.headers["date"])).total_seconds()
+            print(f"clock skew: {skew:+.1f}s (positive = we are ahead of GitHub)")
+        print(f"{label} iss={iss} -> {r.status_code} {r.json().get('message')}")
+PYEOF
 ```
 
-A `ValueError` here means the PEM never loaded — the 401 is a secrets problem,
-not a GitHub one. Rotating a key in GitHub **does not** revoke the old one until
-you delete it, so generate the new key, deploy it, then delete the old one.
+`GET /app` returns the authenticating app's own record, so a 200 means the key
+and `GITHUB_APP_ID` are a matched pair and the clock is acceptable to GitHub.
+Keep the JWT in a variable and never print it — it is a live credential that
+signs as the app.
+
+The second request, with a deliberately bogus `iss`, is what separates the first
+two rows of the table above:
+
+- **bogus → `Integration not found` (404), configured → `could not be decoded`
+  (401)** — GitHub found the app and rejected our *signature*. The key does not
+  belong to that app. Re-pasting the same key will not fix it.
+- **both → `could not be decoded`** — the token is rejected before the app is
+  looked up, so the JWT itself is malformed. Dump its header and payload and
+  check `alg`, `iss`, and that the PEM is a 2048-bit RSA key (about 27 lines,
+  starting `-----BEGIN RSA PRIVATE KEY-----`).
+
+`GITHUB_APP_ID` must be the **App ID** from the app's General settings page (a
+number), not the installation id and not the client id. `GITHUB_PRIVATE_KEY`
+holds the PEM with real newlines; `GITHUB_PRIVATE_KEY_PATH` is the alternative
+when the key is mounted as a file. If both are set, the inline key wins.
+
+Generating a new key in GitHub **does not** revoke the old one — delete the old
+key explicitly, or a stale deployment carries on authenticating with it.
 
 ## 3. Repair the data the failure skipped
 
