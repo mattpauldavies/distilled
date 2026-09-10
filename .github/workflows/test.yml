@@ -40,3 +40,28 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm test
+
+  test-website:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: website/package-lock.json
+      # The routing tests exercise website/Caddyfile, so this should track the
+      # caddy:2-alpine tag the image is built from.
+      - name: Install Caddy
+        env:
+          CADDY_VERSION: 2.10.2
+        run: |
+          curl -fsSL "https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin caddy
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test

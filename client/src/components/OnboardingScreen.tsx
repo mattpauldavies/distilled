@@ -76,7 +76,7 @@ export function OnboardingScreen({
         <p className="text-sm text-muted-foreground">
           Read the{" "}
           <a
-            href="https://distilledmetrics.com/getting-started.html"
+            href="https://distilledmetrics.com/getting-started"
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-foreground underline underline-offset-4 hover:opacity-80"

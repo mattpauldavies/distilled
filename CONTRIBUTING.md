@@ -139,6 +139,22 @@ Tests live in `e2e/smoke.spec.ts` (19 tests). Key assertions:
 - All 4 chart panels render with data
 - Time window toggle and repo switching work correctly
 
+### Website Routing Tests
+
+The marketing website's URL contract — which URL serves which page, what
+redirects where, what 404s — lives in `website/Caddyfile`, so its tests boot
+that config over a real build rather than mocking a server.
+
+```bash
+# Needs the caddy binary on PATH (or CADDY_BIN=/path/to/caddy)
+make website-test
+```
+
+Tests live in `website/test/routing.test.mjs`. Add a case there whenever you
+add a page or change how one is served, and link to pages by their canonical
+extensionless URL (`/terms`, not `/terms.html`) — see
+[ADR 006](docs/adrs/006-website-url-canonicalisation.md).
+
 ## Code Style
 
 ### Backend (Python)
@@ -177,7 +193,13 @@ e2e/              # Playwright browser smoke tests
   smoke.spec.ts   # 19 end-to-end tests
   playwright.config.ts
 
+website/          # Eleventy marketing site
+  src/            # pages and templates
+  test/           # URL contract tests (run against Caddyfile)
+  Caddyfile       # how the built site is served
+
 docs/
+  adrs/           # Architecture decision records
   rfcs/           # Design documents
   runbooks/       # Operational guides
 ```

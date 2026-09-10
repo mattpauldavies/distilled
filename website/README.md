@@ -14,8 +14,12 @@ website/
     privacy.njk     # privacy policy
     terms.njk       # website terms of use
     app-terms.njk   # application terms and conditions
+    getting-started.njk  # setup guide
     images/         # static assets (copied as-is to output)
+  test/
+    routing.test.mjs     # URL contract tests, run against the real Caddyfile
   .eleventy.js      # Eleventy config
+  Caddyfile         # how the built site is served — the URL contract
   package.json
   _site/            # compiled output (gitignored)
 ```
@@ -27,6 +31,7 @@ All commands are available from the repo root via `make`:
 ```bash
 make website-build     # compile to website/_site/
 make website-serve     # local dev server with live reload at localhost:8080
+make website-test      # build, then test the URL contract (needs caddy on PATH)
 ```
 
 Or directly from this directory:
@@ -35,11 +40,14 @@ Or directly from this directory:
 npm install            # install dependencies
 npm run build          # compile to _site/
 npm run serve          # local dev server with live reload
+npm test               # build, then run the routing tests
 ```
 
 ## Adding a page
 
-1. Create `src/your-page.njk` with front matter and a `{% block %}`:
+1. Create `src/your-page.njk` with front matter and a `{% block %}`. The
+   `permalink` keeps the `.html` extension — that is the file on disk, not the
+   URL the page is served at (see "URLs" below):
 
 ```nunjucks
 ---
@@ -55,10 +63,32 @@ permalink: /your-page.html
 {% endblock %}
 ```
 
-2. Add a link to it in the footer inside `src/_includes/base.njk`.
-3. Run `make website-build` to verify the output.
+2. Add a link to it in the footer inside `src/_includes/base.njk`, using the
+   canonical extensionless URL (`/your-page`, not `/your-page.html`).
+3. Run `make website-test` to verify the output and its URLs.
 
 Use `{% extends "base.njk" %}` instead of `legal.njk` if the page needs a custom layout rather than the standard legal article format.
+
+## URLs
+
+Pages are served at extensionless URLs — `/terms`, not `/terms.html`. The build
+emits flat `terms.html` files and `Caddyfile` maps between the two:
+
+| URL              | Response                                    |
+| ---------------- | ------------------------------------------- |
+| `/terms`         | 200, served from `_site/terms.html`         |
+| `/terms.html`    | 301 → `/terms` (query string preserved)     |
+| `/index.html`    | 301 → `/`                                   |
+| `/no-such-page`  | 404 — there is no homepage fallback         |
+
+That contract predates the container: it is what Cloudflare Pages served, so it
+is what search engines index and what browsers have cached 301s for. Always
+link to the canonical form. `test/routing.test.mjs` boots the real Caddyfile
+over a real build and asserts the table above — see
+[ADR 006](../docs/adrs/006-website-url-canonicalisation.md).
+
+Running the tests needs the `caddy` binary on `PATH` (or `CADDY_BIN` pointing
+at it); CI installs it for the `test-website` job.
 
 ## Deployment
 
