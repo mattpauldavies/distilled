@@ -11,9 +11,9 @@ import {
 } from "../factories"
 
 export const handlers = [
-  http.get("/me/tenants", () => {
+  http.get("/me/workspaces", () => {
     return HttpResponse.json({
-      items: [{ id: "tenant-1", name: "Test Tenant", slug: "test", role: "owner" }],
+      items: [{ id: "workspace-1", name: "Test Workspace", slug: null, role: "owner" }],
     })
   }),
 

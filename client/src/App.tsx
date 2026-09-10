@@ -10,18 +10,22 @@ import { SignInPage } from "@/components/SignInPage"
 import { TeamPage } from "@/components/team/TeamPage"
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage"
 import { useRepos } from "@/hooks/useRepos"
-import { TenantProvider, useTenantContext } from "@/lib/tenantContext"
+import { WorkspaceProvider, useWorkspaceContext } from "@/lib/workspaceContext"
 
 function Home() {
-  const { loading: tenantLoading, error: tenantError, activeTenant } = useTenantContext()
+  const {
+    loading: workspaceLoading,
+    error: workspaceError,
+    activeWorkspace,
+  } = useWorkspaceContext()
   const { repos, loading, error, refetch } = useRepos()
   const [showTeam, setShowTeam] = useState(false)
 
-  if (tenantLoading) return <InitialisingScreen />
-  if (tenantError)
-    return <ReposErrorScreen error={tenantError} onRetry={() => window.location.reload()} />
-  if (!activeTenant) return <OnboardingScreen onReposDetected={refetch} />
-  if (showTeam && activeTenant.role === "owner") {
+  if (workspaceLoading) return <InitialisingScreen />
+  if (workspaceError)
+    return <ReposErrorScreen error={workspaceError} onRetry={() => window.location.reload()} />
+  if (!activeWorkspace) return <OnboardingScreen onReposDetected={refetch} />
+  if (showTeam && activeWorkspace.role === "owner") {
     return <TeamPage onClose={() => setShowTeam(false)} />
   }
   if (loading) return <InitialisingScreen />
@@ -59,9 +63,9 @@ export default function App() {
         <SignInPage />
       </SignedOut>
       <SignedIn>
-        <TenantProvider>
+        <WorkspaceProvider>
           <Home />
-        </TenantProvider>
+        </WorkspaceProvider>
       </SignedIn>
     </ErrorBoundary>
   )

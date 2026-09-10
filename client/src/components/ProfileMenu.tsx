@@ -1,14 +1,14 @@
 import { useClerk, useUser } from "@clerk/clerk-react"
 import { Check, CircleUser } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useTenantContext } from "@/lib/tenantContext"
+import { useWorkspaceContext } from "@/lib/workspaceContext"
 
 interface Props {
   onOpenTeam?: () => void
 }
 
 /**
- * Top-right account chrome: avatar trigger → popover with tenant list,
+ * Top-right account chrome: avatar trigger → popover with workspace list,
  * team-management entry (owners only), and sign-out.
  *
  * Replaces the previous standalone TenantSwitcher + SignOutButton — keeps
@@ -18,7 +18,7 @@ interface Props {
 export function ProfileMenu({ onOpenTeam }: Props) {
   const { user } = useUser()
   const { signOut } = useClerk()
-  const { memberships, activeTenant, setActiveTenant } = useTenantContext()
+  const { memberships, activeWorkspace, setActiveWorkspace } = useWorkspaceContext()
 
   const displayName =
     user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress || "Signed in"
@@ -51,18 +51,18 @@ export function ProfileMenu({ onOpenTeam }: Props) {
         {memberships.length > 0 ? (
           <div className="border-b border-border py-1">
             <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {memberships.length === 1 ? "Tenant" : "Switch Tenant"}
+              {memberships.length === 1 ? "Workspace" : "Switch Workspace"}
             </p>
             <ul role="menu">
               {memberships.map((m) => {
-                const isActive = m.id === activeTenant?.id
+                const isActive = m.id === activeWorkspace?.id
                 return (
                   <li key={m.id} role="none">
                     <button
                       type="button"
                       role="menuitemradio"
                       aria-checked={isActive}
-                      onClick={() => setActiveTenant(m.id)}
+                      onClick={() => setActiveWorkspace(m.id)}
                       className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
                     >
                       <span className="flex min-w-0 items-center gap-2">
@@ -80,7 +80,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
           </div>
         ) : null}
 
-        {activeTenant?.role === "owner" && onOpenTeam ? (
+        {activeWorkspace?.role === "owner" && onOpenTeam ? (
           <div className="border-b border-border py-1">
             <button
               type="button"

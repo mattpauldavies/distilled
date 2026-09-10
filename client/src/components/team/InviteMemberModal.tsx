@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useApiFetch } from "@/lib/tenantContext"
+import { useApiFetch } from "@/lib/workspaceContext"
 import type { TeamResponse } from "@/types/team"
 
 interface Props {
@@ -25,23 +25,20 @@ type Step = "rename" | "invite"
 export function InviteMemberModal({ open, onOpenChange, team, onInviteSent }: Props) {
   const apiFetch = useApiFetch()
 
-  // Show the rename step on the first invite from a tenant whose name still
-  // matches the auto-generated default and where the prompt was never
-  // dismissed. The slug is set once at provisioning time from the GitHub
-  // username, and the auto-name equals the slug — using slug equality is the
-  // simplest robust check.
-  const isDefaultName = team.tenant.slug !== null && team.tenant.name === team.tenant.slug
-  const shouldShowRename = !team.rename_prompt_dismissed && isDefaultName
+  // Show the rename step on the first invite from a workspace whose name is
+  // still the auto-generated default (server-computed) and where the prompt
+  // was never dismissed.
+  const shouldShowRename = !team.rename_prompt_dismissed && team.workspace.is_default_name
 
   const [step, setStep] = useState<Step>(shouldShowRename ? "rename" : "invite")
-  const [tenantName, setTenantName] = useState(team.tenant.name)
+  const [workspaceName, setWorkspaceName] = useState(team.workspace.name)
   const [email, setEmail] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   function reset() {
     setStep(shouldShowRename ? "rename" : "invite")
-    setTenantName(team.tenant.name)
+    setWorkspaceName(team.workspace.name)
     setEmail("")
     setError(null)
   }
@@ -52,7 +49,7 @@ export function InviteMemberModal({ open, onOpenChange, team, onInviteSent }: Pr
     try {
       const body = skip
         ? { rename_prompt_dismissed: true }
-        : { name: tenantName.trim(), rename_prompt_dismissed: true }
+        : { name: workspaceName.trim(), rename_prompt_dismissed: true }
       const res = await apiFetch("/team", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -103,17 +100,17 @@ export function InviteMemberModal({ open, onOpenChange, team, onInviteSent }: Pr
         {step === "rename" ? (
           <>
             <DialogHeader>
-              <DialogTitle>Name your team</DialogTitle>
+              <DialogTitle>Name your workspace</DialogTitle>
               <DialogDescription>
-                You're about to invite a teammate. Give your tenant a name they'll recognise.
+                You're about to invite a teammate. Give your workspace a name they'll recognise.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 py-2">
-              <Label htmlFor="tenant-name">Team name</Label>
+              <Label htmlFor="workspace-name">Workspace name</Label>
               <Input
-                id="tenant-name"
-                value={tenantName}
-                onChange={(e) => setTenantName(e.target.value)}
+                id="workspace-name"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
                 placeholder="Acme Engineering"
                 autoFocus
               />
@@ -125,7 +122,7 @@ export function InviteMemberModal({ open, onOpenChange, team, onInviteSent }: Pr
               </Button>
               <Button
                 onClick={() => continueFromRename(false)}
-                disabled={busy || !tenantName.trim()}
+                disabled={busy || !workspaceName.trim()}
               >
                 Continue
               </Button>

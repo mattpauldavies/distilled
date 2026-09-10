@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
 import type { Repo, PaginatedResponse } from "@/types/dashboard"
-import { useApiFetch, useTenantContext } from "@/lib/tenantContext"
+import { useApiFetch, useWorkspaceContext } from "@/lib/workspaceContext"
 
 export function useRepos() {
   const apiFetch = useApiFetch()
-  const { activeTenant } = useTenantContext()
+  const { activeWorkspace } = useWorkspaceContext()
   const [repos, setRepos] = useState<Repo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -13,8 +13,8 @@ export function useRepos() {
   const refetch = useCallback(() => setFetchKey((k) => k + 1), [])
 
   useEffect(() => {
-    if (!activeTenant) {
-      // Tenant still resolving; stay in the loading state so consumers
+    if (!activeWorkspace) {
+      // Workspace still resolving; stay in the loading state so consumers
       // don't briefly render an empty-repos UI.
       setRepos([])
       return
@@ -45,7 +45,7 @@ export function useRepos() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchKey, activeTenant?.id])
+  }, [fetchKey, activeWorkspace?.id])
 
   return { repos, loading, error, refetch }
 }
