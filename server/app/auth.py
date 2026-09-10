@@ -78,6 +78,25 @@ async def _persist_last_active(user: User, tenant_id: uuid.UUID, session: AsyncS
         await session.rollback()
 
 
+async def require_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    session: AsyncSession = Depends(get_session),
+) -> User:
+    """Authenticate the request without resolving an active workspace.
+
+    Used for workspace-agnostic endpoints like the membership list, invitation
+    redemption, and workspace creation. The user may have zero memberships and
+    these endpoints still need to function.
+    """
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        claims = await verifier.verify_token(credentials.credentials)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return await get_or_create_user(claims, session, verifier)
+
+
 async def require_auth(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),

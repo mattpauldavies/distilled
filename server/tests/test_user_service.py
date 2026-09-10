@@ -6,7 +6,7 @@ import pytest
 from app.models.tenant import Tenant
 from app.models.tenant_user import TenantUser
 from app.models.user import User
-from app.services.user_service import get_or_create_user
+from app.services.user_service import create_workspace, get_or_create_user
 
 
 def make_mock_session() -> AsyncMock:
@@ -66,8 +66,8 @@ async def test_first_call_provisions_tenant_user_and_owner_membership():
     user_obj = next(o for o in added if isinstance(o, User))
     membership_obj = next(o for o in added if isinstance(o, TenantUser))
 
-    assert tenant_obj.name == "devuser"
-    assert tenant_obj.slug == "devuser"
+    assert tenant_obj.name == "My Workspace"
+    assert tenant_obj.slug is None
     assert user_obj is user
     assert user_obj.clerk_user_id == "user_clerk123"
     assert user_obj.email == "dev@example.com"
@@ -105,7 +105,7 @@ async def test_second_call_returns_existing_user_without_clerk_lookup():
 
 
 @pytest.mark.asyncio
-async def test_falls_back_to_clerk_id_when_no_github():
+async def test_default_workspace_name_without_github_identity():
     session = make_mock_session()
     session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
     verifier = make_mock_verifier(github_username=None, github_account_id=None)
@@ -115,7 +115,7 @@ async def test_falls_back_to_clerk_id_when_no_github():
 
     added = [call.args[0] for call in session.add.call_args_list]
     tenant_obj = next(o for o in added if isinstance(o, Tenant))
-    assert tenant_obj.name == "user_nogh123"
+    assert tenant_obj.name == "My Workspace"
     assert tenant_obj.slug is None
 
 
@@ -156,6 +156,46 @@ async def test_backfills_github_data_on_subsequent_login_when_missing():
     assert user.github_account_id == 98765
     verifier.get_user.assert_called_once_with("user_clerk123")
     session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_provisions_tenant_and_owner_membership():
+    session = make_mock_session()
+    user = User(
+        id=USER_ID,
+        clerk_user_id="user_clerk123",
+        email="dev@example.com",
+        github_username="devuser",
+        github_account_id=98765,
+        last_active_tenant_id=TENANT_ID,
+    )
+
+    tenant = await create_workspace(user, "  Acme Engineering  ", session)
+
+    added = [call.args[0] for call in session.add.call_args_list]
+    tenant_obj = next(o for o in added if isinstance(o, Tenant))
+    membership_obj = next(o for o in added if isinstance(o, TenantUser))
+
+    assert tenant is tenant_obj
+    assert tenant_obj.name == "Acme Engineering"
+    assert tenant_obj.slug is None
+    assert membership_obj.role == "owner"
+    assert membership_obj.tenant_id == tenant_obj.id
+    assert membership_obj.user_id == USER_ID
+    assert user.last_active_tenant_id == tenant_obj.id
+    session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_rejects_blank_name():
+    session = make_mock_session()
+    user = User(id=USER_ID, clerk_user_id="user_clerk123", last_active_tenant_id=TENANT_ID)
+
+    with pytest.raises(ValueError):
+        await create_workspace(user, "   ", session)
+
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
 
 
 @pytest.mark.asyncio

@@ -13,11 +13,10 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import verifier
+from app.auth import require_user, verifier
 from app.db import get_session
 from app.models.invitation import Invitation
 from app.models.tenant import Tenant
@@ -31,28 +30,10 @@ from app.schemas.me import (
     TenantsListResponse,
 )
 from app.services import invitation_service
-from app.services.user_service import get_or_create_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/me")
-_security = HTTPBearer(auto_error=False)
-
-
-async def require_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_security),
-    session: AsyncSession = Depends(get_session),
-) -> User:
-    """Authenticate the request without resolving an active tenant.
-
-    Used for tenant-agnostic endpoints like the membership list and the
-    pending-invitations banner. The user may have zero memberships and
-    these endpoints still need to function.
-    """
-    if credentials is None:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
-    claims = await verifier.verify_token(credentials.credentials)
-    return await get_or_create_user(claims, session, verifier)
 
 
 @router.get("/tenants", response_model=TenantsListResponse)
