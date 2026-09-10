@@ -21,21 +21,24 @@ class PendingInvitationResponse(BaseModel):
     expires_at: datetime
 
 
-class TenantSummaryResponse(BaseModel):
+class WorkspaceSummaryResponse(BaseModel):
     id: uuid.UUID
     name: str
     slug: str | None
     role: Role
+    # True while the workspace still carries its auto-generated name — drives
+    # the one-time "name your workspace" prompt on first invite.
+    is_default_name: bool
 
 
 class TeamResponse(BaseModel):
-    tenant: TenantSummaryResponse
+    workspace: WorkspaceSummaryResponse
     rename_prompt_dismissed: bool
     members: list[MemberResponse]
     pending_invitations: list[PendingInvitationResponse]
 
 
-class RenameTenantRequest(BaseModel):
+class RenameWorkspaceRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     rename_prompt_dismissed: bool | None = None
 

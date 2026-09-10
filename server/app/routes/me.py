@@ -1,9 +1,9 @@
-"""User-scoped routes that don't depend on an active tenant.
+"""User-scoped routes that don't depend on an active workspace.
 
-These endpoints are reached pre-tenant-resolution: the tenant switcher
-needs the membership list before it can pick an active tenant, and
+These endpoints are reached pre-workspace-resolution: the workspace switcher
+needs the membership list before it can pick an active workspace, and
 the invitation banner needs to surface invites for users with no
-matching tenant context yet.
+matching workspace context yet.
 """
 
 from __future__ import annotations
@@ -25,9 +25,9 @@ from app.models.user import User
 from app.schemas.me import (
     MyInvitationResponse,
     MyInvitationsListResponse,
-    SetActiveTenantRequest,
-    TenantMembershipResponse,
-    TenantsListResponse,
+    SetActiveWorkspaceRequest,
+    WorkspaceMembershipResponse,
+    WorkspacesListResponse,
 )
 from app.services import invitation_service
 
@@ -36,20 +36,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/me")
 
 
-@router.get("/tenants", response_model=TenantsListResponse)
-async def list_tenants(
+@router.get("/workspaces", response_model=WorkspacesListResponse)
+async def list_workspaces(
     user: User = Depends(require_user),
     session: AsyncSession = Depends(get_session),
-) -> TenantsListResponse:
+) -> WorkspacesListResponse:
     result = await session.execute(
         select(Tenant, TenantUser.role)
         .join(TenantUser, TenantUser.tenant_id == Tenant.id)
         .where(TenantUser.user_id == user.id)
         .order_by(Tenant.name)
     )
-    return TenantsListResponse(
+    return WorkspacesListResponse(
         items=[
-            TenantMembershipResponse(
+            WorkspaceMembershipResponse(
                 id=tenant.id,
                 name=tenant.name,
                 slug=tenant.slug,
@@ -60,21 +60,21 @@ async def list_tenants(
     )
 
 
-@router.post("/active-tenant", status_code=status.HTTP_204_NO_CONTENT)
-async def set_active_tenant(
-    body: SetActiveTenantRequest,
+@router.post("/active-workspace", status_code=status.HTTP_204_NO_CONTENT)
+async def set_active_workspace(
+    body: SetActiveWorkspaceRequest,
     user: User = Depends(require_user),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Persist the user's active-tenant choice from the switcher."""
+    """Persist the user's active-workspace choice from the switcher."""
     membership = await session.execute(
         select(TenantUser).where(
-            TenantUser.tenant_id == body.tenant_id, TenantUser.user_id == user.id
+            TenantUser.tenant_id == body.workspace_id, TenantUser.user_id == user.id
         )
     )
     if membership.scalar_one_or_none() is None:
-        raise HTTPException(status_code=403, detail="Not a member of that tenant")
-    user.last_active_tenant_id = body.tenant_id
+        raise HTTPException(status_code=403, detail="Not a member of that workspace")
+    user.last_active_tenant_id = body.workspace_id
     await session.commit()
 
 
@@ -109,8 +109,8 @@ async def list_my_invitations(
         items=[
             MyInvitationResponse(
                 id=inv.id,
-                tenant_id=inv.tenant_id,
-                tenant_name=tenants[inv.tenant_id].name if inv.tenant_id in tenants else "",
+                workspace_id=inv.tenant_id,
+                workspace_name=tenants[inv.tenant_id].name if inv.tenant_id in tenants else "",
                 inviter_name=(
                     inviters[inv.invited_by_user_id].github_username
                     if inv.invited_by_user_id and inv.invited_by_user_id in inviters

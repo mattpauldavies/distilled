@@ -69,8 +69,8 @@ async def test_get_team_returns_members():
 
     assert resp.status_code == 200, resp.text
     body = resp.json()
-    assert body["tenant"]["name"] == "acme"
-    assert body["tenant"]["role"] == "owner"
+    assert body["workspace"]["name"] == "acme"
+    assert body["workspace"]["role"] == "owner"
     assert len(body["members"]) == 2
     assert body["pending_invitations"] == []
 
@@ -253,3 +253,59 @@ async def test_delete_team_with_members_returns_400():
         svc.delete_tenant = orig
 
     assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_get_team_flags_default_workspace_name():
+    """is_default_name is true for 'My Workspace' and for legacy name==slug rows."""
+    for tenant in (
+        Tenant(id=uuid.uuid4(), name="My Workspace", slug=None, rename_prompt_dismissed=False),
+        Tenant(id=uuid.uuid4(), name="anna", slug="anna", rename_prompt_dismissed=False),
+    ):
+        mock_session = AsyncMock()
+        tenant_result = MagicMock()
+        tenant_result.scalar_one_or_none.return_value = tenant
+        mock_session.execute = AsyncMock(return_value=tenant_result)
+
+        import app.services.membership_service as svc
+
+        async def fake_list_members(*_a, **_kw):
+            return []
+
+        orig = svc.list_members
+        svc.list_members = fake_list_members
+        try:
+            client, _ = _make_client(role="owner", tenant=tenant, mock_session=mock_session)
+            async with client as c:
+                resp = await c.get("/team")
+        finally:
+            svc.list_members = orig
+
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["workspace"]["is_default_name"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_team_renamed_workspace_is_not_default():
+    tenant = Tenant(id=uuid.uuid4(), name="Acme Engineering", slug="anna", rename_prompt_dismissed=True)
+    mock_session = AsyncMock()
+    tenant_result = MagicMock()
+    tenant_result.scalar_one_or_none.return_value = tenant
+    mock_session.execute = AsyncMock(return_value=tenant_result)
+
+    import app.services.membership_service as svc
+
+    async def fake_list_members(*_a, **_kw):
+        return []
+
+    orig = svc.list_members
+    svc.list_members = fake_list_members
+    try:
+        client, _ = _make_client(role="owner", tenant=tenant, mock_session=mock_session)
+        async with client as c:
+            resp = await c.get("/team")
+    finally:
+        svc.list_members = orig
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["workspace"]["is_default_name"] is False

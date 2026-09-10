@@ -34,4 +34,4 @@ async def redeem(
 
     user.last_active_tenant_id = tenant_id
     await session.commit()
-    return RedeemResponse(tenant_id=tenant_id)
+    return RedeemResponse(workspace_id=tenant_id)

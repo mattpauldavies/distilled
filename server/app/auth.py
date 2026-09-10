@@ -31,13 +31,13 @@ class CurrentUser:
     clerk_user_id: str
 
 
-def _parse_tenant_header(value: str | None) -> uuid.UUID | None:
+def _parse_workspace_header(value: str | None, header_name: str) -> uuid.UUID | None:
     if not value:
         return None
     try:
         return uuid.UUID(value)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid X-Tenant-Id header") from exc
+        raise HTTPException(status_code=400, detail=f"Invalid {header_name} header") from exc
 
 
 async def _resolve_active_tenant(
@@ -100,25 +100,28 @@ async def require_user(
 async def require_auth(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    x_workspace_id: str | None = Header(default=None, alias="X-Workspace-Id"),
     x_tenant_id: str | None = Header(default=None, alias="X-Tenant-Id"),
     session: AsyncSession = Depends(get_session),
 ) -> CurrentUser:
-    """Verify a Clerk JWT and resolve the active tenant for this request.
+    """Verify a Clerk JWT and resolve the active workspace for this request.
 
-    The active tenant is the value of `X-Tenant-Id` if present (and the user
-    is a member of it), otherwise the user's last-active tenant. Membership
-    is required either way.
+    The active workspace is the value of `X-Workspace-Id` if present (falling
+    back to the legacy `X-Tenant-Id` spelling), otherwise the user's
+    last-active workspace. Membership is required either way.
 
     Raises:
         401 — Missing/invalid Authorization header
-        403 — User is not a member of the requested tenant
-        409 — User has no active tenant at all (no header, no last-active, or
-              memberships have been removed)
+        403 — User is not a member of the requested workspace
+        409 — User has no active workspace at all (no header, no last-active,
+              or memberships have been removed)
     """
     if credentials is None:
         raise HTTPException(status_code=401, detail="Authorization header missing")
 
-    requested_tenant_id = _parse_tenant_header(x_tenant_id)
+    requested_tenant_id = _parse_workspace_header(
+        x_workspace_id, "X-Workspace-Id"
+    ) or _parse_workspace_header(x_tenant_id, "X-Tenant-Id")
 
     try:
         claims = await verifier.verify_token(credentials.credentials)
@@ -129,8 +132,8 @@ async def require_auth(
     resolved = await _resolve_active_tenant(user, requested_tenant_id, session)
     if resolved is None:
         if requested_tenant_id is not None:
-            raise HTTPException(status_code=403, detail="Not a member of the requested tenant")
-        raise HTTPException(status_code=409, detail="No active tenant for user")
+            raise HTTPException(status_code=403, detail="Not a member of the requested workspace")
+        raise HTTPException(status_code=409, detail="No active workspace for user")
 
     tenant, role = resolved
     await _persist_last_active(user, tenant.id, session)

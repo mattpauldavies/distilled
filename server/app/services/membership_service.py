@@ -76,7 +76,7 @@ async def remove_member(
         raise NotAMemberError(f"User {user_id} is not a member of tenant {tenant_id}")
     if membership.role == "owner":
         raise InvariantViolation(
-            "Cannot remove the owner; transfer ownership or delete the tenant"
+            "Cannot remove the owner; transfer ownership or delete the workspace"
         )
 
     await session.delete(membership)
@@ -92,7 +92,7 @@ async def leave_tenant(
     if membership.role == "owner":
         # Owners always have to either transfer or delete; never leave.
         raise InvariantViolation(
-            "Owners cannot leave; transfer ownership first, or delete the tenant if you are the sole user"
+            "Owners cannot leave; transfer ownership first, or delete the workspace if you are the sole user"
         )
 
     await session.delete(membership)
@@ -132,7 +132,7 @@ async def delete_tenant(tenant_id: uuid.UUID, session: AsyncSession) -> None:
     member_count = await _count_members(tenant_id, session)
     if member_count > 1:
         raise InvariantViolation(
-            f"Tenant has {member_count} members; remove or transfer them before deletion"
+            f"Workspace has {member_count} members; remove or transfer them before deletion"
         )
 
     result = await session.execute(select(Tenant).where(Tenant.id == tenant_id))
@@ -150,7 +150,7 @@ async def rename_tenant(
 ) -> Tenant:
     cleaned = (new_name or "").strip()
     if not cleaned:
-        raise InvariantViolation("Tenant name cannot be blank")
+        raise InvariantViolation("Workspace name cannot be blank")
 
     result = await session.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = result.scalar_one_or_none()
