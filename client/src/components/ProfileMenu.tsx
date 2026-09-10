@@ -1,5 +1,7 @@
+import { useState } from "react"
 import { useClerk, useUser } from "@clerk/clerk-react"
-import { Check, CircleUser } from "lucide-react"
+import { Check, CircleUser, Plus } from "lucide-react"
+import { CreateWorkspaceModal } from "@/components/CreateWorkspaceModal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useWorkspaceContext } from "@/lib/workspaceContext"
 
@@ -19,6 +21,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
   const { user } = useUser()
   const { signOut } = useClerk()
   const { memberships, activeWorkspace, setActiveWorkspace } = useWorkspaceContext()
+  const [createOpen, setCreateOpen] = useState(false)
 
   const displayName =
     user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress || "Signed in"
@@ -77,6 +80,14 @@ export function ProfileMenu({ onOpenTeam }: Props) {
                 )
               })}
             </ul>
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus:bg-muted focus:outline-none"
+            >
+              <Plus className="size-4" />
+              Create workspace
+            </button>
           </div>
         ) : null}
 
@@ -102,6 +113,7 @@ export function ProfileMenu({ onOpenTeam }: Props) {
           </button>
         </div>
       </PopoverContent>
+      <CreateWorkspaceModal open={createOpen} onOpenChange={setCreateOpen} />
     </Popover>
   )
 }
