@@ -146,9 +146,7 @@ to `logs/dev.log`, truncated on each restart. The `logs/` directory is gitignore
 `httpx` and `httpcore` are pinned to `WARNING`: they log one `INFO` line per outbound
 request, so every Clerk lookup and GitHub call would otherwise produce a log line we did
 not ask for. Uvicorn's own loggers are reparented onto the root handler so the whole
-process emits one consistent stream. The handful of lines uvicorn emits before the app's
-`lifespan` hook runs ("Started server process", "Waiting for application startup") are the
-one exception — they predate our configuration and stay plain text on stderr.
+process emits one consistent stream.
 
 ## Rate limiting
 

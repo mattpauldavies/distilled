@@ -1,3 +1,5 @@
+import configparser
+import importlib
 import json
 import logging
 import os
@@ -200,3 +202,52 @@ class TestUvicornLoggers:
 
         assert uvicorn_logger.handlers == []
         assert uvicorn_logger.propagate is True
+
+
+class TestAlembicLogging:
+    """Migrations run as their own process (Railway pre-deploy) and never call
+    configure_logging, so alembic.ini is the only thing steering their output."""
+
+    def _console_handler_args(self) -> str:
+        parser = configparser.ConfigParser()
+        parser.read(os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini"))
+        return parser["handler_console"]["args"]
+
+    def test_console_handler_writes_to_stdout(self):
+        assert "sys.stdout" in self._console_handler_args()
+
+    def test_console_handler_does_not_write_to_stderr(self):
+        assert "sys.stderr" not in self._console_handler_args()
+
+
+class TestConfiguredAtImportTime:
+    """uvicorn logs "Started server process" *after* importing the app but before
+    lifespan runs, so configuring inside lifespan left those boot lines on stderr."""
+
+    def test_importing_main_configures_logging(self):
+        import app.main
+
+        logging.getLogger().handlers.clear()
+        uvicorn_error = logging.getLogger("uvicorn.error")
+        uvicorn_error.addHandler(logging.StreamHandler(sys.stderr))
+        uvicorn_error.propagate = False
+
+        importlib.reload(app.main)
+
+        assert _console_handler().stream is sys.stdout
+        assert uvicorn_error.handlers == []
+        assert uvicorn_error.propagate is True
+
+    def test_uvicorn_boot_message_is_captured_as_info(self, capsys):
+        import app.main
+
+        logging.getLogger().handlers.clear()
+        importlib.reload(app.main)
+
+        logging.getLogger("uvicorn.error").info("Started server process [%d]", 1)
+
+        captured = capsys.readouterr()
+        assert captured.err == ""
+        payload = json.loads(captured.out.strip().splitlines()[-1])
+        assert payload["message"] == "Started server process [1]"
+        assert payload["level"] == "info"
