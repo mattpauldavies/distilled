@@ -12,7 +12,9 @@ class GitHubInstallation(TimestampMixin, Base):
     __table_args__ = (UniqueConstraint("tenant_id", "installation_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
+    # Transitional: installations are global records shared across workspaces via
+    # tenant_installations; this column is dropped once no code references it.
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tenants.id"), nullable=True)
     installation_id: Mapped[int] = mapped_column(BigInteger)
     account_login: Mapped[str] = mapped_column(String(255))
     account_type: Mapped[str] = mapped_column(String(50))
