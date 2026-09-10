@@ -29,6 +29,8 @@ from app.routes import (
     webhooks,
 )
 
+configure_logging(settings)
+
 logger = logging.getLogger(__name__)
 
 # Import services to register webhook handlers
@@ -39,7 +41,6 @@ import app.services.ingest_pr_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    configure_logging(settings)
     if settings.sentry_dsn:
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
