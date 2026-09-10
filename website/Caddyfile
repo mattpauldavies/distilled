@@ -6,10 +6,30 @@
 }
 
 :{$PORT:8080} {
-	root * /srv
+	# SITE_ROOT lets the routing tests point this same config at a local
+	# build; the image serves the /srv it copies the build output into.
+	root * {$SITE_ROOT:/srv}
 	encode gzip zstd
-	file_server
 	header Cache-Control "public, max-age=300"
+
+	# Extensionless URLs are canonical: /terms, not /terms.html. The site was
+	# previously hosted on Cloudflare Pages, which served every page that way
+	# and permanently redirected the .html form to it — those 301s are cached
+	# in browsers and indexed by search engines, so /terms has to keep working.
+	@html path_regexp page ^/(.+)\.html$
+	@html_query {
+		path_regexp page ^/(.+)\.html$
+		expression {query} != ""
+	}
+	redir /index.html / 301
+	redir /index / 301
+	redir @html_query /{re.page.1}?{query} 301
+	redir @html /{re.page.1} 301
+
+	# ...and serve those canonical URLs from the flat .html files the build
+	# emits, so the redirects above never land on a 404.
+	try_files {path} {path}.html
+	file_server
 
 	# Deliberately no SPA fallback — a missing marketing page must 404 rather
 	# than render the homepage under a wrong URL and get indexed as one.
