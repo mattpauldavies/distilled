@@ -238,8 +238,14 @@ class TestConfiguredAtImportTime:
         assert uvicorn_error.handlers == []
         assert uvicorn_error.propagate is True
 
-    def test_uvicorn_boot_message_is_captured_as_info(self, capsys):
+    def test_uvicorn_boot_message_is_captured_as_info(self, capsys, monkeypatch):
         import app.main
+
+        # The reload re-runs configure_logging(settings) with the real settings
+        # singleton, whose environment comes from the developer's .env (CI sets
+        # ENVIRONMENT=test). Pin a non-development environment so the JSON
+        # formatter under test is selected regardless of the ambient .env.
+        monkeypatch.setattr("app.config.settings.environment", "test")
 
         logging.getLogger().handlers.clear()
         importlib.reload(app.main)
