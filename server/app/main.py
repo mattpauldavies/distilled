@@ -29,10 +29,6 @@ from app.routes import (
     webhooks,
 )
 
-# Configured at import rather than in lifespan: uvicorn imports the app
-# (Server._serve -> config.load()) *before* it logs "Started server process" and
-# runs the lifespan hook, so configuring any later left those boot lines on
-# stderr — where Railway reports them as errors.
 configure_logging(settings)
 
 logger = logging.getLogger(__name__)
