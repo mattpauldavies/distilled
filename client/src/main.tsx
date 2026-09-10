@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 import * as Sentry from "@sentry/react"
 import { ClerkProvider } from "@clerk/clerk-react"
 import { shadcn } from "./lib/clerkTheme"
+import { initAnalytics } from "./lib/analytics"
 import "./index.css"
 import App from "./App"
 
@@ -12,6 +13,8 @@ if (SENTRY_DSN) {
     dsn: SENTRY_DSN,
   })
 }
+
+initAnalytics()
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
