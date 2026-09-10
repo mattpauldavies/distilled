@@ -65,6 +65,14 @@ Use `{% extends "base.njk" %}` instead of `legal.njk` if the page needs a custom
 The build output is plain HTML with no runtime dependencies, so `_site/` can be
 served by any static host.
 
+### Analytics
+
+Setting `POSTHOG_KEY` at build time embeds the PostHog web analytics snippet in
+every page (`POSTHOG_HOST` overrides the default `https://eu.i.posthog.com`).
+The snippet runs in PostHog's cookieless mode — anonymous, nothing stored on the
+visitor's device — so no consent banner is required. Without `POSTHOG_KEY` the
+build ships no analytics at all. See [docs/analytics.md](../docs/analytics.md).
+
 `Dockerfile` packages that for container hosts: a Node stage runs `npm run build`,
 then the output is copied into a `caddy:2-alpine` stage that serves it on `$PORT`
 using `Caddyfile`. There is deliberately no SPA history fallback — a missing page
@@ -73,6 +81,6 @@ must 404 rather than render the homepage under the wrong URL.
 Build and run it locally with:
 
 ```bash
-docker build -t distilled-website .
+docker build -t distilled-website --build-arg POSTHOG_KEY=phc_... .
 docker run --rm -e PORT=8080 -p 8080:8080 distilled-website
 ```
