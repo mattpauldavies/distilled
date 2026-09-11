@@ -38,6 +38,7 @@ def make_settings(environment: str = "development") -> Settings:
             internal_cron_secret="test-secret",
             clerk_secret_key="test-secret",
             clerk_jwks_url="https://example.clerk.accounts.dev/.well-known/jwks.json",
+            github_app_slug="test-app",
         )
     return Settings(**kwargs)
 

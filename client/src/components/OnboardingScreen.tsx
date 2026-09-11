@@ -69,11 +69,7 @@ export function OnboardingScreen({
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Welcome to Distilled</h1>
           <p className="text-muted-foreground">
-            Connect GitHub repositories to{" "}
-            <span className="font-medium text-foreground">
-              {activeWorkspace?.name ?? "this workspace"}
-            </span>{" "}
-            to start tracking your engineering delivery metrics.
+            Connect your GitHub repositories to start tracking your engineering delivery metrics.
           </p>
         </div>
 

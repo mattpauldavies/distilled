@@ -101,8 +101,7 @@ export function AddReposModal({ open, onOpenChange, installations, onAdded }: Pr
         <DialogHeader>
           <DialogTitle>Add repositories</DialogTitle>
           <DialogDescription>
-            Pick repositories granted to your connected GitHub installations. Missing a repo? Adjust
-            the installation's repository access on GitHub first.
+            Missing a repo? Adjust access via the Distilled GitHub application first.
           </DialogDescription>
         </DialogHeader>
 
