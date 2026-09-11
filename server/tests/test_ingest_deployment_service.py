@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -60,7 +61,29 @@ async def test_skips_unknown_repo(mock_session):
 
 
 @pytest.mark.asyncio
-async def test_skips_non_production_env(mock_session):
+async def test_skips_non_production_env(mock_session, caplog):
+    repo = make_repo(github_id=111)
+    env = make_environment(repo_id=repo.id, name="staging", is_production=False)
+    payload = _deployment_status_payload(env_name="staging")
+
+    mock_session.execute.side_effect = [
+        mock_result(rows=[repo]),
+        mock_result(scalar_or_none=env),
+    ]
+
+    with caplog.at_level(logging.DEBUG, logger="app.services.ingest_deployment_service"):
+        result = await handle_deployment_status_event(payload, mock_session)
+
+    assert mock_session.execute.call_count == 2
+    assert result == SKIPPED
+    assert any("environment_not_production" in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_undiscovered_env_warns_rather_than_claiming_non_production(mock_session, caplog):
+    """An environment with no row was never discovered — usually because listing the
+    repo's environments was refused (see environments_forbidden). Calling that
+    "non-prod" hides the real cause of a repo with no deployment metrics."""
     repo = make_repo(github_id=111)
     payload = _deployment_status_payload()
 
@@ -69,10 +92,14 @@ async def test_skips_non_production_env(mock_session):
         mock_result(scalar_or_none=None),
     ]
 
-    result = await handle_deployment_status_event(payload, mock_session)
+    with caplog.at_level(logging.DEBUG, logger="app.services.ingest_deployment_service"):
+        result = await handle_deployment_status_event(payload, mock_session)
 
-    assert mock_session.execute.call_count == 2
     assert result == SKIPPED
+    record = next(r for r in caplog.records if "environment_unknown" in r.getMessage())
+    assert record.levelno == logging.WARNING
+    assert "production" in record.getMessage()  # the environment name from the payload
+    assert "non-prod" not in record.getMessage()
 
 
 @pytest.mark.asyncio

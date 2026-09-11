@@ -239,12 +239,17 @@ class GitHubClient:
         if resp.status_code == 404:
             return []
         if resp.status_code == 403:
-            # Plan-gated: environments on private repos require GitHub Pro/Team/
-            # Enterprise; Free-plan private repos get 403 from this endpoint.
-            logger.info(
-                "environments unavailable for %s/%s (403 — likely plan-gated private repo)",
+            # Unrelated causes share this status — a permission the installation
+            # wasn't granted, an org policy, a plan-gated private repo — and only
+            # GitHub's own message tells them apart, so log it verbatim rather
+            # than asserting a cause. Warned, not info: without environments the
+            # repo's deployment_status events are all classified non-production,
+            # so its deployment frequency and lead time stay silently empty.
+            logger.warning(
+                "environments_forbidden repo=%s/%s status=403 github_message=%s",
                 owner,
                 repo,
+                _github_message(resp),
             )
             return []
         resp.raise_for_status()

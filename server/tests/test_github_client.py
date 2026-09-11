@@ -251,17 +251,13 @@ async def test_terminal_401_after_eviction_surfaces():
 
 
 async def test_list_environments_returns_empty_on_403():
-    """GitHub plan-gates the environments API: private repos on Free personal
-    accounts get 403 ("Upgrade to GitHub Pro...") — treat as no environments,
-    like the 404 case."""
+    """A 403 leaves the repo with no environments rather than failing the whole
+    install sync — same degradation as the 404 case."""
     installation_id = 777
     _token_cache[installation_id] = ("good-token", datetime.now(UTC) + timedelta(hours=1))
 
     mock_http = _make_mock_http(
-        request_returns=_make_response(
-            403,
-            {"message": "Upgrade to GitHub Pro or make this repository public to enable this feature."},
-        )
+        request_returns=_make_response(403, {"message": "Resource not accessible by integration"})
     )
 
     with (
@@ -272,6 +268,54 @@ async def test_list_environments_returns_empty_on_403():
         envs = await client.list_environments("org", "repo", installation_id)
 
     assert envs == []
+
+
+async def test_list_environments_403_warns_with_githubs_message(caplog):
+    """A 403 has several unrelated causes — a missing app permission, an org
+    policy, a plan-gated private repo — and only GitHub's own message tells them
+    apart. Log that message verbatim instead of asserting a cause, and warn:
+    undiscovered environments silently empty the repo's deployment metrics."""
+    installation_id = 777
+    _token_cache[installation_id] = ("good-token", datetime.now(UTC) + timedelta(hours=1))
+
+    mock_http = _make_mock_http(
+        request_returns=_make_response(403, {"message": "Resource not accessible by integration"})
+    )
+
+    with (
+        patch("httpx.AsyncClient", return_value=mock_http),
+        patch.object(GitHubClient, "_generate_jwt", return_value="jwt"),
+        caplog.at_level(logging.DEBUG, logger="app.services.github_client"),
+    ):
+        client = GitHubClient()
+        await client.list_environments("acme", "widgets", installation_id)
+
+    record = next(r for r in caplog.records if "environments_forbidden" in r.getMessage())
+    assert record.levelno == logging.WARNING
+    assert "acme/widgets" in record.getMessage()
+    assert "Resource not accessible by integration" in record.getMessage()
+    assert "plan-gated" not in record.getMessage()
+
+
+async def test_list_environments_403_without_body_still_warns(caplog):
+    """An unparseable 403 body must not mask the failure."""
+    installation_id = 777
+    _token_cache[installation_id] = ("good-token", datetime.now(UTC) + timedelta(hours=1))
+
+    resp = _make_response(403)
+    resp.json.side_effect = ValueError("not json")
+    mock_http = _make_mock_http(request_returns=resp)
+
+    with (
+        patch("httpx.AsyncClient", return_value=mock_http),
+        patch.object(GitHubClient, "_generate_jwt", return_value="jwt"),
+        caplog.at_level(logging.DEBUG, logger="app.services.github_client"),
+    ):
+        client = GitHubClient()
+        envs = await client.list_environments("acme", "widgets", installation_id)
+
+    assert envs == []
+    assert any(r.levelno == logging.WARNING and "environments_forbidden" in r.getMessage() for r in caplog.records)
 
 
 async def test_200_does_not_evict_token_cache():
