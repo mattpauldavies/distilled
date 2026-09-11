@@ -16,6 +16,15 @@
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 	header /index.html Cache-Control "no-cache"
 
+	# Explicit origin allowlist: a compromised or unexpected third party can't
+	# load scripts or exfiltrate to hosts that aren't named here. The listed
+	# origins are the app's known integrations — Clerk (auth), Chatwoot
+	# (support widget), PostHog via d.distilledmetrics.com (analytics), and
+	# Sentry (error reporting). Deployments with extra origins (a custom Clerk
+	# domain, an API on another host) append them via CSP_EXTRA_ORIGINS —
+	# space-separated origins added to script-src, connect-src and frame-src.
+	header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://app.chatwoot.com https://*.clerk.accounts.dev https://clerk.distilledmetrics.com https://challenges.cloudflare.com https://d.distilledmetrics.com {$CSP_EXTRA_ORIGINS}; connect-src 'self' https://app.chatwoot.com wss://app.chatwoot.com https://*.clerk.accounts.dev https://clerk.distilledmetrics.com https://clerk-telemetry.com https://d.distilledmetrics.com https://*.posthog.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io {$CSP_EXTRA_ORIGINS}; frame-src 'self' https://app.chatwoot.com https://challenges.cloudflare.com https://*.clerk.accounts.dev https://clerk.distilledmetrics.com {$CSP_EXTRA_ORIGINS}; img-src 'self' data: blob: https://img.clerk.com https://app.chatwoot.com https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; worker-src 'self' blob:"
+
 	# SPA history fallback: client-side routes have no file on disk.
 	try_files {path} /index.html
 }

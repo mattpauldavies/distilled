@@ -143,6 +143,11 @@ async def accept_invitation(
     if inv.revoked_at is not None or inv.redeemed_at is not None:
         raise HTTPException(status_code=400, detail="Invitation is no longer redeemable")
 
+    # Inline expiry is the correctness mechanism (RFC 021); the expiry cron is
+    # only a janitor and must not be the sole enforcement on any redeem path.
+    if inv.expires_at < datetime.now(UTC):
+        raise HTTPException(status_code=400, detail="Invitation has expired")
+
     existing = await session.execute(
         select(TenantUser).where(
             TenantUser.tenant_id == inv.tenant_id, TenantUser.user_id == user.id

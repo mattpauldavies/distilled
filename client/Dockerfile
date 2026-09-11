@@ -21,4 +21,7 @@ RUN npm run build
 # --- serve ---
 FROM caddy:2-alpine
 COPY --from=build /app/dist /srv
+# Sourcemaps are uploaded to Sentry during the build; whatever remains must
+# never reach the web root — a served .map exposes the original source.
+RUN find /srv -name '*.map' -delete
 COPY Caddyfile /etc/caddy/Caddyfile

@@ -11,6 +11,7 @@ from app.models.tenant import Tenant
 from app.models.tenant_installation import TenantInstallation
 from app.services import installation_link_service
 from app.services.installation_link_service import (
+    ClaimPending,
     IntentError,
     LinkError,
     add_repos,
@@ -29,6 +30,12 @@ from tests.conftest import TENANT_ID, make_installation, make_repo, mock_result
 USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000003")
 INSTALLATION_ID = 42
 NOW = datetime.now(UTC)
+
+
+def make_user(github_account_id: int | None = 777):
+    from app.models.user import User
+
+    return User(id=USER_ID, clerk_user_id="user_x", github_account_id=github_account_id)
 
 
 def _compiled(stmt) -> str:
@@ -105,18 +112,38 @@ async def test_create_intent_supersedes_open_intents_and_stores_hash(mock_sessio
 
 
 # --- claim_intent ---
+#
+# The claim callback carries a client-supplied installation_id, so it must
+# prove the caller controls that installation before binding it to a
+# workspace. User-type installations verify against the caller's GitHub
+# account id; org-type installations are only ever bound via the webhook's
+# GitHub-authenticated sender (claim_by_sender), so the callback reports
+# pending until that lands.
 
 
 @pytest.mark.asyncio
-async def test_claim_intent_binds_and_consumes(mock_session):
+async def test_claim_intent_binds_user_installation_owned_by_caller(mock_session):
     intent = make_intent()
     tenant = Tenant(id=TENANT_ID, name="My Workspace")
     mock_session.execute = AsyncMock(
-        side_effect=[mock_result(scalar_or_none=intent), mock_result(scalar=tenant)]
+        side_effect=[
+            mock_result(scalar_or_none=intent),  # intent lookup
+            mock_result(scalar_or_none=None),  # installation lookup (not yet bound)
+            mock_result(scalar=tenant),  # tenant fetch
+        ]
+    )
+    github = make_github(
+        get_installation={
+            "id": INSTALLATION_ID,
+            "account": {"login": "mattd", "type": "User", "id": 777},
+        }
     )
 
-    with patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind:
-        result = await claim_intent("nonce", INSTALLATION_ID, USER_ID, mock_session)
+    with (
+        patch.object(installation_link_service, "GitHubClient", return_value=github),
+        patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind,
+    ):
+        result = await claim_intent("nonce", INSTALLATION_ID, make_user(777), mock_session)
 
     assert result is tenant
     assert intent.consumed_at is not None
@@ -124,10 +151,142 @@ async def test_claim_intent_binds_and_consumes(mock_session):
 
 
 @pytest.mark.asyncio
+async def test_claim_intent_rejects_user_installation_owned_by_other_account(mock_session):
+    """The Critical fix: a caller must not be able to bind an enumerated
+    installation_id belonging to someone else's GitHub account."""
+    intent = make_intent()
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=intent),
+            mock_result(scalar_or_none=None),
+        ]
+    )
+    github = make_github(
+        get_installation={
+            "id": INSTALLATION_ID,
+            "account": {"login": "victim", "type": "User", "id": 999},
+        }
+    )
+
+    with (
+        patch.object(installation_link_service, "GitHubClient", return_value=github),
+        patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind,
+    ):
+        with pytest.raises(IntentError):
+            await claim_intent("nonce", INSTALLATION_ID, make_user(777), mock_session)
+
+    bind.assert_not_called()
+    assert intent.consumed_at is None
+
+
+@pytest.mark.asyncio
+async def test_claim_intent_rejects_caller_without_github_identity(mock_session):
+    intent = make_intent()
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=intent),
+            mock_result(scalar_or_none=None),
+        ]
+    )
+    github = make_github(
+        get_installation={
+            "id": INSTALLATION_ID,
+            "account": {"login": "mattd", "type": "User", "id": 777},
+        }
+    )
+
+    with (
+        patch.object(installation_link_service, "GitHubClient", return_value=github),
+        patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind,
+    ):
+        with pytest.raises(IntentError):
+            await claim_intent("nonce", INSTALLATION_ID, make_user(None), mock_session)
+
+    bind.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_claim_intent_org_installation_is_pending_until_webhook(mock_session):
+    """Org installs can only be proven by the webhook's GitHub-verified sender.
+    The callback must not bind and must leave the intent open for claim_by_sender."""
+    intent = make_intent()
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=intent),
+            mock_result(scalar_or_none=None),
+        ]
+    )
+    github = make_github()  # default account type: Organization
+
+    with (
+        patch.object(installation_link_service, "GitHubClient", return_value=github),
+        patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind,
+    ):
+        with pytest.raises(ClaimPending):
+            await claim_intent("nonce", INSTALLATION_ID, make_user(777), mock_session)
+
+    bind.assert_not_called()
+    assert intent.consumed_at is None
+
+
+@pytest.mark.asyncio
+async def test_claim_intent_succeeds_once_webhook_bound_installation(mock_session):
+    """When claim_by_sender already bound the installation to the intent's
+    workspace, the callback completes without needing its own proof."""
+    intent = make_intent()
+    tenant = Tenant(id=TENANT_ID, name="My Workspace")
+    installation = make_installation(installation_id=INSTALLATION_ID)
+    link = make_link(installation_uuid=installation.id)
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=intent),  # intent lookup
+            mock_result(scalar_or_none=installation),  # installation lookup
+            mock_result(scalar_or_none=link),  # link lookup
+            mock_result(scalar=tenant),  # tenant fetch
+        ]
+    )
+
+    with (
+        patch.object(installation_link_service, "GitHubClient") as github_cls,
+        patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind,
+    ):
+        result = await claim_intent("nonce", INSTALLATION_ID, make_user(777), mock_session)
+
+    assert result is tenant
+    assert intent.consumed_at is not None
+    bind.assert_not_called()
+    github_cls.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_claim_intent_consumed_intent_with_bound_installation_is_idempotent(mock_session):
+    """A poll retry after the webhook consumed the intent and bound the
+    installation must read as success, not 'already used'."""
+    intent = make_intent(consumed_at=NOW)
+    tenant = Tenant(id=TENANT_ID, name="My Workspace")
+    installation = make_installation(installation_id=INSTALLATION_ID)
+    link = make_link(installation_uuid=installation.id)
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=intent),
+            mock_result(scalar_or_none=installation),
+            mock_result(scalar_or_none=link),
+            mock_result(scalar=tenant),
+        ]
+    )
+
+    with patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind:
+        result = await claim_intent("nonce", INSTALLATION_ID, make_user(777), mock_session)
+
+    assert result is tenant
+    bind.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_claim_intent_rejects_unknown_nonce(mock_session):
     mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
     with pytest.raises(IntentError):
-        await claim_intent("nope", INSTALLATION_ID, USER_ID, mock_session)
+        await claim_intent("nope", INSTALLATION_ID, make_user(), mock_session)
 
 
 @pytest.mark.asyncio
@@ -135,15 +294,20 @@ async def test_claim_intent_rejects_other_users_nonce(mock_session):
     intent = make_intent(user_id=uuid.uuid4())
     mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=intent))
     with pytest.raises(IntentError):
-        await claim_intent("nonce", INSTALLATION_ID, USER_ID, mock_session)
+        await claim_intent("nonce", INSTALLATION_ID, make_user(), mock_session)
 
 
 @pytest.mark.asyncio
-async def test_claim_intent_rejects_consumed(mock_session):
+async def test_claim_intent_rejects_consumed_without_binding(mock_session):
     intent = make_intent(consumed_at=NOW)
-    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=intent))
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=intent),
+            mock_result(scalar_or_none=None),  # installation lookup — never bound
+        ]
+    )
     with pytest.raises(IntentError):
-        await claim_intent("nonce", INSTALLATION_ID, USER_ID, mock_session)
+        await claim_intent("nonce", INSTALLATION_ID, make_user(), mock_session)
 
 
 @pytest.mark.asyncio
@@ -151,7 +315,7 @@ async def test_claim_intent_rejects_expired(mock_session):
     intent = make_intent(expires_at=NOW - timedelta(minutes=1))
     mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=intent))
     with pytest.raises(IntentError):
-        await claim_intent("nonce", INSTALLATION_ID, USER_ID, mock_session)
+        await claim_intent("nonce", INSTALLATION_ID, make_user(), mock_session)
 
 
 # --- claim_by_sender ---

@@ -9,6 +9,7 @@ not from the active-workspace header.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import CurrentUser, require_auth, require_owner, require_user
@@ -25,7 +26,7 @@ from app.schemas.installation import (
     WorkspaceInstallationResponse,
 )
 from app.services import installation_link_service
-from app.services.installation_link_service import IntentError, LinkError
+from app.services.installation_link_service import ClaimPending, IntentError, LinkError
 
 router = APIRouter(prefix="/installations")
 
@@ -52,11 +53,15 @@ async def claim(
     body: ClaimRequest,
     user: User = Depends(require_user),
     session: AsyncSession = Depends(get_session),
-) -> ClaimResponse:
+) -> ClaimResponse | JSONResponse:
     try:
         tenant = await installation_link_service.claim_intent(
-            body.state, body.installation_id, user.id, session
+            body.state, body.installation_id, user, session
         )
+    except ClaimPending:
+        # Org installations bind via the webhook's verified sender; tell the
+        # client to poll this endpoint until that lands.
+        return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content={"status": "pending"})
     except IntentError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

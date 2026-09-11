@@ -60,6 +60,52 @@ describe("GitHubSetupPage", () => {
     vi.unstubAllGlobals()
   })
 
+  it("polls while GitHub confirms an org installation, then activates", async () => {
+    let calls = 0
+    server.use(
+      http.post("/installations/claim", () => {
+        calls++
+        if (calls < 3) {
+          return HttpResponse.json({ status: "pending" }, { status: 202 })
+        }
+        return HttpResponse.json({
+          workspace_id: "workspace-9",
+          workspace_name: "Acme Engineering",
+        })
+      })
+    )
+    const replace = vi.fn()
+    vi.stubGlobal("location", { ...window.location, replace })
+
+    render(<GitHubSetupPage installationId={42} state="nonce-1" pollIntervalMs={10} />)
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/")
+    })
+    expect(calls).toBe(3)
+    expect(window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY)).toBe("workspace-9")
+
+    vi.unstubAllGlobals()
+  })
+
+  it("shows guidance when GitHub confirmation never arrives", async () => {
+    server.use(
+      http.post("/installations/claim", () =>
+        HttpResponse.json({ status: "pending" }, { status: 202 })
+      )
+    )
+
+    render(<GitHubSetupPage installationId={42} state="nonce-1" pollIntervalMs={100} />)
+
+    // The waiting state is stable while every poll answers 202…
+    expect(await screen.findByText(/Waiting for GitHub to confirm/)).toBeInTheDocument()
+    // …until the poll budget runs out and the page hands over guidance.
+    expect(
+      await screen.findByText(/taking longer than expected/i, undefined, { timeout: 6000 })
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Go to dashboard" })).toBeInTheDocument()
+  })
+
   it("renders the error state with guidance when the claim fails", async () => {
     server.use(
       http.post("/installations/claim", () =>

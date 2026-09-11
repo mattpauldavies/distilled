@@ -16,9 +16,12 @@
 	# previously hosted on Cloudflare Pages, which served every page that way
 	# and permanently redirected the .html form to it — those 301s are cached
 	# in browsers and indexed by search engines, so /terms has to keep working.
-	@html path_regexp page ^/(.+)\.html$
+	# Backslashes are excluded from the capture: browsers resolve "\" as "/"
+	# in a Location header, so echoing "/\evil.com/x" would be an open
+	# redirect off the site. Such paths fall through to try_files and 404.
+	@html path_regexp page ^/([^\\]+)\.html$
 	@html_query {
-		path_regexp page ^/(.+)\.html$
+		path_regexp page ^/([^\\]+)\.html$
 		expression {query} != ""
 	}
 	redir /index.html / 301

@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/react"
 import { ClerkProvider } from "@clerk/clerk-react"
 import { shadcn } from "./lib/clerkTheme"
 import { initAnalytics } from "./lib/analytics"
+import { initChatwoot } from "./lib/chatwoot"
 import "./index.css"
 import App from "./App"
 
@@ -15,6 +16,7 @@ if (SENTRY_DSN) {
 }
 
 initAnalytics()
+initChatwoot()
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 

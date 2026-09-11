@@ -8,13 +8,24 @@ import { ACTIVE_WORKSPACE_STORAGE_KEY } from "@/lib/workspaceContext"
 interface Props {
   installationId: number
   state: string
+  /** Delay between claim polls while GitHub confirms an org install. */
+  pollIntervalMs?: number
 }
 
 type State =
   | { kind: "idle" }
   | { kind: "claiming" }
+  | { kind: "waiting" }
   | { kind: "ok" }
   | { kind: "error"; message: string }
+
+// Org installations are bound server-side by the installation webhook's
+// GitHub-verified sender; the claim endpoint answers 202 until that lands.
+// GitHub webhooks normally arrive within seconds, so ~40s of polling is
+// generous before we hand the user guidance instead.
+const MAX_POLLS = 20
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
  * GitHub App Setup URL callback. GitHub redirects here after an install or
@@ -22,7 +33,7 @@ type State =
  * intent binds the installation to the workspace it was minted for, then we
  * land on that workspace's dashboard.
  */
-export function GitHubSetupPage({ installationId, state: nonce }: Props) {
+export function GitHubSetupPage({ installationId, state: nonce, pollIntervalMs = 2000 }: Props) {
   const { isSignedIn, getToken, isLoaded } = useAuth()
   const [state, setState] = useState<State>({ kind: "idle" })
   // Start-once guard as a ref, NOT state in the effect deps: setState inside
@@ -40,13 +51,23 @@ export function GitHubSetupPage({ installationId, state: nonce }: Props) {
     setState({ kind: "claiming" })
 
     const apiFetch = makeApiFetch(getToken)
-    apiFetch("/installations/claim", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ installation_id: installationId, state: nonce }),
-    })
-      .then(async (res) => {
+
+    const claim = async () => {
+      for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
+        const res = await apiFetch("/installations/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ installation_id: installationId, state: nonce }),
+        })
         if (cancelled) return
+
+        if (res.status === 202) {
+          setState({ kind: "waiting" })
+          await sleep(pollIntervalMs)
+          if (cancelled) return
+          continue
+        }
+
         if (!res.ok) {
           const body = await res.text()
           let detail = body
@@ -59,6 +80,7 @@ export function GitHubSetupPage({ installationId, state: nonce }: Props) {
           setState({ kind: "error", message: detail || `Connection failed: ${res.status}` })
           return
         }
+
         const data = (await res.json()) as { workspace_id: string }
         // Land on the workspace the installation was bound to.
         try {
@@ -68,18 +90,29 @@ export function GitHubSetupPage({ installationId, state: nonce }: Props) {
         }
         window.location.replace("/")
         setState({ kind: "ok" })
+        return
+      }
+
+      setState({
+        kind: "error",
+        message:
+          "GitHub's confirmation is taking longer than expected. " +
+          "If you were connecting an organisation, adjusting the repository " +
+          "selection on GitHub (and saving) sends the confirmation again.",
       })
-      .catch((err) => {
-        if (cancelled) return
-        setState({
-          kind: "error",
-          message: err instanceof Error ? err.message : "Could not connect the installation",
-        })
+    }
+
+    claim().catch((err: unknown) => {
+      if (cancelled) return
+      setState({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Could not connect the installation",
       })
+    })
     return () => {
       cancelled = true
     }
-  }, [isLoaded, isSignedIn, getToken, installationId, nonce])
+  }, [isLoaded, isSignedIn, getToken, installationId, nonce, pollIntervalMs])
 
   if (!isLoaded) {
     return null
@@ -103,6 +136,13 @@ export function GitHubSetupPage({ installationId, state: nonce }: Props) {
               <h1 className="text-lg font-semibold">Connecting GitHub…</h1>
               <p className="text-sm text-muted-foreground">
                 Linking the installation to your workspace and syncing repositories.
+              </p>
+            </>
+          ) : state.kind === "waiting" ? (
+            <>
+              <h1 className="text-lg font-semibold">Waiting for GitHub…</h1>
+              <p className="text-sm text-muted-foreground">
+                Waiting for GitHub to confirm the installation. This usually takes a few seconds.
               </p>
             </>
           ) : state.kind === "error" ? (
