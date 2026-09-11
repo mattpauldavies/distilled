@@ -154,3 +154,6 @@ GitHub App authentication (not OAuth):
 - Server generates JWT signed with App private key
 - JWT exchanged for installation access tokens (cached, auto-refreshed)
 - Webhooks verified via HMAC-SHA256
+
+The complete surface — every API call, every event, and the minimum permission
+set each needs — is documented in [GitHub App surface](github-app.md).

@@ -185,6 +185,11 @@ fans out one call per repository — see [Scheduled metrics](#scheduled-metrics)
 | `deployment_status` (success)                  | Deployment succeeds      | Create deployment event if production environment          |
 | `pull_request` (opened, reopened, closed, ...) | PR lifecycle event       | Upsert PR record (capture draft, closed_at status)         |
 
+Only `deployment_status` and `pull_request` are subscribed to in App settings;
+`installation` and `installation_repositories` are delivered to every GitHub
+App automatically. The permissions these events and the four GitHub API calls
+require are set out in [GitHub App surface](../docs/github-app.md).
+
 Repositories and installations are never hard-deleted: removal stamps
 `removed_at` so historical PRs, deployments, and metrics stay intact, and
 re-adding a repo (or re-installing the App) clears the stamp. `GET /repos`

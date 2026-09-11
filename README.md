@@ -84,6 +84,7 @@ Makefile  # dev commands + database management
 Everything lives in `/docs`; key starting points:
 
 - [Architecture](docs/architecture.md)
+- [GitHub App surface](docs/github-app.md)
 - [Metrics](docs/metrics.md)
 - [Analytics](docs/analytics.md)
 - [Local Setup Runbook](docs/runbooks/local-setup.md)

@@ -45,12 +45,28 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
                 Environment.tenant_id == repo.tenant_id,
                 Environment.repo_id == repo.id,
                 Environment.name == env_name,
-                Environment.is_production.is_(True),
             )
         )
-        if env_result.scalar_one_or_none() is None:
+        environment = env_result.scalar_one_or_none()
+        if environment is None:
+            # No row means the environment was never discovered, not that it
+            # isn't production — usually the repo's environments could not be
+            # listed (see environments_forbidden in github_client). Every
+            # deployment to it is dropped, so say so rather than blaming the
+            # environment's name.
+            logger.warning(
+                "environment_unknown repo=%s environment=%s tenant=%s — deployment not counted",
+                repo.full_name,
+                env_name,
+                repo.tenant_id,
+            )
+            continue
+        if not environment.is_production:
             logger.info(
-                "non-prod environment=%s for tenant=%s, skipping", env_name, repo.tenant_id
+                "environment_not_production repo=%s environment=%s tenant=%s — skipping",
+                repo.full_name,
+                env_name,
+                repo.tenant_id,
             )
             continue
 

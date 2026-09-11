@@ -105,18 +105,26 @@ Note: the webhook secret is used to authenticate the webhook, it is separate fro
 
 ### Permissions
 
-| Permission    | Access                   |
-| ------------- | ------------------------ |
-| Deployments   | Read-only                |
-| Pull requests | Read-only                |
-| Metadata      | Read-only (auto-granted) |
-| Environments  | Read-only                |
+| Permission    | Access                   | Why                                            |
+| ------------- | ------------------------ | ---------------------------------------------- |
+| Metadata      | Read-only (auto-granted) | `GET /installation/repositories`               |
+| Pull requests | Read-only                | `pull_request` event subscription              |
+| Deployments   | Read-only                | `deployment_status` event subscription         |
+| Actions       | Read-only                | `GET /repos/{owner}/{repo}/environments`       |
+
+**Actions: read** is not a typo. GitHub checks the Actions permission for the
+environments list endpoint; the `Environments` permission covers environment
+secrets and protection rules instead, and an App without Actions gets
+`403 Resource not accessible by integration` when discovering environments —
+on every plan, enterprise included. See [GitHub App surface](../github-app.md).
 
 ### Events to subscribe to
 
 - [x] Deployment status
 - [x] Pull request
-- [x] Installation
+
+`installation` and `installation_repositories` are delivered to every App
+automatically — there is nothing to tick, and nothing else needs subscribing.
 
 ### Post-creation
 
