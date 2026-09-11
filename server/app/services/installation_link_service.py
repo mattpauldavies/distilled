@@ -17,6 +17,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +37,15 @@ logger = logging.getLogger(__name__)
 
 class IntentError(Exception):
     """The installation intent is unknown, expired, consumed, or not the caller's."""
+
+
+class ClaimPending(Exception):
+    """The installation can't be verified from the callback alone.
+
+    Org-type installations are only ever bound via the installation webhook's
+    GitHub-authenticated sender (claim_by_sender); the caller should retry the
+    claim until that webhook lands.
+    """
 
 
 class LinkError(Exception):
@@ -92,26 +102,90 @@ async def create_intent(tenant_id: uuid.UUID, user_id: uuid.UUID, session: Async
     return raw
 
 
+async def _installation_linked_to_tenant(
+    tenant_id: uuid.UUID, installation_id: int, session: AsyncSession
+) -> bool:
+    installation = await get_installation_by_github_id(installation_id, session)
+    if installation is None:
+        return False
+    result = await session.execute(
+        select(TenantInstallation).where(
+            TenantInstallation.tenant_id == tenant_id,
+            TenantInstallation.github_installation_id == installation.id,
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def _get_tenant(tenant_id: uuid.UUID, session: AsyncSession) -> Tenant:
+    result = await session.execute(select(Tenant).where(Tenant.id == tenant_id))
+    return result.scalar_one()
+
+
+async def _fetch_installation(installation_id: int) -> dict:
+    github = GitHubClient()
+    try:
+        return await github.get_installation(installation_id)
+    except httpx.HTTPStatusError as exc:
+        raise IntentError("GitHub doesn't recognise that installation") from exc
+    finally:
+        await github.close()
+
+
 async def claim_intent(
-    nonce: str, installation_id: int, user_id: uuid.UUID, session: AsyncSession
+    nonce: str, installation_id: int, user: User, session: AsyncSession
 ) -> Tenant:
-    """Consume an intent via the GitHub setup callback and bind the installation."""
+    """Complete the GitHub setup callback for an intent the caller minted.
+
+    installation_id comes from the client, so binding requires proof the
+    caller controls that installation — the intent nonce only proves they
+    started a connect flow for their own workspace:
+
+    - user-type installations: the installation's account must be the
+      caller's own GitHub account.
+    - org-type installations: only the installation webhook's
+      GitHub-authenticated sender is proof (claim_by_sender). Until that
+      lands, ClaimPending tells the caller to retry; a retry after the
+      webhook consumed the intent and bound the installation is success.
+    """
     result = await session.execute(
         select(InstallationIntent).where(InstallationIntent.nonce_hash == _hash_nonce(nonce))
     )
     intent = result.scalar_one_or_none()
-    if intent is None or intent.user_id != user_id:
+    if intent is None or intent.user_id != user.id:
         raise IntentError("Unknown installation link — reconnect GitHub from your workspace")
+
     if intent.consumed_at is not None:
+        # claim_by_sender consumes the intent when the webhook binds — a
+        # polling retry that finds the binding done must read as success.
+        if await _installation_linked_to_tenant(intent.tenant_id, installation_id, session):
+            return await _get_tenant(intent.tenant_id, session)
         raise IntentError("This installation link has already been used")
+
     if intent.expires_at < datetime.now(UTC):
         raise IntentError("This installation link has expired — reconnect GitHub from your workspace")
 
-    intent.consumed_at = datetime.now(UTC)
-    await bind_installation(intent.tenant_id, installation_id, session)
+    if await _installation_linked_to_tenant(intent.tenant_id, installation_id, session):
+        intent.consumed_at = datetime.now(UTC)
+        await session.commit()
+        return await _get_tenant(intent.tenant_id, session)
 
-    tenant_result = await session.execute(select(Tenant).where(Tenant.id == intent.tenant_id))
-    return tenant_result.scalar_one()
+    data = await _fetch_installation(installation_id)
+    account = data.get("account") or {}
+    if str(account.get("type", "")).lower() == "user":
+        if user.github_account_id is None or account.get("id") != user.github_account_id:
+            raise IntentError(
+                "That installation belongs to a different GitHub account — "
+                "install the app with the account you signed in with"
+            )
+        intent.consumed_at = datetime.now(UTC)
+        await bind_installation(intent.tenant_id, installation_id, session)
+        return await _get_tenant(intent.tenant_id, session)
+
+    # Leave the intent open: the installation webhook's sender match is the
+    # only proof of control for org installations, and claim_by_sender needs
+    # the open intent to complete the binding.
+    raise ClaimPending("Waiting for GitHub to confirm the installation")
 
 
 async def claim_by_sender(

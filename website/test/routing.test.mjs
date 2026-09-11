@@ -130,3 +130,22 @@ test("a missing page 404s rather than falling back to the homepage", async () =>
   assert.equal(response.status, 404);
   assert.doesNotMatch(await response.text(), /Engineering intelligence/);
 });
+
+test("backslash paths cannot mint off-site redirects", async () => {
+  // Browsers treat \ as / when resolving a Location header, so a 301 to
+  // "/\evil.com/x" leaves the site as "https://evil.com/x". Backslash paths
+  // must fall through to a 404, never a redirect.
+  for (const path of [
+    "/%5Cevil.com/x.html",
+    "/%5Cevil.com/x.html?utm_source=phish",
+    "/foo%5Cevil.com/x.html",
+  ]) {
+    const response = await get(path);
+    const location = response.headers.get("location") ?? "";
+    assert.ok(
+      !location.includes("\\"),
+      `${path} must not redirect to a backslash path (got ${location})`
+    );
+    assert.equal(response.status, 404, `${path} should 404`);
+  }
+});

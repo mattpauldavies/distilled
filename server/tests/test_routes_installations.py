@@ -14,6 +14,7 @@ from app.models.user import User
 from app.services import installation_link_service
 from app.services.installation_link_service import (
     AvailableRepo,
+    ClaimPending,
     IntentError,
     LinkError,
     WorkspaceInstallationView,
@@ -106,6 +107,27 @@ async def test_claim_binds_and_returns_workspace():
     assert body["workspace_name"] == "My Workspace"
     claim.assert_awaited_once()
     assert user.last_active_tenant_id == TENANT_ID
+
+
+@pytest.mark.asyncio
+async def test_claim_org_installation_pending_returns_202():
+    """Org installs are bound by the webhook's verified sender; the callback
+    answers 202 so the client polls rather than failing."""
+    client, user = _make_client()
+
+    with patch.object(
+        installation_link_service,
+        "claim_intent",
+        new=AsyncMock(side_effect=ClaimPending("Waiting for GitHub")),
+    ):
+        async with client as c:
+            resp = await c.post(
+                "/installations/claim", json={"installation_id": 42, "state": "raw-nonce"}
+            )
+
+    assert resp.status_code == 202, resp.text
+    assert resp.json() == {"status": "pending"}
+    assert user.last_active_tenant_id == TENANT_ID  # unchanged
 
 
 @pytest.mark.asyncio

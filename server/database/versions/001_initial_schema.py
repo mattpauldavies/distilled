@@ -125,12 +125,17 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"]),
     )
 
-    # Seed dev tenant
-    op.execute(
-        "INSERT INTO tenants (id, name) VALUES "
-        "('00000000-0000-0000-0000-000000000001', 'dev') "
-        "ON CONFLICT DO NOTHING"
-    )
+    # Seed dev tenant — never in production. The fixed UUID is public in this
+    # repo, and the demo scripts treat this row as their landing pad, so a
+    # production database must not carry it. Same guard as scripts/seed_demo.py.
+    from app.config import settings
+
+    if settings.environment != "production":
+        op.execute(
+            "INSERT INTO tenants (id, name) VALUES "
+            "('00000000-0000-0000-0000-000000000001', 'dev') "
+            "ON CONFLICT DO NOTHING"
+        )
 
 
 def downgrade() -> None:

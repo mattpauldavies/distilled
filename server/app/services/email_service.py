@@ -7,6 +7,7 @@ maps to one product-significant message; we don't expose a generic send.
 
 from __future__ import annotations
 
+import html
 import logging
 from typing import Protocol
 
@@ -28,17 +29,33 @@ class EmailService(Protocol):
     ) -> None: ...
 
 
+def _plain_header_text(value: str) -> str:
+    """Collapse whitespace and control characters out of header-bound text."""
+    return " ".join(value.split())
+
+
+def _subject_text(*, tenant_name: str, inviter_name: str) -> str:
+    inviter = _plain_header_text(inviter_name)
+    tenant = _plain_header_text(tenant_name)
+    return f"{inviter} invited you to {tenant} on Distilled"
+
+
 def _render_invitation_html(*, tenant_name: str, inviter_name: str, accept_url: str) -> str:
+    # Workspace and inviter names are user-controlled free text; escaping here
+    # is what stops an invite becoming attacker-authored HTML sent from our
+    # domain. The accept_url is server-built and must stay unescaped.
+    tenant = html.escape(tenant_name)
+    inviter = html.escape(inviter_name)
     return f"""<!doctype html>
 <html>
   <body style="background:#0b0c0f;color:#e6e6e6;font-family:system-ui,sans-serif;padding:32px;">
     <div style="max-width:480px;margin:0 auto;">
       <h1 style="font-size:18px;font-weight:600;margin:0 0 16px;">
-        {inviter_name} invited you to {tenant_name} on Distilled
+        {inviter} invited you to {tenant} on Distilled
       </h1>
       <p style="font-size:14px;color:#a8a8a8;line-height:1.5;margin:0 0 24px;">
         Distilled gives engineering leaders a calm, trustworthy view of
-        delivery health. Accept the invite to see {tenant_name}'s metrics.
+        delivery health. Accept the invite to see {tenant}'s metrics.
       </p>
       <a href="{accept_url}"
          style="display:inline-block;background:#fff;color:#0b0c0f;
@@ -104,7 +121,7 @@ class ResendEmailService:
         inviter_name: str,
         accept_url: str,
     ) -> None:
-        subject = f"{inviter_name} invited you to {tenant_name} on Distilled"
+        subject = _subject_text(tenant_name=tenant_name, inviter_name=inviter_name)
         payload = {
             "from": self._from,
             "to": [to],

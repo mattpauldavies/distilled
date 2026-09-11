@@ -68,6 +68,15 @@ so a reload on a client-side route such as `/settings/team` serves the app shell
 rather than a 404. Hashed `/assets/*` files are cached immutably; `index.html`
 is not cached, so a deploy takes effect immediately.
 
+The `Caddyfile` also sends a `Content-Security-Policy` allowlisting the app's
+known integrations (Clerk, Chatwoot, PostHog via `d.distilledmetrics.com`,
+Sentry). A deployment that talks to additional origins — a custom Clerk
+domain, an API on a different host than the app — must set the runtime env var
+**`CSP_EXTRA_ORIGINS`** (space-separated origins, e.g.
+`https://clerk.example.com https://api.example.com`) on the container, or the
+browser will block those requests. Sourcemaps are uploaded to Sentry at build
+time and stripped from the image; they are never served.
+
 ## Adding shadcn/ui components
 
 `components.json` is already configured. Add components with:

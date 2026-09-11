@@ -1,5 +1,6 @@
 import uuid
-from unittest.mock import AsyncMock, MagicMock
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -7,6 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from app.auth import require_user
 from app.db import get_session
 from app.main import create_app
+from app.models.invitation import Invitation
 from app.models.tenant import Tenant
 from app.models.user import User
 from tests.conftest import mock_result
@@ -89,3 +91,70 @@ async def test_old_active_tenant_path_is_gone():
     async with client as c:
         resp = await c.post("/me/active-tenant", json={"tenant_id": str(uuid.uuid4())})
     assert resp.status_code == 404
+
+
+# --- POST /me/invitations/{id}/accept ---
+
+
+def make_invitation(**overrides) -> Invitation:
+    defaults = dict(
+        id=uuid.uuid4(),
+        tenant_id=TENANT_ID,
+        email="invitee@example.com",
+        token_hash="hash",
+        expires_at=datetime.now(UTC) + timedelta(days=1),
+        redeemed_at=None,
+        revoked_at=None,
+    )
+    defaults.update(overrides)
+    return Invitation(**defaults)
+
+
+@pytest.mark.asyncio
+async def test_accept_invitation_joins_workspace():
+    inv = make_invitation()
+    mock_session = AsyncMock()
+    mock_session.add = MagicMock()
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=inv),  # invitation lookup
+            mock_result(scalar_or_none=None),  # existing membership lookup
+        ]
+    )
+    client, user = _make_client(mock_session)
+
+    with patch(
+        "app.routes.me.verifier.get_user_emails",
+        new=AsyncMock(return_value=["invitee@example.com"]),
+    ):
+        async with client as c:
+            resp = await c.post(f"/me/invitations/{inv.id}/accept")
+
+    assert resp.status_code == 204, resp.text
+    assert inv.redeemed_at is not None
+    assert user.last_active_tenant_id == TENANT_ID
+    mock_session.add.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_accept_invitation_rejects_expired():
+    """An invitation past expires_at must be rejected even before the expiry
+    cron revokes it — the inline check is the correctness mechanism (RFC 021),
+    the scheduler is only a janitor."""
+    inv = make_invitation(expires_at=datetime.now(UTC) - timedelta(minutes=1))
+    mock_session = AsyncMock()
+    mock_session.add = MagicMock()
+    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=inv))
+    client, _ = _make_client(mock_session)
+
+    with patch(
+        "app.routes.me.verifier.get_user_emails",
+        new=AsyncMock(return_value=["invitee@example.com"]),
+    ):
+        async with client as c:
+            resp = await c.post(f"/me/invitations/{inv.id}/accept")
+
+    assert resp.status_code == 400
+    assert "expired" in resp.json()["detail"].lower()
+    assert inv.redeemed_at is None
+    mock_session.add.assert_not_called()

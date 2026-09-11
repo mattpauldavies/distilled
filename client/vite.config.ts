@@ -12,6 +12,11 @@ export default defineConfig({
     sentryVitePlugin({
       org: "distilled-metrics",
       project: "distilled-client",
+      sourcemaps: {
+        // Maps go to Sentry for symbolication, never to the web root — a
+        // served .map reconstructs the full original TypeScript for anyone.
+        filesToDeleteAfterUpload: "./dist/**/*.map",
+      },
     }),
   ],
 
@@ -32,6 +37,8 @@ export default defineConfig({
   },
 
   build: {
-    sourcemap: true,
+    // "hidden" emits maps for the Sentry plugin without a sourceMappingURL
+    // pointer, so browsers never discover them even if a map slips through.
+    sourcemap: "hidden",
   },
 })
