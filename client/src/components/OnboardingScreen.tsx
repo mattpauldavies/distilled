@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useApiFetch, useWorkspaceContext } from "@/lib/workspaceContext"
 import type { Repo, PaginatedResponse } from "@/types/dashboard"
 
@@ -19,12 +19,17 @@ export function OnboardingScreen({
 
   const [installUrl, setInstallUrl] = useState<string | null>(null)
   const [intentError, setIntentError] = useState(false)
+  // Mint exactly one intent per mount cycle: StrictMode double-fires the
+  // effect, and a second concurrent mint supersedes the first — leaving the
+  // rendered install link carrying a dead nonce.
+  const mintedRef = useRef(false)
 
   // The install link carries a workspace-bound state nonce, so GitHub's
   // redirect (and the webhook sender) can bind the installation to THIS
   // workspace rather than inferring one.
   useEffect(() => {
-    if (!isOwner) return
+    if (!isOwner || mintedRef.current) return
+    mintedRef.current = true
     let cancelled = false
     apiFetch("/installations/intents", { method: "POST" })
       .then(async (res) => {

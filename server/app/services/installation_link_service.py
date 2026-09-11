@@ -133,18 +133,33 @@ async def claim_by_sender(
     if user is None:
         return False
 
+    # Concurrent mints can leave more than one open intent (e.g. React
+    # StrictMode double-firing the onboarding effect: neither request's
+    # supersede-UPDATE sees the other's uncommitted insert). Supersession
+    # semantics say the newest wins; consume every open intent so none of
+    # them can be replayed.
     intent_result = await session.execute(
-        select(InstallationIntent).where(
+        select(InstallationIntent)
+        .where(
             InstallationIntent.user_id == user.id,
             InstallationIntent.consumed_at.is_(None),
             InstallationIntent.expires_at > datetime.now(UTC),
         )
+        .order_by(InstallationIntent.created_at.desc(), InstallationIntent.id.desc())
+        .limit(1)
     )
     intent = intent_result.scalar_one_or_none()
     if intent is None:
         return False
 
-    intent.consumed_at = datetime.now(UTC)
+    await session.execute(
+        update(InstallationIntent)
+        .where(
+            InstallationIntent.user_id == user.id,
+            InstallationIntent.consumed_at.is_(None),
+        )
+        .values(consumed_at=datetime.now(UTC))
+    )
     await bind_installation(intent.tenant_id, installation_id, session)
     logger.info(
         "installation %s claimed via sender match for tenant %s",

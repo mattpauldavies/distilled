@@ -164,14 +164,17 @@ async def test_claim_by_sender_binds_on_open_intent(mock_session):
     user = User(id=USER_ID, clerk_user_id="user_x", github_account_id=777)
     intent = make_intent()
     mock_session.execute = AsyncMock(
-        side_effect=[mock_result(scalar_or_none=user), mock_result(scalar_or_none=intent)]
+        side_effect=[
+            mock_result(scalar_or_none=user),  # user lookup
+            mock_result(scalar_or_none=intent),  # newest open intent
+            MagicMock(),  # consume-all update
+        ]
     )
 
     with patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind:
         claimed = await claim_by_sender(777, INSTALLATION_ID, mock_session)
 
     assert claimed is True
-    assert intent.consumed_at is not None
     bind.assert_called_once_with(TENANT_ID, INSTALLATION_ID, mock_session)
 
 
@@ -414,3 +417,33 @@ async def test_remove_repo_unknown_raises(mock_session):
     mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=None))
     with pytest.raises(LinkError):
         await remove_repo(TENANT_ID, uuid.uuid4(), mock_session)
+
+
+@pytest.mark.asyncio
+async def test_claim_by_sender_tolerates_multiple_open_intents(mock_session):
+    """Concurrent mints (React StrictMode double-firing the onboarding effect)
+    can leave two open intents with identical timestamps. The newest decides
+    the workspace and every open intent is consumed — never MultipleResultsFound."""
+    from app.models.user import User
+
+    user = User(id=USER_ID, clerk_user_id="user_x", github_account_id=777)
+    newest = make_intent()
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=user),  # user lookup
+            mock_result(scalar_or_none=newest),  # newest open intent
+            MagicMock(),  # consume-all update
+        ]
+    )
+
+    with patch.object(installation_link_service, "bind_installation", new=AsyncMock()) as bind:
+        claimed = await claim_by_sender(777, INSTALLATION_ID, mock_session)
+
+    assert claimed is True
+    intent_sql = _compiled(mock_session.execute.call_args_list[1][0][0])
+    assert "ORDER BY installation_intents.created_at DESC" in intent_sql
+    assert "LIMIT" in intent_sql
+    consume_sql = _compiled(mock_session.execute.call_args_list[2][0][0])
+    assert "UPDATE installation_intents SET" in consume_sql
+    assert "consumed_at IS NULL" in consume_sql
+    bind.assert_called_once_with(TENANT_ID, INSTALLATION_ID, mock_session)
