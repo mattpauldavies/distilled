@@ -37,14 +37,13 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> str
 
     repo_data = payload["repository"]
 
-    # Look up repo by GitHub ID — globally unique, tenant derived from repo
+    # The same GitHub repo can be tracked by several workspaces — one
+    # Repository row per workspace. The event ingests into each of them.
     result = await session.execute(select(Repository).where(Repository.github_id == repo_data["id"]))
-    repo = result.scalar_one_or_none()
-    if not repo:
+    repos = result.scalars().all()
+    if not repos:
         logger.warning("repo not found for PR, github_id=%s", repo_data["id"])
         return SKIPPED
-
-    tenant_id = repo.tenant_id
 
     merged_at = parse_datetime_optional(pr_data.get("merged_at"))
     opened_at = parse_datetime(pr_data.get("created_at", ""))
@@ -67,36 +66,37 @@ async def handle_pull_request_event(payload: dict, session: AsyncSession) -> str
 
     merge_commit_sha = pr_data.get("merge_commit_sha") or None
 
-    stmt = (
-        insert(PullRequest)
-        .values(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            repo_id=repo.id,
-            github_id=pr_data["id"],
-            number=pr_data["number"],
-            title=pr_data.get("title", ""),
-            base_ref=pr_data.get("base", {}).get("ref", ""),
-            merged_at=merged_at,
-            merge_commit_sha=merge_commit_sha,
-            head_sha=pr_data.get("head", {}).get("sha", ""),
-            author_login=pr_data.get("user", {}).get("login", ""),
-            html_url=validate_github_url(pr_data.get("html_url", "")),
-            opened_at=opened_at,
-            is_draft=is_draft,
-            closed_at=closed_at,
+    for repo in repos:
+        stmt = (
+            insert(PullRequest)
+            .values(
+                id=uuid.uuid4(),
+                tenant_id=repo.tenant_id,
+                repo_id=repo.id,
+                github_id=pr_data["id"],
+                number=pr_data["number"],
+                title=pr_data.get("title", ""),
+                base_ref=pr_data.get("base", {}).get("ref", ""),
+                merged_at=merged_at,
+                merge_commit_sha=merge_commit_sha,
+                head_sha=pr_data.get("head", {}).get("sha", ""),
+                author_login=pr_data.get("user", {}).get("login", ""),
+                html_url=validate_github_url(pr_data.get("html_url", "")),
+                opened_at=opened_at,
+                is_draft=is_draft,
+                closed_at=closed_at,
+            )
+            .on_conflict_do_update(
+                index_elements=["tenant_id", "repo_id", "number"],
+                set_={
+                    "title": pr_data.get("title", ""),
+                    "merged_at": merged_at,
+                    "merge_commit_sha": merge_commit_sha,
+                    "opened_at": opened_at,
+                    "is_draft": is_draft,
+                    "closed_at": closed_at,
+                },
+            )
         )
-        .on_conflict_do_update(
-            index_elements=["tenant_id", "repo_id", "number"],
-            set_={
-                "title": pr_data.get("title", ""),
-                "merged_at": merged_at,
-                "merge_commit_sha": merge_commit_sha,
-                "opened_at": opened_at,
-                "is_draft": is_draft,
-                "closed_at": closed_at,
-            },
-        )
-    )
-    await session.execute(stmt)
+        await session.execute(stmt)
     return None

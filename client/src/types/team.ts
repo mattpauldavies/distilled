@@ -1,6 +1,6 @@
 export type Role = "owner" | "member"
 
-export interface TenantMembership {
+export interface WorkspaceMembership {
   id: string
   name: string
   slug: string | null
@@ -21,15 +21,16 @@ export interface PendingInvitation {
   expires_at: string
 }
 
-export interface TenantSummary {
+export interface WorkspaceSummary {
   id: string
   name: string
   slug: string | null
   role: Role
+  is_default_name: boolean
 }
 
 export interface TeamResponse {
-  tenant: TenantSummary
+  workspace: WorkspaceSummary
   rename_prompt_dismissed: boolean
   members: Member[]
   pending_invitations: PendingInvitation[]
@@ -37,8 +38,8 @@ export interface TeamResponse {
 
 export interface MyInvitation {
   id: string
-  tenant_id: string
-  tenant_name: string
+  workspace_id: string
+  workspace_name: string
   inviter_name: string | null
   expires_at: string
 }

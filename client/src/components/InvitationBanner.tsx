@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { useApiFetch, useTenantContext } from "@/lib/tenantContext"
+import {
+  ACTIVE_WORKSPACE_STORAGE_KEY,
+  useApiFetch,
+  useWorkspaceContext,
+} from "@/lib/workspaceContext"
 import type { MyInvitation } from "@/types/team"
 
 export function InvitationBanner() {
   const apiFetch = useApiFetch()
-  const { refresh, setActiveTenant } = useTenantContext()
+  const { refresh, setActiveWorkspace } = useWorkspaceContext()
   const [pending, setPending] = useState<MyInvitation[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
@@ -37,14 +41,14 @@ export function InvitationBanner() {
     try {
       const res = await apiFetch(`/me/invitations/${inv.id}/accept`, { method: "POST" })
       if (res.ok) {
-        refresh() // re-fetch memberships so the new tenant appears in the switcher
+        refresh() // re-fetch memberships so the new workspace appears in the switcher
         // Pre-select it locally so on next reload we land in it.
         try {
-          window.localStorage.setItem("distilled.activeTenantId", inv.tenant_id)
+          window.localStorage.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, inv.workspace_id)
         } catch {
           /* ignore */
         }
-        setActiveTenant(inv.tenant_id)
+        setActiveWorkspace(inv.workspace_id)
         setDismissed((s) => new Set([...s, inv.id]))
       }
     } finally {
@@ -68,7 +72,7 @@ export function InvitationBanner() {
       className="mb-4 flex items-center justify-between gap-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm"
     >
       <span>
-        You've been invited to <strong>{inv.tenant_name}</strong>
+        You've been invited to <strong>{inv.workspace_name}</strong>
         {inv.inviter_name ? ` by ${inv.inviter_name}` : null}.
       </span>
       <div className="flex shrink-0 gap-2">
@@ -76,7 +80,7 @@ export function InvitationBanner() {
           Decline
         </Button>
         <Button size="sm" onClick={accept} disabled={busy === inv.id}>
-          Join tenant
+          Join workspace
         </Button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-"""Owner-only routes for managing tenant membership and tenant settings."""
+"""Owner-only routes for managing workspace membership and workspace settings."""
 
 from __future__ import annotations
 
@@ -17,21 +17,35 @@ from app.schemas.team import (
     CreateInvitationResponse,
     MemberResponse,
     PendingInvitationResponse,
-    RenameTenantRequest,
+    RenameWorkspaceRequest,
     TeamResponse,
-    TenantSummaryResponse,
+    WorkspaceSummaryResponse,
 )
 from app.services import invitation_service, membership_service
 from app.services.email_service import build_email_service
+from app.services.user_service import DEFAULT_WORKSPACE_NAME
 
 router = APIRouter(prefix="/team")
+
+
+def _workspace_summary(tenant: Tenant, role: str) -> WorkspaceSummaryResponse:
+    is_default_name = tenant.name == DEFAULT_WORKSPACE_NAME or (
+        tenant.slug is not None and tenant.name == tenant.slug
+    )
+    return WorkspaceSummaryResponse(
+        id=tenant.id,
+        name=tenant.name,
+        slug=tenant.slug,
+        role=role,  # type: ignore[arg-type]
+        is_default_name=is_default_name,
+    )
 
 
 async def _load_tenant(tenant_id: uuid.UUID, session: AsyncSession) -> Tenant:
     result = await session.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = result.scalar_one_or_none()
     if tenant is None:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise HTTPException(status_code=404, detail="Workspace not found")
     return tenant
 
 
@@ -56,12 +70,7 @@ async def get_team(
     ]
 
     return TeamResponse(
-        tenant=TenantSummaryResponse(
-            id=tenant.id,
-            name=tenant.name,
-            slug=tenant.slug,
-            role=current.role,
-        ),
+        workspace=_workspace_summary(tenant, current.role),
         rename_prompt_dismissed=tenant.rename_prompt_dismissed,
         members=[
             MemberResponse(
@@ -76,12 +85,12 @@ async def get_team(
     )
 
 
-@router.patch("", response_model=TenantSummaryResponse)
+@router.patch("", response_model=WorkspaceSummaryResponse)
 async def update_team(
-    body: RenameTenantRequest,
+    body: RenameWorkspaceRequest,
     current: CurrentUser = Depends(require_owner),
     session: AsyncSession = Depends(get_session),
-) -> TenantSummaryResponse:
+) -> WorkspaceSummaryResponse:
     if body.name is None and body.rename_prompt_dismissed is None:
         raise HTTPException(status_code=400, detail="No changes requested")
 
@@ -95,9 +104,7 @@ async def update_team(
         await membership_service.dismiss_rename_prompt(current.tenant_id, session)
 
     tenant = await _load_tenant(current.tenant_id, session)
-    return TenantSummaryResponse(
-        id=tenant.id, name=tenant.name, slug=tenant.slug, role=current.role
-    )
+    return _workspace_summary(tenant, current.role)
 
 
 @router.delete("/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -143,7 +150,7 @@ async def leave_team(
     current: CurrentUser = Depends(require_auth),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """A member leaves the active tenant. Owners must transfer or delete instead."""
+    """A member leaves the active workspace. Owners must transfer or delete instead."""
     try:
         await membership_service.leave_tenant(current.tenant_id, current.user_id, session)
     except membership_service.NotAMemberError as exc:
@@ -228,7 +235,7 @@ async def delete_team(
     current: CurrentUser = Depends(require_owner),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Delete the active tenant. Only allowed when the owner is the sole user."""
+    """Delete the active workspace. Only allowed when the owner is the sole user."""
     try:
         await membership_service.delete_tenant(current.tenant_id, session)
     except membership_service.InvariantViolation as exc:

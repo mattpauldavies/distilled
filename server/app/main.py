@@ -19,6 +19,7 @@ from app.routes import (
     deployments,
     environments,
     health,
+    installations,
     internal,
     invitations,
     me,
@@ -27,6 +28,7 @@ from app.routes import (
     repos,
     team,
     webhooks,
+    workspaces,
 )
 
 configure_logging(settings)
@@ -73,7 +75,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "X-Tenant-Id"],
+        allow_headers=["Authorization", "Content-Type", "X-Workspace-Id", "X-Tenant-Id"],
     )
 
     docs_paths = {"/docs", "/redoc", "/openapi.json"}
@@ -101,6 +103,8 @@ def create_app() -> FastAPI:
     app.include_router(team.router)  # per-route auth (require_owner / require_auth)
     app.include_router(me.router)  # tenant-agnostic user endpoints
     app.include_router(invitations.router)  # JWT-only redeem
+    app.include_router(workspaces.router)  # JWT-only workspace creation
+    app.include_router(installations.router)  # per-route auth (owner / user / member)
     app.include_router(internal.router)  # cron-secret auth at router level
     app.include_router(internal.metrics_router)  # cron recompute at pinned /metrics/* paths
     return app

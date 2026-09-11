@@ -42,7 +42,6 @@ async def main() -> None:
         result = await session.execute(
             select(GitHubInstallation).where(
                 GitHubInstallation.account_login == "acme-corp",
-                GitHubInstallation.tenant_id == TENANT_ID,
             )
         )
         installation = result.scalar_one_or_none()

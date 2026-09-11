@@ -50,7 +50,7 @@ async def test_skips_non_success(mock_session):
 async def test_skips_unknown_repo(mock_session):
     payload = _deployment_status_payload()
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=None),
+        mock_result(rows=[]),
     ]
 
     result = await handle_deployment_status_event(payload, mock_session)
@@ -65,7 +65,7 @@ async def test_skips_non_production_env(mock_session):
     payload = _deployment_status_payload()
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_result(scalar_or_none=None),
     ]
 
@@ -84,7 +84,7 @@ async def test_processes_successful_deployment(mock_attribute, mock_session):
     payload = _deployment_status_payload()
 
     mock_session.execute.side_effect = [
-        mock_result(scalar_or_none=repo),
+        mock_result(rows=[repo]),
         mock_result(scalar_or_none=env),
         mock_insert_result(1),
         mock_result(scalar=deployment),
@@ -94,3 +94,63 @@ async def test_processes_successful_deployment(mock_attribute, mock_session):
 
     assert mock_session.execute.call_count == 4
     mock_attribute.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch("app.services.ingest_deployment_service.attribute_prs_to_deployment", new_callable=AsyncMock)
+async def test_same_repo_in_two_workspaces_ingests_into_both(mock_attribute, mock_session):
+    """A GitHub repo tracked by two workspaces produces one deployment event per workspace."""
+    import uuid as _uuid
+
+    tenant_b = _uuid.uuid4()
+    repo_a = make_repo(github_id=111)
+    repo_b = make_repo(github_id=111, tenant_id=tenant_b)
+    env_a = make_environment(repo_id=repo_a.id)
+    env_b = make_environment(repo_id=repo_b.id, tenant_id=tenant_b)
+    dep_a = make_deployment(repo_id=repo_a.id)
+    dep_b = make_deployment(repo_id=repo_b.id, tenant_id=tenant_b)
+    payload = _deployment_status_payload()
+
+    mock_session.execute.side_effect = [
+        mock_result(rows=[repo_a, repo_b]),
+        mock_result(scalar_or_none=env_a),
+        mock_insert_result(1),
+        mock_result(scalar=dep_a),
+        mock_result(scalar_or_none=env_b),
+        mock_insert_result(1),
+        mock_result(scalar=dep_b),
+    ]
+
+    result = await handle_deployment_status_event(payload, mock_session)
+
+    assert result is None
+    assert mock_session.execute.call_count == 7
+    assert mock_attribute.await_count == 2
+
+
+@pytest.mark.asyncio
+@patch("app.services.ingest_deployment_service.attribute_prs_to_deployment", new_callable=AsyncMock)
+async def test_fan_out_skips_workspace_without_production_env(mock_attribute, mock_session):
+    """One workspace marks the environment production, the other doesn't — only the
+    first ingests, and the event still counts as handled."""
+    import uuid as _uuid
+
+    tenant_b = _uuid.uuid4()
+    repo_a = make_repo(github_id=111)
+    repo_b = make_repo(github_id=111, tenant_id=tenant_b)
+    env_a = make_environment(repo_id=repo_a.id)
+    dep_a = make_deployment(repo_id=repo_a.id)
+    payload = _deployment_status_payload()
+
+    mock_session.execute.side_effect = [
+        mock_result(rows=[repo_a, repo_b]),
+        mock_result(scalar_or_none=env_a),
+        mock_insert_result(1),
+        mock_result(scalar=dep_a),
+        mock_result(scalar_or_none=None),  # workspace B: env not production
+    ]
+
+    result = await handle_deployment_status_event(payload, mock_session)
+
+    assert result is None
+    assert mock_attribute.await_count == 1

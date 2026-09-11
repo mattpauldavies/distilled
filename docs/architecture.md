@@ -33,7 +33,8 @@ Conventions the layers follow are recorded as ADRs: transaction ownership in
 
 - **webhook_service** — HMAC signature verification, event handler registry, payload parsing helpers
 - **github_client** — JWT auth, installation token management, GitHub API wrapper
-- **ingest_installation_service** — handles app installation lifecycle (install, uninstall, repos added/removed), repo sync with soft delete, environment discovery
+- **ingest_installation_service** — handles app installation lifecycle webhooks (install, uninstall, repos added/removed), fanning repo sync out to every linked workspace
+- **installation_link_service** — installation intents/claims, workspace↔installation links, and per-workspace repo curation (add/remove/unlink, live available-repos listing); owns the shared repo-sync and environment-discovery helpers
 - **ingest_deployment_service** — processes deployment_status events
 - **ingest_pr_service** — processes pull_request events into the PullRequest table
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
@@ -111,19 +112,32 @@ and reused by every metric query.
 5. Creates `ProductionDeploymentEvent`
 6. Attribution service links PRs merged since last deployment
 
-### Multi-tenancy
+### Workspaces (tenants in the schema)
 
-All tables carry `tenant_id`. Membership is a many-to-many relationship in `tenant_users`, with a `(user_id, tenant_id, role)` row per membership and a partial unique index enforcing exactly one owner per tenant. `users.last_active_tenant_id` is a per-user default — the tenant a fresh sign-in resolves to in the absence of an explicit choice.
+The product term is **workspace**; the database and internal identifiers say `tenant` — the two are the same thing (ADR 009). All domain tables carry `tenant_id`. Membership is a many-to-many relationship in `tenant_users`, with a `(user_id, tenant_id, role)` row per membership and a partial unique index enforcing exactly one owner per workspace. Users can own several workspaces: first login auto-provisions one named "My Workspace", and `POST /workspaces` creates more. `users.last_active_tenant_id` is a per-user default — the workspace a fresh sign-in resolves to in the absence of an explicit choice.
 
-The active tenant for any given request is resolved as:
+The active workspace for any given request is resolved as:
 
-1. `X-Tenant-Id` header on the request, if present (membership verified at request time)
+1. `X-Workspace-Id` header on the request, if present (membership verified at request time; the legacy `X-Tenant-Id` spelling is accepted as a fallback)
 2. Otherwise, `users.last_active_tenant_id`
-3. Otherwise, 409 — the user has no active tenant and the client must surface onboarding
+3. Otherwise, 409 — the user has no active workspace and the client must surface onboarding
 
-`require_owner` is the dependency used for owner-only routes (`/team/*`); membership lookups use indexed columns and add a single join per authenticated request.
+`require_owner` is the dependency used for owner-only routes (`/team/*`, installation and repo management); membership lookups use indexed columns and add a single join per authenticated request. `require_user` authenticates by JWT alone for workspace-agnostic endpoints (membership list, invitation redemption, workspace creation, installation claims).
 
-Tenant deletion is a single `DELETE FROM tenants WHERE id = ...`: every tenant-scoped FK (`repositories`, `pull_requests`, `deployment_events`, `tenant_users`, `invitations`, all metrics tables) carries `ON DELETE CASCADE`. ADR 002 documents the rationale.
+Workspace deletion is a single `DELETE FROM tenants WHERE id = ...`: every workspace-scoped FK (`repositories`, `pull_requests`, `deployment_events`, `tenant_users`, `tenant_installations`, `invitations`, all metrics tables) carries `ON DELETE CASCADE`. ADR 002 documents the rationale.
+
+### GitHub installations and workspace repositories
+
+`github_installations` is a **global** record — one row per GitHub App installation (unique on `installation_id`), owned by no workspace, because a GitHub App installs at most once per GitHub account. `tenant_installations` links workspaces to installations many-to-many, so two users' private workspaces can both track repos from the same organisation.
+
+Binding an installation to a workspace is explicit: the client requests an **installation intent** (`POST /installations/intents`, owner-only), whose nonce travels through GitHub's `state` parameter. The binding lands via the setup callback (`/github/setup` → `POST /installations/claim`) or, as a fallback, via webhook **sender matching** — the installation event's `sender.id` is matched against the open intent of that user. Binding syncs all granted repos into the workspace and discovers their environments.
+
+Repositories are per-workspace rows (`UNIQUE(tenant_id, github_id)`): the same GitHub repo tracked by three workspaces is three `repositories` rows, each accumulating its own PRs, deployments, environments, and metrics. `pull_request` and `deployment_status` ingest fans one webhook event out to every workspace tracking the repo. Repo lifecycle:
+
+- **Add**: owners pick from the installation's live grant list (`GET /installations/{id}/available-repos`, fetched from GitHub — no local catalogue) via `POST /repos`.
+- **Remove**: `DELETE /repos/{id}` soft-deletes (`removed_at`) in that workspace only; historical data is retained but hidden. Removals are **sticky** — webhook syncs (`installation_repositories.added`, re-installs) never resurrect a removed repo; only explicit user actions do.
+- **Unlink**: `DELETE /installations/{id}` detaches the installation from one workspace and soft-deletes its repos there; other workspaces are unaffected.
+- **GitHub-side removal**: `installation_repositories.removed` and `installation.deleted` stamp `removed_at` across every linked workspace; the global installation row is soft-deleted on uninstall and resurrected on re-install.
 
 ## Frontend (client/)
 

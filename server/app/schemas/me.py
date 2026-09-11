@@ -7,21 +7,21 @@ from pydantic import BaseModel
 Role = Literal["owner", "member"]
 
 
-class TenantMembershipResponse(BaseModel):
+class WorkspaceMembershipResponse(BaseModel):
     id: uuid.UUID
     name: str
     slug: str | None
     role: Role
 
 
-class TenantsListResponse(BaseModel):
-    items: list[TenantMembershipResponse]
+class WorkspacesListResponse(BaseModel):
+    items: list[WorkspaceMembershipResponse]
 
 
 class MyInvitationResponse(BaseModel):
     id: uuid.UUID
-    tenant_id: uuid.UUID
-    tenant_name: str
+    workspace_id: uuid.UUID
+    workspace_name: str
     inviter_name: str | None
     expires_at: datetime
 
@@ -30,8 +30,8 @@ class MyInvitationsListResponse(BaseModel):
     items: list[MyInvitationResponse]
 
 
-class SetActiveTenantRequest(BaseModel):
-    tenant_id: uuid.UUID
+class SetActiveWorkspaceRequest(BaseModel):
+    workspace_id: uuid.UUID
 
 
 class RedeemRequest(BaseModel):
@@ -39,4 +39,4 @@ class RedeemRequest(BaseModel):
 
 
 class RedeemResponse(BaseModel):
-    tenant_id: uuid.UUID
+    workspace_id: uuid.UUID

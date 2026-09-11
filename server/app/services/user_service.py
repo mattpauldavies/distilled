@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WORKSPACE_NAME = "My Workspace"
+
 
 def _extract_github_identity(profile: dict) -> tuple[str | None, int | None]:
     """Pull (username, account_id) from a Clerk profile's GitHub external account."""
@@ -39,9 +41,10 @@ async def _backfill_github_data(
 ) -> None:
     """Fill in github_username / github_account_id from Clerk on a follow-up login.
 
-    We deliberately do not touch any tenant.slug here: in the multi-tenant world
-    there's no single tenant for which the user's GitHub identity is canonical.
-    Slug is set once at user creation time on the auto-provisioned tenant.
+    We deliberately do not touch any tenant.slug here: in the multi-workspace
+    world there's no single workspace for which the user's GitHub identity is
+    canonical. Slug is a deprecated legacy column — never written for new
+    workspaces.
     """
     try:
         profile = await verifier.get_user(user.clerk_user_id)
@@ -54,6 +57,28 @@ async def _backfill_github_data(
         logger.info("clerk_api: backfilled github data for %s", user.clerk_user_id)
     except Exception as exc:
         logger.warning("clerk_api: backfill failed for %s: %s", user.clerk_user_id, exc)
+
+
+async def create_workspace(user: User, name: str, session: AsyncSession) -> Tenant:
+    """Create an additional workspace with the given user as its owner."""
+    cleaned = name.strip()
+    if not cleaned:
+        raise ValueError("Workspace name cannot be blank")
+
+    tenant = Tenant(id=uuid.uuid4(), name=cleaned, slug=None)
+    session.add(tenant)
+    await session.flush()
+
+    membership = TenantUser(
+        id=uuid.uuid4(),
+        tenant_id=tenant.id,
+        user_id=user.id,
+        role="owner",
+    )
+    session.add(membership)
+    user.last_active_tenant_id = tenant.id
+    await session.commit()
+    return tenant
 
 
 async def get_or_create_user(
@@ -90,11 +115,34 @@ async def get_or_create_user(
         except Exception as exc:
             logger.warning("clerk_api: failed to fetch profile for %s: %s", clerk_user_id, exc)
 
-    tenant_name = github_username or clerk_user_id
+    # The Clerk user id can change while the GitHub identity stays the same
+    # (Clerk dev-instance resets, Clerk migrations). The verified JWT proves
+    # control of the GitHub account, so re-link the existing user to the new
+    # Clerk id instead of colliding with the unique github_account_id.
+    if github_account_id is not None:
+        result = await session.execute(
+            select(User).where(User.github_account_id == github_account_id)
+        )
+        existing = result.scalar_one_or_none()
+        if existing is not None:
+            logger.info(
+                "user_service: relinking github account %s from clerk user %s to %s",
+                github_account_id,
+                existing.clerk_user_id,
+                clerk_user_id,
+            )
+            existing.clerk_user_id = clerk_user_id
+            if email:
+                existing.email = email
+            if github_username:
+                existing.github_username = github_username
+            await session.commit()
+            return existing
+
     tenant = Tenant(
         id=uuid.uuid4(),
-        name=tenant_name,
-        slug=github_username,
+        name=DEFAULT_WORKSPACE_NAME,
+        slug=None,
     )
     session.add(tenant)
     await session.flush()

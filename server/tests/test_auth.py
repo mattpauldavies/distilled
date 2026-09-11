@@ -282,3 +282,84 @@ def test_membership_models_in_use():
     # Smoke check that imports the model — keeps the unused-import linter happy
     # while documenting the auth layer's dependence on TenantUser.
     assert TenantUser.__tablename__ == "tenant_users"
+
+
+@pytest.mark.asyncio
+async def test_x_workspace_id_header_resolves_workspace():
+    """X-Workspace-Id is the primary header for active-workspace selection."""
+    tenant_id = uuid.uuid4()
+    # No last-active fallback: resolution must come from the header.
+    user = User(id=uuid.uuid4(), clerk_user_id="user_test123", last_active_tenant_id=None)
+    tenant = Tenant(id=tenant_id, name="My Workspace")
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(
+        side_effect=_user_membership_executes(user=user, tenant=tenant, role="owner")
+    )
+
+    app = make_secured_app()
+    _override_session(app, mock_session)
+
+    with _patch_verifier():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/protected",
+                headers={
+                    "Authorization": "Bearer valid.jwt",
+                    "X-Workspace-Id": str(tenant_id),
+                },
+            )
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["tenant_id"] == str(tenant_id)
+    membership_stmt = mock_session.execute.call_args_list[1].args[0]
+    membership_sql = str(membership_stmt.compile(compile_kwargs={"literal_binds": True}))
+    assert tenant_id.hex in membership_sql
+
+
+@pytest.mark.asyncio
+async def test_x_workspace_id_wins_over_x_tenant_id():
+    """During the transition both headers are accepted; the new one takes precedence."""
+    workspace_id = uuid.uuid4()
+    user = User(id=uuid.uuid4(), clerk_user_id="user_test123", last_active_tenant_id=None)
+    tenant = Tenant(id=workspace_id, name="My Workspace")
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(
+        side_effect=_user_membership_executes(user=user, tenant=tenant, role="owner")
+    )
+
+    app = make_secured_app()
+    _override_session(app, mock_session)
+
+    with _patch_verifier():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/protected",
+                headers={
+                    "Authorization": "Bearer valid.jwt",
+                    "X-Workspace-Id": str(workspace_id),
+                    "X-Tenant-Id": str(uuid.uuid4()),
+                },
+            )
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["tenant_id"] == str(workspace_id)
+    membership_stmt = mock_session.execute.call_args_list[1].args[0]
+    membership_sql = str(membership_stmt.compile(compile_kwargs={"literal_binds": True}))
+    assert workspace_id.hex in membership_sql
+
+
+@pytest.mark.asyncio
+async def test_malformed_x_workspace_id_returns_400():
+    app = make_secured_app()
+    _override_session(app, AsyncMock())
+
+    with _patch_verifier():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/protected",
+                headers={"Authorization": "Bearer valid.jwt", "X-Workspace-Id": "not-a-uuid"},
+            )
+
+    assert resp.status_code == 400

@@ -52,12 +52,13 @@ database/          # Alembic migrations
 | `FORWARDED_ALLOW_IPS`     | Upstream addresses uvicorn trusts `X-Forwarded-For` from (read by uvicorn, not `Settings`). Set to `*` behind a trusted proxy — see [Rate limiting](#rate-limiting) | `127.0.0.1` |
 | `CLERK_JWKS_URL`          | Clerk JWKS endpoint for JWT verification | — (required in production)                                          |
 | `CLERK_PUBLISHABLE_KEY`   | Clerk publishable key (for reference)    | —                                                                   |
-| `GITHUB_APP_SLUG`         | GitHub App slug for install links        | —                                                                   |
+| `GITHUB_APP_SLUG`         | GitHub App slug for install-intent URLs  | — (required in production)                                          |
 | `EMAIL_BASE_URL`          | Public URL of the frontend (for invite accept links) | `http://localhost:5173`                                  |
 | `EMAIL_PROVIDER`          | `log` (dev) or `resend` (prod)           | `log`                                                               |
 | `RESEND_API_KEY`          | Resend API key (required when `EMAIL_PROVIDER=resend`) | —                                                       |
 | `EMAIL_FROM`              | RFC 5322 from address for invitations    | —                                                                   |
 | `INVITATION_TTL_DAYS`     | Days before a pending invitation expires | `14`                                                                |
+| `INSTALLATION_INTENT_TTL_MINUTES` | Minutes before an unused install link expires | `30`                                                    |
 
 ## API endpoints
 
@@ -65,7 +66,9 @@ database/          # Alembic migrations
 | ------ | ------------------------------- | --------------------------------------------------------------- |
 | GET    | `/health`                       | Health check                                                    |
 | POST   | `/webhooks/github`              | GitHub webhook receiver (HMAC verified)                         |
-| GET    | `/repos`                        | List repos for tenant (paginated)                               |
+| GET    | `/repos`                        | List repos for the active workspace (paginated)                 |
+| POST   | `/repos`                        | Add granted repos to the active workspace (owner only)          |
+| DELETE | `/repos/{repo_id}`              | Soft-remove a repo from the active workspace (owner only)       |
 | GET    | `/environments`                 | List environments (optional `?repo_id=`)                        |
 | PATCH  | `/environments/{env_id}`        | Toggle `is_production`                                          |
 | GET    | `/deployments`                  | List deployments (requires `repo_id`, filter: env, date range)  |
@@ -81,27 +84,33 @@ database/          # Alembic migrations
 | GET    | `/metrics/pr-ageing`            | PR age distribution (<2d, 2-7d, 7-14d, >14d buckets)            |
 | GET    | `/metrics/data-quality`         | Attribution coverage + freshness + production-env setup         |
 | GET    | `/team`                         | Team members + pending invitations (owner only)                 |
-| PATCH  | `/team`                         | Rename tenant / dismiss rename prompt (owner only)              |
-| DELETE | `/team`                         | Delete tenant (sole-user owner only)                            |
+| PATCH  | `/team`                         | Rename workspace / dismiss rename prompt (owner only)           |
+| DELETE | `/team`                         | Delete workspace (sole-user owner only)                         |
 | POST   | `/team/invitations`             | Create invitation (owner only)                                  |
 | POST   | `/team/invitations/{id}/resend` | Re-issue token + email (owner only)                             |
 | DELETE | `/team/invitations/{id}`        | Revoke pending invitation (owner only)                          |
 | DELETE | `/team/members/{user_id}`       | Remove member (owner only)                                      |
 | POST   | `/team/members/{user_id}/transfer` | Transfer ownership (owner only)                              |
-| POST   | `/team/leave`                   | Leave tenant (members only)                                     |
-| GET    | `/me/tenants`                   | List the user's memberships (no X-Tenant-Id required)           |
+| POST   | `/team/leave`                   | Leave workspace (members only)                                  |
+| GET    | `/me/workspaces`                | List the user's memberships (no workspace header required)      |
 | GET    | `/me/invitations`               | List pending invitations matching verified Clerk emails         |
 | POST   | `/me/invitations/{id}/accept`   | Banner-accept a pending invitation                              |
 | POST   | `/me/invitations/{id}/decline`  | Dismiss a pending invitation                                    |
-| POST   | `/me/active-tenant`             | Persist the user's switcher choice                              |
+| POST   | `/me/active-workspace`          | Persist the user's switcher choice                              |
 | POST   | `/invitations/redeem`           | Token-based redeem (JWT only)                                   |
+| POST   | `/workspaces`                   | Create a workspace; caller becomes owner (JWT only)             |
+| POST   | `/installations/intents`        | Mint a workspace-bound install link (owner only)                |
+| POST   | `/installations/claim`          | Bind an installation from the GitHub setup callback (JWT only)  |
+| GET    | `/installations`                | List installations linked to the active workspace               |
+| GET    | `/installations/{id}/available-repos` | Live grant list, annotated with tracked state (owner only) |
+| DELETE | `/installations/{id}`           | Unlink an installation from the active workspace (owner only)   |
 | POST   | `/internal/invitations/expire`  | Janitor: revoke expired invitations (cron secret)               |
 
 ## Scheduled metrics
 
-Metric aggregation runs hourly for every `(tenant, repo)` pair. The server exposes two internal endpoints (Bearer-authenticated with `INTERNAL_CRON_SECRET`):
+Metric aggregation runs hourly for every active `(workspace, repo)` pair. The server exposes two internal endpoints (Bearer-authenticated with `INTERNAL_CRON_SECRET`):
 
-- `GET /metrics/recompute-targets` — returns every `(tenant_id, repo_id)` pair.
+- `GET /metrics/recompute-targets` — returns every active `(tenant_id, repo_id)` pair (soft-deleted repos excluded).
 - `POST /metrics/recompute` — recomputes all four metrics for one repo; idempotent per hour.
   Rate limited to `1000/hour` rather than per minute: the fan-out is one call per repo in a
   single hourly burst, so a per-minute cap throttled the job against itself.

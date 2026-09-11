@@ -4,30 +4,46 @@ import { SignedIn, SignedOut } from "@clerk/clerk-react"
 import { Dashboard } from "@/components/Dashboard"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { InitialisingScreen } from "@/components/InitialisingScreen"
+import { NoWorkspaceScreen } from "@/components/NoWorkspaceScreen"
 import { OnboardingScreen } from "@/components/OnboardingScreen"
 import { ReposErrorScreen } from "@/components/ReposErrorScreen"
 import { SignInPage } from "@/components/SignInPage"
+import { RepositoriesPage } from "@/components/repos/RepositoriesPage"
 import { TeamPage } from "@/components/team/TeamPage"
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage"
+import { GitHubSetupPage } from "@/pages/GitHubSetupPage"
 import { useRepos } from "@/hooks/useRepos"
-import { TenantProvider, useTenantContext } from "@/lib/tenantContext"
+import { WorkspaceProvider, useWorkspaceContext } from "@/lib/workspaceContext"
 
 function Home() {
-  const { loading: tenantLoading, error: tenantError, activeTenant } = useTenantContext()
+  const {
+    loading: workspaceLoading,
+    error: workspaceError,
+    activeWorkspace,
+  } = useWorkspaceContext()
   const { repos, loading, error, refetch } = useRepos()
-  const [showTeam, setShowTeam] = useState(false)
+  const [settingsPage, setSettingsPage] = useState<"none" | "team" | "repos">("none")
 
-  if (tenantLoading) return <InitialisingScreen />
-  if (tenantError)
-    return <ReposErrorScreen error={tenantError} onRetry={() => window.location.reload()} />
-  if (!activeTenant) return <OnboardingScreen onReposDetected={refetch} />
-  if (showTeam && activeTenant.role === "owner") {
-    return <TeamPage onClose={() => setShowTeam(false)} />
+  if (workspaceLoading) return <InitialisingScreen />
+  if (workspaceError)
+    return <ReposErrorScreen error={workspaceError} onRetry={() => window.location.reload()} />
+  if (!activeWorkspace) return <NoWorkspaceScreen />
+  if (settingsPage === "team" && activeWorkspace.role === "owner") {
+    return <TeamPage onClose={() => setSettingsPage("none")} />
+  }
+  if (settingsPage === "repos" && activeWorkspace.role === "owner") {
+    return <RepositoriesPage onClose={() => setSettingsPage("none")} />
   }
   if (loading) return <InitialisingScreen />
   if (error) return <ReposErrorScreen error={error} onRetry={refetch} />
   if (repos.length === 0) return <OnboardingScreen onReposDetected={refetch} />
-  return <Dashboard repos={repos} onOpenTeam={() => setShowTeam(true)} />
+  return (
+    <Dashboard
+      repos={repos}
+      onOpenTeam={() => setSettingsPage("team")}
+      onOpenRepos={() => setSettingsPage("repos")}
+    />
+  )
 }
 
 function AcceptInviteRoute() {
@@ -40,15 +56,36 @@ function AcceptInviteRoute() {
   return <AcceptInvitePage token={token} />
 }
 
+function GitHubSetupRoute() {
+  const params = new URLSearchParams(window.location.search)
+  const installationId = Number(params.get("installation_id"))
+  const state = params.get("state") ?? ""
+  if (!installationId || !state) {
+    window.location.replace("/")
+    return null
+  }
+  return <GitHubSetupPage installationId={installationId} state={state} />
+}
+
 export default function App() {
-  // Minimal path-based routing: the only non-dashboard route is the
-  // invitation accept page, which must work both signed-out and signed-in.
+  // Minimal path-based routing: the non-dashboard routes are the invitation
+  // accept page and the GitHub App setup callback, both of which must work
+  // signed-out and signed-in.
   const isAcceptInvite = window.location.pathname === "/invitations/accept"
+  const isGitHubSetup = window.location.pathname === "/github/setup"
 
   if (isAcceptInvite) {
     return (
       <ErrorBoundary>
         <AcceptInviteRoute />
+      </ErrorBoundary>
+    )
+  }
+
+  if (isGitHubSetup) {
+    return (
+      <ErrorBoundary>
+        <GitHubSetupRoute />
       </ErrorBoundary>
     )
   }
@@ -59,9 +96,9 @@ export default function App() {
         <SignInPage />
       </SignedOut>
       <SignedIn>
-        <TenantProvider>
+        <WorkspaceProvider>
           <Home />
-        </TenantProvider>
+        </WorkspaceProvider>
       </SignedIn>
     </ErrorBoundary>
   )

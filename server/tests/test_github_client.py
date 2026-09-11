@@ -315,3 +315,32 @@ async def test_token_mint_failure_logs_githubs_message(caplog):
 
     assert "160402800" in caplog.text
     assert "could not be decoded" in caplog.text
+
+
+# --- get_installation: app-JWT lookup ---
+
+
+async def test_get_installation_returns_payload():
+    payload = {"id": 42, "account": {"login": "acme", "type": "Organization", "id": 777}}
+    mock_http = _make_mock_http(request_returns=_make_response(200, payload))
+
+    with patch("httpx.AsyncClient", return_value=mock_http):
+        client = GitHubClient()
+        with patch.object(client, "_generate_jwt", return_value="app-jwt"):
+            data = await client.get_installation(42)
+
+    assert data == payload
+    method, path = mock_http.request.call_args.args[:2]
+    assert method == "GET"
+    assert path == "/app/installations/42"
+    assert mock_http.request.call_args.kwargs["headers"]["Authorization"] == "Bearer app-jwt"
+
+
+async def test_get_installation_raises_on_404():
+    mock_http = _make_mock_http(request_returns=_make_response(404))
+
+    with patch("httpx.AsyncClient", return_value=mock_http):
+        client = GitHubClient()
+        with patch.object(client, "_generate_jwt", return_value="app-jwt"):
+            with pytest.raises(httpx.HTTPStatusError):
+                await client.get_installation(42)

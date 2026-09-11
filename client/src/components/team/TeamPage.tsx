@@ -11,7 +11,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { InviteMemberModal } from "@/components/team/InviteMemberModal"
-import { useApiFetch, useTenantContext } from "@/lib/tenantContext"
+import {
+  ACTIVE_WORKSPACE_STORAGE_KEY,
+  useApiFetch,
+  useWorkspaceContext,
+} from "@/lib/workspaceContext"
 import type { Member, PendingInvitation, TeamResponse } from "@/types/team"
 
 interface Props {
@@ -20,7 +24,7 @@ interface Props {
 
 export function TeamPage({ onClose }: Props) {
   const apiFetch = useApiFetch()
-  const { refresh: refreshContext } = useTenantContext()
+  const { refresh: refreshContext } = useWorkspaceContext()
 
   const [team, setTeam] = useState<TeamResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -105,13 +109,13 @@ export function TeamPage({ onClose }: Props) {
     if (res.ok) reload()
   }
 
-  async function deleteTenant() {
+  async function deleteWorkspace() {
     const res = await apiFetch("/team", { method: "DELETE" })
     if (res.ok) {
       setConfirmDelete(false)
-      // Drop the stored active tenant so the next mount re-resolves cleanly.
+      // Drop the stored active workspace so the next mount re-resolves cleanly.
       try {
-        window.localStorage.removeItem("distilled.activeTenantId")
+        window.localStorage.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY)
       } catch {
         /* ignore */
       }
@@ -145,12 +149,12 @@ export function TeamPage({ onClose }: Props) {
               </div>
             ) : (
               <>
-                <h1 className="truncate text-xl font-semibold">{team.tenant.name}</h1>
+                <h1 className="truncate text-xl font-semibold">{team.workspace.name}</h1>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setRenameValue(team.tenant.name)
+                    setRenameValue(team.workspace.name)
                     setRenaming(true)
                   }}
                 >
@@ -233,7 +237,7 @@ export function TeamPage({ onClose }: Props) {
                 onClick={() => setConfirmDelete(true)}
                 className="text-destructive"
               >
-                Delete tenant
+                Delete workspace
               </Button>
             </div>
           ) : null}
@@ -284,11 +288,11 @@ export function TeamPage({ onClose }: Props) {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title={`Delete ${team.tenant.name}?`}
-        description="All data in this tenant will be permanently removed. This cannot be undone."
-        confirmLabel="Delete tenant"
+        title={`Delete ${team.workspace.name}?`}
+        description="All data in this workspace will be permanently removed. This cannot be undone."
+        confirmLabel="Delete workspace"
         destructive
-        onConfirm={deleteTenant}
+        onConfirm={deleteWorkspace}
       />
     </main>
   )

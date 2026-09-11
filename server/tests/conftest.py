@@ -182,7 +182,6 @@ def make_deployment(**overrides):
 def make_installation(**overrides):
     defaults = dict(
         id=uuid.uuid4(),
-        tenant_id=TENANT_ID,
         installation_id=100,
         account_login="org",
         account_type="organization",

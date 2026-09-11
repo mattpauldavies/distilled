@@ -98,7 +98,7 @@ async def create_invitation(
 
     tenant = await _load_tenant(tenant_id, session)
     if tenant is None:
-        raise InvitationStateError(f"Tenant {tenant_id} does not exist")
+        raise InvitationStateError(f"Workspace {tenant_id} does not exist")
 
     raw_token = secrets.token_urlsafe(32)
     invitation = Invitation(
@@ -164,7 +164,7 @@ async def resend_invitation(
 
     tenant = await _load_tenant(tenant_id, session)
     if tenant is None:
-        raise InvitationStateError(f"Tenant {tenant_id} does not exist")
+        raise InvitationStateError(f"Workspace {tenant_id} does not exist")
 
     raw_token = secrets.token_urlsafe(32)
     inv.token_hash = _hash_token(raw_token)

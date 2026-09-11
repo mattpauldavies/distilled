@@ -27,7 +27,6 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     env: {
       VITE_CLERK_PUBLISHABLE_KEY: "pk_test_placeholder",
-      VITE_GITHUB_APP_SLUG: "test-app",
       VITE_API_BASE_URL: "",
     },
   },

@@ -193,3 +193,23 @@ async def test_recompute_allows_a_full_hourly_fan_out(metrics_client, mock_sessi
             statuses.append(resp.status_code)
 
     assert 429 not in statuses, f"fan-out was rate limited: {statuses}"
+
+
+@pytest.mark.asyncio
+async def test_recompute_targets_excludes_soft_deleted_repos(metrics_client, mock_session):
+    """Removed repos must not consume hourly recompute budget."""
+    result_mock = MagicMock()
+    result_mock.all.return_value = []
+    mock_session.execute = AsyncMock(return_value=result_mock)
+
+    with patch("app.routes.internal.settings") as mock_settings:
+        mock_settings.internal_cron_secret = "test-secret"
+        resp = await metrics_client.get(
+            "/metrics/recompute-targets",
+            headers={"Authorization": "Bearer test-secret"},
+        )
+
+    assert resp.status_code == 200
+    stmt = mock_session.execute.call_args[0][0]
+    sql = str(stmt.compile())
+    assert "removed_at IS NULL" in sql

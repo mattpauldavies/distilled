@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { useApiFetch } from "@/lib/tenantContext"
+import { useApiFetch } from "@/lib/workspaceContext"
 
 export interface MetricSection<T> {
   data: T | null
