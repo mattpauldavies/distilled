@@ -115,6 +115,30 @@ async def get_or_create_user(
         except Exception as exc:
             logger.warning("clerk_api: failed to fetch profile for %s: %s", clerk_user_id, exc)
 
+    # The Clerk user id can change while the GitHub identity stays the same
+    # (Clerk dev-instance resets, Clerk migrations). The verified JWT proves
+    # control of the GitHub account, so re-link the existing user to the new
+    # Clerk id instead of colliding with the unique github_account_id.
+    if github_account_id is not None:
+        result = await session.execute(
+            select(User).where(User.github_account_id == github_account_id)
+        )
+        existing = result.scalar_one_or_none()
+        if existing is not None:
+            logger.info(
+                "user_service: relinking github account %s from clerk user %s to %s",
+                github_account_id,
+                existing.clerk_user_id,
+                clerk_user_id,
+            )
+            existing.clerk_user_id = clerk_user_id
+            if email:
+                existing.email = email
+            if github_username:
+                existing.github_username = github_username
+            await session.commit()
+            return existing
+
     tenant = Tenant(
         id=uuid.uuid4(),
         name=DEFAULT_WORKSPACE_NAME,

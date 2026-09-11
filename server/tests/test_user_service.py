@@ -211,3 +211,37 @@ async def test_clerk_api_failure_during_create_is_handled():
     assert user.github_username is None
     assert user.github_account_id is None
     assert user.email == "dev@example.com"
+
+
+@pytest.mark.asyncio
+async def test_relinks_existing_github_account_to_new_clerk_user():
+    """A Clerk user id can change while the GitHub identity stays the same
+    (Clerk dev-instance resets, Clerk migrations). The existing user is
+    re-linked rather than colliding with the unique github_account_id."""
+    session = make_mock_session()
+    verifier = make_mock_verifier()
+
+    existing_user = User(
+        id=USER_ID,
+        clerk_user_id="user_old_clerk_id",
+        email="old@example.com",
+        github_username="devuser",
+        github_account_id=98765,
+        last_active_tenant_id=TENANT_ID,
+    )
+
+    session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=None),  # lookup by clerk_user_id misses
+            mock_result(scalar_or_none=existing_user),  # lookup by github_account_id hits
+        ]
+    )
+
+    user = await get_or_create_user(TEST_CLAIMS, session, verifier)
+
+    assert user is existing_user
+    assert user.clerk_user_id == "user_clerk123"
+    assert user.email == "dev@example.com"
+    assert user.last_active_tenant_id == TENANT_ID  # workspaces untouched
+    session.add.assert_not_called()  # no new tenant or user provisioned
+    session.commit.assert_called_once()
