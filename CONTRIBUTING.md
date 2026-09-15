@@ -71,16 +71,16 @@ Open a GitHub issue describing the problem you're solving and why it matters. We
 
 ## Development Process
 
-### RFCs for Non-Trivial Work
+### Proposals for Non-Trivial Work
 
-For anything beyond a small bug fix, write a short RFC in `docs/rfcs/`. This keeps design decisions documented and lets others weigh in before you invest significant effort. Include:
+For anything beyond a small bug fix, add to a proposal in `docs/proposals/` — or start a new one if no existing proposal covers the area. This keeps design decisions documented and lets others weigh in before you invest significant effort. Include:
 
 - Problem statement
 - Proposed solution
 - Alternatives considered
 - Implementation plan
 
-See existing RFCs in `docs/rfcs/` for examples.
+See [docs/proposals/README.md](docs/proposals/README.md) for the index and for what a good proposal contains.
 
 ### Branch Naming
 
@@ -153,7 +153,7 @@ make website-test
 Tests live in `website/test/routing.test.mjs`. Add a case there whenever you
 add a page or change how one is served, and link to pages by their canonical
 extensionless URL (`/terms`, not `/terms.html`) — see
-[ADR 006](docs/adrs/006-website-url-canonicalisation.md).
+[Proposal 007: Build and Deployment](docs/proposals/007-build-and-deployment.md).
 
 ## Code Style
 
@@ -199,8 +199,7 @@ website/          # Eleventy marketing site
   Caddyfile       # how the built site is served
 
 docs/
-  adrs/           # Architecture decision records
-  rfcs/           # Design documents
+  proposals/      # Design documents and decision records
   runbooks/       # Operational guides
 ```
 

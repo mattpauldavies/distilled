@@ -85,7 +85,7 @@ That contract predates the container: it is what Cloudflare Pages served, so it
 is what search engines index and what browsers have cached 301s for. Always
 link to the canonical form. `test/routing.test.mjs` boots the real Caddyfile
 over a real build and asserts the table above — see
-[ADR 006](../docs/adrs/006-website-url-canonicalisation.md).
+[Proposal 007: Build and Deployment](../docs/proposals/007-build-and-deployment.md).
 
 Running the tests needs the `caddy` binary on `PATH` (or `CADDY_BIN` pointing
 at it); CI installs it for the `test-website` job.
@@ -104,7 +104,7 @@ drop them; `POSTHOG_HOST` and `POSTHOG_UI_HOST` override that. The snippet runs
 in PostHog's cookieless mode — anonymous, nothing stored on the visitor's device
 — so no consent banner is required. Without `POSTHOG_KEY` the build ships no
 analytics at all. See [docs/analytics.md](../docs/analytics.md) and
-[ADR 007](../docs/adrs/007-posthog-reverse-proxy.md).
+[Proposal 006: Observability](../docs/proposals/006-observability.md).
 
 `Dockerfile` packages that for container hosts: a Node stage runs `npm run build`,
 then the output is copied into a `caddy:2-alpine` stage that serves it on `$PORT`

@@ -127,7 +127,7 @@ PYTHONPATH=. poetry run python scripts/run_hourly_recompute.py
 
 In production the script is invoked by a dedicated Railway cron service (configured in the Railway dashboard, separate from the `server` web service) on the schedule `0 * * * *` (UTC).
 
-Optional tuning env vars (script-only): `RECOMPUTE_CONCURRENCY` (default `3`), `RECOMPUTE_JITTER_MS` (default `2000`), `RECOMPUTE_TIMEOUT_S` (default `120`). See [RFC 018](../docs/rfcs/018-batch-metrics-scheduling.md) for the full design.
+Optional tuning env vars (script-only): `RECOMPUTE_CONCURRENCY` (default `3`), `RECOMPUTE_JITTER_MS` (default `2000`), `RECOMPUTE_TIMEOUT_S` (default `120`). See [Proposal 002: Metrics Engine](../docs/proposals/002-metrics-engine.md) for the full design.
 
 ## Logging
 
@@ -135,7 +135,7 @@ All logs go to **stdout**. This matters on Railway, which classifies anything a 
 writes to stderr as `level.error` regardless of the record's own level — a bare
 `logging.StreamHandler()` defaults to stderr, which made every `INFO` line arrive in the
 log explorer coloured red and buried genuine failures. See
-[ADR 008](../docs/adrs/008-structured-production-logging.md).
+[Proposal 006: Observability](../docs/proposals/006-observability.md).
 
 **In production**, each record is one JSON line in Railway's field contract:
 
@@ -194,7 +194,7 @@ Repositories and installations are never hard-deleted: removal stamps
 `removed_at` so historical PRs, deployments, and metrics stay intact, and
 re-adding a repo (or re-installing the App) clears the stamp. `GET /repos`
 excludes soft-deleted repos. See
-[RFC 023](../docs/rfcs/023-installation-repository-lifecycle.md).
+[Proposal 001: Deployment Ingest](../docs/proposals/001-deployment-ingest.md).
 
 ### Webhook delivery audit (`webhook_events`)
 
@@ -260,7 +260,7 @@ make test              # run all tests
 make test-coverage     # show coverage report
 ```
 
-See [RFC 003: Better Python Tests](../docs/rfcs/003-better-python-tests.md) for architecture details.
+See [Proposal 008: Engineering Practice](../docs/proposals/008-engineering-practice.md) for architecture details.
 
 ## Linting and formatting
 
