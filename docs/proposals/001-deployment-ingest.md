@@ -283,7 +283,7 @@ deleted or recomputed.
 - Teams that both deploy and release under-count one of them. Intended, and the most likely
   source of "my numbers look low" questions.
 - A repo switched to releases before its installation accepts the new permission looks
-  identical to a quiet repo. The settings page says so; a "no release seen since you
+  identical to a quiet repo, with nothing in the UI to say so. A "no release seen since you
   switched" signal in data quality would be the follow-up.
 - Historic deployment rows and new release rows share one environment filter, where
   `release` sits alongside real environment names.

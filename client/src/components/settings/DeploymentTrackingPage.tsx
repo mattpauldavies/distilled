@@ -141,11 +141,6 @@ export function DeploymentTrackingPage({ onClose }: Props) {
           </CardContent>
         </Card>
       )}
-
-      <p className="text-xs text-muted-foreground">
-        Release tracking needs the Distilled GitHub App&apos;s updated permissions to have been
-        accepted on GitHub. Until they are, no releases reach Distilled.
-      </p>
     </main>
   )
 }
