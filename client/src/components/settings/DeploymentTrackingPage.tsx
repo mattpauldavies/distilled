@@ -79,10 +79,8 @@ export function DeploymentTrackingPage({ onClose }: Props) {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Choose what counts as a deployment for each repository. Deployments come from successful
-        GitHub deployments to a production environment; releases come from publishing a GitHub
-        release, excluding drafts and pre-releases. A change applies from the next event — nothing
-        already recorded is removed.
+        Choose how deployments are tracked for each repository. You can either track deployments via
+        GitHub deployments to a production environment or via GitHub releases.
       </p>
 
       {error ? (
