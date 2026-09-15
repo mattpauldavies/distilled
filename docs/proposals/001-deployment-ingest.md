@@ -197,16 +197,25 @@ the mirror-image skip. Both return `SKIPPED` when nothing matched, so a dropped 
 visible in `webhook_events` rather than silent. Attribution, metrics, the deployments list
 and the batch jobs are untouched.
 
-| Column             | From the release payload                                  |
-| ------------------ | --------------------------------------------------------- |
-| `deployment_id`    | `release.id`                                              |
-| `environment_name` | `"release"` (constant)                                    |
-| `ref`              | `release.tag_name`                                        |
-| `commit_sha`       | `target_commitish` when it is a 40-hex SHA, else empty    |
-| `started_at`       | `release.created_at`                                      |
-| `completed_at` / `deployed_at` | `release.published_at`, falling back to `created_at` |
-| `html_url`         | `release.html_url`, through `validate_github_url`         |
-| `source`           | `"release"`                                               |
+The same row, from each source — `acme/api` deploying to `production`, and `acme/sdk`
+publishing `v2.4.0`:
+
+| Column             | From `deployment_status`                                        | From `release.published`                                      |
+| ------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| `deployment_id`    | `1084312904` (`deployment.id`)                                   | `187463201` (`release.id`)                                     |
+| `environment_name` | `production` (`deployment.environment`)                          | `release` (constant)                                           |
+| `ref`              | `main` (`deployment.ref`)                                        | `v2.4.0` (`release.tag_name`)                                  |
+| `commit_sha`       | `9f8b1c4e…` (`deployment.sha`)                                   | empty — `target_commitish` was `main`, not a SHA               |
+| `started_at`       | `2026-09-15T09:14:02Z` (`deployment.created_at`)                 | `2026-09-15T10:02:11Z` (`release.created_at`, the draft)       |
+| `completed_at`     | `2026-09-15T09:18:47Z` (`deployment_status.created_at`)          | `2026-09-15T10:07:33Z` (`release.published_at`)                |
+| `deployed_at`      | `2026-09-15T09:18:47Z` (same as `completed_at`)                  | `2026-09-15T10:07:33Z` (same as `completed_at`)                |
+| `html_url`         | `…/acme/api/actions/runs/34988991322` (`deployment_status.target_url`) | `…/acme/sdk/releases/tag/v2.4.0` (`release.html_url`)    |
+| `source`           | `deployment`                                                     | `release`                                                      |
+
+Both `html_url` values go through `validate_github_url`, and `published_at` falls back to
+`created_at` on the rare release that carries no publication time. Every other column —
+`id`, `tenant_id`, `repo_id`, `created_at` — is filled the same way regardless of source,
+and the rows are indistinguishable to attribution, the metrics jobs and the dashboard.
 
 `deployment_events.source` records what produced each row. Nothing filters on it: a repo
 that ran on deployment events and then switched has one continuous history, which is what
