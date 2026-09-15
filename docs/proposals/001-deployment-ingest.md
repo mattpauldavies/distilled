@@ -204,8 +204,6 @@ publishing `v2.4.0`:
 | ------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------- |
 | `deployment_id`    | `1084312904` (`deployment.id`)                                   | `187463201` (`release.id`)                                     |
 | `environment_name` | `production` (`deployment.environment`)                          | `release` (constant)                                           |
-| `ref`              | `main` (`deployment.ref`)                                        | `v2.4.0` (`release.tag_name`)                                  |
-| `commit_sha`       | `9f8b1c4e…` (`deployment.sha`)                                   | empty — `target_commitish` was `main`, not a SHA               |
 | `started_at`       | `2026-09-15T09:14:02Z` (`deployment.created_at`)                 | `2026-09-15T10:02:11Z` (`release.created_at`, the draft)       |
 | `completed_at`     | `2026-09-15T09:18:47Z` (`deployment_status.created_at`)          | `2026-09-15T10:07:33Z` (`release.published_at`)                |
 | `deployed_at`      | `2026-09-15T09:18:47Z` (same as `completed_at`)                  | `2026-09-15T10:07:33Z` (same as `completed_at`)                |
@@ -216,6 +214,10 @@ Both `html_url` values go through `validate_github_url`, and `published_at` fall
 `created_at` on the rare release that carries no publication time. Every other column —
 `id`, `tenant_id`, `repo_id`, `created_at` — is filled the same way regardless of source,
 and the rows are indistinguishable to attribution, the metrics jobs and the dashboard.
+
+The same migration drops `ref` and `commit_sha` (see Decisions), so `GET /deployments` and
+the deployment summary on `GET /pull-requests/{id}` stop returning them. Neither has a
+client consumer.
 
 `deployment_events.source` records what produced each row. Nothing filters on it: a repo
 that ran on deployment events and then switched has one continuous history, which is what
@@ -253,13 +255,19 @@ updated permission before release events are delivered.
 **One source at a time, enforced at ingest.** A repo that both deploys and releases would
 double count, and only its team knows which is real.
 
-**`environment_name = "release"`.** The column is `NOT NULL` and drives the deployments
-list's environment filter. A fixed label is honest; an empty string looks like a bug and
-the tag name would fill the filter with every version ever shipped.
+**`ref` and `commit_sha` are dropped from `deployment_events`.** Neither is read anywhere:
+attribution is time-window based, no metric touches them, and the client never calls the
+endpoints that serialise them. They also do not survive the second source — a release's
+`target_commitish` is usually a branch name rather than the tag's commit, so `commit_sha`
+would be empty on most release rows and populating it properly would cost an API round trip
+per release for a field with no reader. Rather than carry two columns that mean different
+things depending on the source, the migration drops both.
 
-**No tag → SHA resolution.** The payload carries `target_commitish` (a branch name *or* a
-SHA), not the tag's commit. Nothing reads `commit_sha` — attribution is time-window based —
-so resolving it would cost an API round trip per release for a field no one uses.
+**`environment_name = "release"`.** The column stays and is `NOT NULL`. It is the only
+per-row evidence of *why* a deployment was counted, which the greedy-substring decision
+above explicitly leans on: `prod|live` also matches `preprod` and `staging-prod-mirror`,
+and the environment name on the row is how an inflated count gets traced and corrected. A
+fixed label for releases is honest; an empty string looks like a bug.
 
 **No backfill, no recomputation on switch.** Consistent with deployment tracking, which has
 never imported history. The new source counts from the next matching event; nothing is
