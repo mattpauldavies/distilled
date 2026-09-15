@@ -16,7 +16,7 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.deployment_attribution import DeploymentAttribution
-from app.models.deployment_event import ProductionDeploymentEvent
+from app.models.deployment_event import SOURCE_DEPLOYMENT, ProductionDeploymentEvent
 from app.models.metrics import (
     DeploymentDailyMetric,
     LeadTimeWeeklyMetric,
@@ -278,15 +278,22 @@ async def get_pr_throughput(
     return [{"week_start": m.week_start, "pr_count": m.pr_count} for m in result.scalars().all()]
 
 
+def _needs_production_environment(repo: Repository) -> bool:
+    """A published release is a production ship, so release-tracked repos have
+    no environment to classify."""
+    return repo.deployment_source == SOURCE_DEPLOYMENT
+
+
 async def get_deployment_frequency_section(
     tenant_id: uuid.UUID,
     repo: Repository,
     session: AsyncSession,
     days: int = 30,
 ) -> DeploymentFrequencySection:
-    prod_envs = await get_production_environments(tenant_id, repo.id, session)
-    if not prod_envs:
-        return DeploymentFrequencySection(status="setup_required")
+    if _needs_production_environment(repo):
+        prod_envs = await get_production_environments(tenant_id, repo.id, session)
+        if not prod_envs:
+            return DeploymentFrequencySection(status="setup_required")
 
     result = await get_deployment_frequency(tenant_id, repo, session, days)
     return DeploymentFrequencySection(
@@ -304,9 +311,10 @@ async def get_lead_time_section(
     session: AsyncSession,
     days: int = 30,
 ) -> LeadTimeSection:
-    prod_envs = await get_production_environments(tenant_id, repo.id, session)
-    if not prod_envs:
-        return LeadTimeSection(status="setup_required")
+    if _needs_production_environment(repo):
+        prod_envs = await get_production_environments(tenant_id, repo.id, session)
+        if not prod_envs:
+            return LeadTimeSection(status="setup_required")
 
     weekly = await get_lead_time_summary(tenant_id, repo, session, days)
     agg = await get_lead_time_aggregate(tenant_id, repo, session, days)
@@ -323,9 +331,10 @@ async def get_pr_cycle_time_section(
     session: AsyncSession,
     days: int = 30,
 ) -> PRCycleTimeSection:
-    prod_envs = await get_production_environments(tenant_id, repo.id, session)
-    if not prod_envs:
-        return PRCycleTimeSection(status="setup_required")
+    if _needs_production_environment(repo):
+        prod_envs = await get_production_environments(tenant_id, repo.id, session)
+        if not prod_envs:
+            return PRCycleTimeSection(status="setup_required")
 
     weekly = await get_pr_cycle_time_summary(tenant_id, repo, session, days)
     agg = await get_pr_cycle_time_aggregate(tenant_id, repo, session, days)
@@ -395,5 +404,6 @@ async def get_data_quality_section(
         setup=SetupInfo(
             has_production_environment=len(prod_envs) > 0,
             production_environments=prod_envs,
+            deployment_source=repo.deployment_source,
         ),
     )

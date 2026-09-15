@@ -1,8 +1,17 @@
+import { StrictMode, type ReactNode } from "react"
 import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { server } from "@/test/mocks/server"
 import { renderWithProviders } from "@/test/render"
+import { useWorkspaceContext } from "@/lib/workspaceContext"
 import { OnboardingScreen } from "./OnboardingScreen"
+
+// Mirrors App's Home: the screen only mounts once the workspace is resolved,
+// so isOwner is already true on its first mount.
+function WhenWorkspaceReady({ children }: { children: ReactNode }) {
+  const { activeWorkspace } = useWorkspaceContext()
+  return activeWorkspace ? <>{children}</> : null
+}
 
 vi.mock("@clerk/clerk-react", () => {
   const stableGetToken = async () => "test-clerk-token"
@@ -87,5 +96,35 @@ describe("OnboardingScreen", () => {
     await new Promise((r) => setTimeout(r, 150))
 
     expect(onReposDetected).not.toHaveBeenCalled()
+  })
+
+  it("renders the install link when mounted with the workspace already resolved", async () => {
+    // How the app mounts it: Home only renders this screen once the workspace
+    // is known, so isOwner is true on the first mount — and StrictMode then
+    // mounts, tears down and remounts the effect.
+    let mintCount = 0
+    server.use(
+      http.post("/installations/intents", () => {
+        mintCount += 1
+        return HttpResponse.json({
+          install_url: `https://github.com/apps/test-app/installations/new?state=nonce-${mintCount}`,
+        })
+      })
+    )
+
+    renderWithProviders(
+      <StrictMode>
+        <WhenWorkspaceReady>
+          <OnboardingScreen onReposDetected={vi.fn()} />
+        </WhenWorkspaceReady>
+      </StrictMode>
+    )
+
+    const installLink = await screen.findByRole("link", { name: /Install GitHub App/ })
+    expect(installLink).toHaveAttribute(
+      "href",
+      "https://github.com/apps/test-app/installations/new?state=nonce-1"
+    )
+    expect(mintCount).toBe(1)
   })
 })

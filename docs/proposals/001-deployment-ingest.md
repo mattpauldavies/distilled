@@ -30,9 +30,13 @@ PRs were attributed to it.
 `PATCH /environments/{id}`. Classification happens once, when the environment is first
 discovered, and is persisted on `environments.is_production`.
 
+**Deployment source** — what counts as a deployment for one repository:
+`deployment` (the default) or `release`. Stored on `repositories.deployment_source`.
+
 **Production deployment event** — recorded when a `deployment_status` webhook arrives with
-`state == "success"` for an environment marked production. De-duplicated on GitHub's
-`deployment_id`.
+`state == "success"` for an environment marked production, or when a `release` webhook
+arrives with action `published` on a release-tracked repository. De-duplicated on GitHub's
+id within its source.
 
 ## Design
 
@@ -47,6 +51,7 @@ are parsed into domain rows inline — nothing raw is stored.
 | `installation`             | Upsert the installation, sync repos, discover environments     |
 | `installation_repositories`| Add or soft-remove repos across every linked workspace         |
 | `deployment_status`        | On success in a production environment, record a deployment    |
+| `release`                  | On `published`, record a deployment (drafts and pre-releases ignored) |
 | `pull_request`             | Upsert the PR on open, draft toggle, reopen, close, and merge  |
 
 The domain model, service names, and fan-out semantics are described in
@@ -166,3 +171,125 @@ cache; payload storage and an admin replay surface; scheduled detection of stuck
   migration.
 - **RFC 026** made ingest fan out to every workspace tracking a repo — see
   [004 Accounts and Workspaces](004-accounts-and-workspaces.md).
+- **Release-based tracking** added a per-repository deployment source, the `release`
+  handler, and a source-aware `setup_required` gate; `deployment_events` gained `source`
+  and lost `ref` and `commit_sha`.
+
+---
+
+## Release-based deployment tracking
+
+Deployment detection above assumes a team uses GitHub Deployments. Many don't: they ship
+from a pipeline that never calls the Deployments API, or they version and publish releases
+(libraries, SDKs, mobile and desktop apps, anything on a tagged cadence). For those teams
+three of the four dashboard sections sit permanently in `setup_required`, and the only fix
+Distilled offers is "change how you ship". The signal they already emit is a published
+release, so read that instead.
+
+### Design
+
+**The source is chosen per repository**, not per workspace: a workspace typically holds
+services that deploy and libraries that release, so one answer for both would be wrong for
+half of them. `repositories.deployment_source` is `'deployment'` (the default, and what
+every repo did before this) or `'release'`, set by a workspace owner via
+`PATCH /repos/{repo_id}` from the **Settings → Deployment Tracking** page in the profile
+menu — a repo list with a two-option control per row.
+
+**Releases land in the existing `deployment_events` table.**
+`ingest_release_service` handles `release` with action `published`, skipping drafts and
+pre-releases, fanning out over the repo's workspaces exactly as `deployment_status` does
+and skipping any whose source is not `'release'`. `handle_deployment_status_event` has
+the mirror-image skip. Both return `SKIPPED` when nothing matched, so a dropped delivery is
+visible in `webhook_events` rather than silent. Attribution, metrics, the deployments list
+and the batch jobs are untouched.
+
+The same row, from each source — `acme/api` deploying to `production`, and `acme/sdk`
+publishing `v2.4.0`:
+
+| Column             | From `deployment_status`                                        | From `release.published`                                      |
+| ------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| `deployment_id`    | `1084312904` (`deployment.id`)                                   | `187463201` (`release.id`)                                     |
+| `environment_name` | `production` (`deployment.environment`)                          | `release` (constant)                                           |
+| `started_at`       | `2026-09-15T09:14:02Z` (`deployment.created_at`)                 | `2026-09-15T10:02:11Z` (`release.created_at`, the draft)       |
+| `completed_at`     | `2026-09-15T09:18:47Z` (`deployment_status.created_at`)          | `2026-09-15T10:07:33Z` (`release.published_at`)                |
+| `deployed_at`      | `2026-09-15T09:18:47Z` (same as `completed_at`)                  | `2026-09-15T10:07:33Z` (same as `completed_at`)                |
+| `html_url`         | `…/acme/api/actions/runs/34988991322` (`deployment_status.target_url`) | `…/acme/sdk/releases/tag/v2.4.0` (`release.html_url`)    |
+| `source`           | `deployment`                                                     | `release`                                                      |
+
+Both `html_url` values go through `validate_github_url`, and `published_at` falls back to
+`created_at` on the rare release that carries no publication time. Every other column —
+`id`, `tenant_id`, `repo_id`, `created_at` — is filled the same way regardless of source,
+and the rows are indistinguishable to attribution, the metrics jobs and the dashboard.
+
+`ref` and `commit_sha` are gone (see Decisions), so `GET /deployments` and the deployment
+summary on `GET /pull-requests/{id}` no longer return them. Neither had a client consumer.
+
+`deployment_events.source` records what produced each row. Nothing filters on it: a repo
+that ran on deployment events and then switched has one continuous history, which is what
+an owner means by "switch". The unique constraint is
+`(tenant_id, source, deployment_id)` — deployment IDs and release IDs are separate numeric
+spaces sharing one column, and a collision would make a real deployment look like a
+duplicate and drop it.
+
+**The `setup_required` gate is source-aware.** The three sections in
+`read_metrics_service` that require a production environment apply that requirement only
+when `deployment_source == 'deployment'`. A published release *is* a production ship, and a
+library repo has no environments to classify; without this, switching to releases would
+record deployments the dashboard then refuses to show. `get_data_quality_section` reports
+`deployment_source` so the client stops asking release-tracked repos for an environment.
+
+### Decisions
+
+**`release.published`, not `release.created`.** GitHub fires `created` when a **draft is
+saved**, and does not fire it when that draft is later published — so every draft-first
+workflow (release-drafter, semantic-release, or simply reviewing before publishing) would
+record a deployment at draft time and nothing at ship time. `published` fires whenever a
+release goes live, including one promoted from a draft. Pre-releases and drafts are
+excluded; a pre-release promoted to GA fires `release.released`, which this design does not
+handle.
+
+**Contents: read is the cost of entry.** A GitHub App may only subscribe to the `release`
+event if it holds [read access to Contents](https://docs.github.com/en/webhooks/webhook-events-and-payloads).
+The gate is on *delivery*, not on reading anything — the payload is pushed to us, no API
+call is involved — and it covers the event as a whole, so every action sits behind it.
+GitHub has no separate Releases permission, and every alternative route to the same signal
+(the Releases API, `push` with tag refs, the `create` tag event) is behind the same one.
+The permission has been added to both App registrations. Installations must accept the
+updated permission before release events are delivered.
+
+**One source at a time, enforced at ingest.** A repo that both deploys and releases would
+double count, and only its team knows which is real.
+
+**`ref` and `commit_sha` were dropped from `deployment_events`.** Neither was read anywhere:
+attribution is time-window based, no metric touches them, and the client never calls the
+endpoints that serialise them. They also do not survive the second source — a release's
+`target_commitish` is usually a branch name rather than the tag's commit, so `commit_sha`
+would be empty on most release rows and populating it properly would cost an API round trip
+per release for a field with no reader. Rather than carry two columns that mean different
+things depending on the source, the migration dropped both.
+
+**`environment_name = "release"`.** The column stayed, and is `NOT NULL`. It is the only
+per-row evidence of *why* a deployment was counted, which the greedy-substring decision
+above explicitly leans on: `prod|live` also matches `preprod` and `staging-prod-mirror`,
+and the environment name on the row is how an inflated count gets traced and corrected. A
+fixed label for releases is honest; an empty string looks like a bug.
+
+**No backfill, no recomputation on switch.** Consistent with deployment tracking, which has
+never imported history. The new source counts from the next matching event; nothing is
+deleted or recomputed.
+
+### Accepted consequences
+
+- Teams that both deploy and release under-count one of them. Intended, and the most likely
+  source of "my numbers look low" questions.
+- A repo switched to releases before its installation accepts the new permission looks
+  identical to a quiet repo, with nothing in the UI to say so. A "no release seen since you
+  switched" signal in data quality would be the follow-up.
+- Historic deployment rows and new release rows share one environment filter, where
+  `release` sits alongside real environment names.
+
+### Deferred
+
+`release.released` (pre-release promoted to GA), backfilling past releases from the API,
+tag-push and `workflow_run` as sources, a workspace-level default for new repos, and
+per-source breakdowns in metrics.

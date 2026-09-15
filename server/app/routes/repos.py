@@ -10,7 +10,7 @@ from app.middleware.tenant import get_tenant_id
 from app.models.repository import Repository
 from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.installation import AddReposRequest
-from app.schemas.repos import RepoResponse
+from app.schemas.repos import RepoResponse, UpdateRepoRequest
 from app.services import installation_link_service
 from app.services.installation_link_service import LinkError
 from app.services.pagination import paginate
@@ -45,6 +45,31 @@ async def add_repos(
     except LinkError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return [RepoResponse.model_validate(row) for row in rows]
+
+
+@router.patch("/{repo_id}", response_model=RepoResponse)
+async def update_repo(
+    repo_id: uuid.UUID,
+    body: UpdateRepoRequest,
+    current: CurrentUser = Depends(require_owner),
+    session: AsyncSession = Depends(get_session),
+) -> RepoResponse:
+    """Change what counts as a deployment for one repo."""
+    result = await session.execute(
+        select(Repository).where(
+            Repository.id == repo_id,
+            Repository.tenant_id == current.tenant_id,
+            Repository.removed_at.is_(None),
+        )
+    )
+    # id is the primary key, so this matches at most one row.
+    repo = result.scalar_one_or_none()
+    if repo is None:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    repo.deployment_source = body.deployment_source
+    await session.commit()
+    return RepoResponse.model_validate(repo)
 
 
 @router.delete("/{repo_id}", status_code=status.HTTP_204_NO_CONTENT)

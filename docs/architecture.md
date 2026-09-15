@@ -35,7 +35,8 @@ service-name prefixes below — are recorded in
 - **github_client** — JWT auth, installation token management, GitHub API wrapper
 - **ingest_installation_service** — handles app installation lifecycle webhooks (install, uninstall, repos added/removed), fanning repo sync out to every linked workspace
 - **installation_link_service** — installation intents/claims, workspace↔installation links, and per-workspace repo curation (add/remove/unlink, live available-repos listing); owns the shared repo-sync and environment-discovery helpers
-- **ingest_deployment_service** — processes deployment_status events
+- **ingest_deployment_service** — processes deployment_status events for repos tracking deployments
+- **ingest_release_service** — processes published release events for repos tracking releases
 - **ingest_pr_service** — processes pull_request events into the PullRequest table
 - **attribution_service** — links merged PRs to deployments via time-window heuristic
 - **environment_service** — auto-detects production environments by name pattern: any name
@@ -105,12 +106,24 @@ and reused by every metric query.
 
 ### Data flow: webhook to deployment
 
-1. GitHub sends `deployment_status` to `POST /webhooks/github`
+1. GitHub sends `deployment_status` (or `release`) to `POST /webhooks/github`
 2. HMAC signature verified against `GITHUB_WEBHOOK_SECRET`
 3. Event dispatched to handler via `BackgroundTasks` (return 200 immediately)
-4. Handler checks `state == "success"` and environment `is_production`
-5. Creates `ProductionDeploymentEvent`
-6. Attribution service links PRs merged since last deployment
+4. Handler skips any workspace whose `repositories.deployment_source` names the other source
+5. `deployment_status` additionally checks `state == "success"` and environment `is_production`;
+   a published release needs no environment, and is skipped if it is a draft or pre-release
+6. Creates `ProductionDeploymentEvent`, keyed `(tenant_id, source, deployment_id)`
+7. Attribution service links PRs merged since last deployment
+
+### Deployment source
+
+Each repository decides what counts as a deployment: `deployment` (the default — a successful
+`deployment_status` on a production environment) or `release` (a published GitHub release).
+Owners set it per repo via `PATCH /repos/{repo_id}`. Both produce the same `deployment_events`
+row, distinguished only by `source`, so metrics, attribution and the dashboard read one
+continuous history across a switch. Release-tracked repos are exempt from the
+production-environment requirement that otherwise puts a repo in `setup_required` — publishing
+a release is itself the production ship ([Proposal 001](proposals/001-deployment-ingest.md)).
 
 ### Workspaces (tenants in the schema)
 
@@ -132,7 +145,7 @@ Workspace deletion is a single `DELETE FROM tenants WHERE id = ...`: every works
 
 Binding an installation to a workspace is explicit: the client requests an **installation intent** (`POST /installations/intents`, owner-only), whose nonce travels through GitHub's `state` parameter. Because the setup callback (`/github/setup` → `POST /installations/claim`) carries a client-supplied `installation_id`, claiming requires proof the caller controls that installation ([Proposal 004](proposals/004-accounts-and-workspaces.md)): user-type installations verify the installation's account against the caller's GitHub account id and bind immediately; org-type installations bind only via webhook **sender matching** — the installation event's `sender.id` is matched against the open intent of that user — while the callback answers `202 pending` and the client polls until the webhook lands. Binding syncs all granted repos into the workspace and discovers their environments.
 
-Repositories are per-workspace rows (`UNIQUE(tenant_id, github_id)`): the same GitHub repo tracked by three workspaces is three `repositories` rows, each accumulating its own PRs, deployments, environments, and metrics. `pull_request` and `deployment_status` ingest fans one webhook event out to every workspace tracking the repo. Repo lifecycle:
+Repositories are per-workspace rows (`UNIQUE(tenant_id, github_id)`): the same GitHub repo tracked by three workspaces is three `repositories` rows, each accumulating its own PRs, deployments, environments, and metrics. `pull_request`, `deployment_status` and `release` ingest fans one webhook event out to every workspace tracking the repo. Repo lifecycle:
 
 - **Add**: owners pick from the installation's live grant list (`GET /installations/{id}/available-repos`, fetched from GitHub — no local catalogue) via `POST /repos`.
 - **Remove**: `DELETE /repos/{id}` soft-deletes (`removed_at`) in that workspace only; historical data is retained but hidden. Removals are **sticky** — webhook syncs (`installation_repositories.added`, re-installs) never resurrect a removed repo; only explicit user actions do.

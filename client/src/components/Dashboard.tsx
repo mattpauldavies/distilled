@@ -26,9 +26,15 @@ interface DashboardProps {
   repos: Repo[]
   onOpenTeam?: () => void
   onOpenRepos?: () => void
+  onOpenDeploymentTracking?: () => void
 }
 
-export function Dashboard({ repos, onOpenTeam, onOpenRepos }: DashboardProps) {
+export function Dashboard({
+  repos,
+  onOpenTeam,
+  onOpenRepos,
+  onOpenDeploymentTracking,
+}: DashboardProps) {
   const [userSelectedRepoId, setUserSelectedRepoId] = useState<string | null>(null)
   const [selectedDaysWindow, setDaysWindow] = useState<DaysWindow>(90)
 
@@ -87,6 +93,7 @@ export function Dashboard({ repos, onOpenTeam, onOpenRepos }: DashboardProps) {
           daysOfData={daysOfData}
           onOpenTeam={onOpenTeam}
           onOpenRepos={onOpenRepos}
+          onOpenDeploymentTracking={onOpenDeploymentTracking}
         />
       </div>
 

@@ -62,9 +62,7 @@ async def test_data_quality_no_production(client, mock_session):
         ) as mock_cov,
     ):
         mock_envs.return_value = []
-        mock_fresh.return_value = MetricsFreshness(
-            status="no_data", last_refresh_at=None, days_of_data=0
-        )
+        mock_fresh.return_value = MetricsFreshness(status="no_data", last_refresh_at=None, days_of_data=0)
         mock_cov.return_value = None
 
         resp = await client.get(f"/metrics/data-quality?repo_id={REPO_ID}")
@@ -76,3 +74,34 @@ async def test_data_quality_no_production(client, mock_session):
     assert data["freshness"]["last_refresh_at"] is None
     assert data["freshness"]["days_of_data"] == 0
     assert data["setup"]["has_production_environment"] is False
+
+
+@pytest.mark.asyncio
+async def test_data_quality_reports_deployment_source(client, mock_session):
+    """The client needs the source to know whether to ask for an environment."""
+    with (
+        patch(
+            "app.services.read_metrics_service.get_production_environments",
+            new_callable=AsyncMock,
+        ) as mock_envs,
+        patch(
+            "app.services.read_metrics_service.get_metrics_freshness",
+            new_callable=AsyncMock,
+        ) as mock_fresh,
+        patch(
+            "app.services.read_metrics_service.get_attribution_coverage",
+            new_callable=AsyncMock,
+        ) as mock_cov,
+    ):
+        mock_envs.return_value = []
+        mock_fresh.return_value = MetricsFreshness(
+            status="ok",
+            last_refresh_at=datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC),
+            days_of_data=10,
+        )
+        mock_cov.return_value = 50.0
+
+        resp = await client.get(f"/metrics/data-quality?repo_id={REPO_ID}")
+
+    assert resp.status_code == 200
+    assert resp.json()["setup"]["deployment_source"] == "deployment"

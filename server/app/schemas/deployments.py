@@ -11,8 +11,7 @@ class DeploymentResponse(BaseModel):
     repo_id: uuid.UUID
     environment_name: str
     deployment_id: int
-    commit_sha: str
-    ref: str
+    source: str
     deployed_at: datetime
     html_url: str
     created_at: datetime

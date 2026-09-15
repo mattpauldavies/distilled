@@ -169,7 +169,6 @@ def make_sha(seed: str) -> str:
     return hashlib.sha1(seed.encode(), usedforsecurity=False).hexdigest()
 
 
-
 def _generate_week_prs(
     rng: random.Random,
     repo_id: UUID,
@@ -255,9 +254,8 @@ def _generate_week_deployments(
                 tenant_id=tenant_id,
                 repo_id=repo_id,
                 environment_name="production",
+                source="deployment",
                 deployment_id=dep_id,
-                commit_sha=make_sha(f"deploy:{dep_id}"),
-                ref="main",
                 started_at=deployed_at - timedelta(minutes=5),
                 completed_at=deployed_at,
                 deployed_at=deployed_at,
@@ -591,10 +589,7 @@ async def main() -> None:
         for repo in seeded_repos:
             recompute_result = await recompute_repo_and_log(TENANT_ID, repo, session)
             if recompute_result.status != "success":
-                print(
-                    f"WARNING: metrics recompute failed for {repo.full_name}: "
-                    f"{recompute_result.error_message}"
-                )
+                print(f"WARNING: metrics recompute failed for {repo.full_name}: {recompute_result.error_message}")
 
         await session.commit()
         open_pr_count = len(web_open_prs + api_open_prs)

@@ -15,6 +15,7 @@ export function makeRepo(overrides?: Partial<Repo>): Repo {
     github_id: 12345,
     full_name: "org/my-repo",
     default_branch: "main",
+    deployment_source: "deployment",
     created_at: "2025-01-01T00:00:00Z",
     ...overrides,
   }
@@ -95,7 +96,11 @@ export function makeDataQuality(overrides?: Partial<DataQuality>): DataQuality {
       last_refresh_at: new Date().toISOString(),
       days_of_data: 200,
     },
-    setup: { has_production_environment: true, production_environments: ["production"] },
+    setup: {
+      has_production_environment: true,
+      production_environments: ["production"],
+      deployment_source: "deployment",
+    },
     ...overrides,
   }
 }

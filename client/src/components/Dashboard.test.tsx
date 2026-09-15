@@ -1,4 +1,5 @@
 import { screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { http, HttpResponse, delay } from "msw"
 import { server } from "@/test/mocks/server"
 import {
@@ -197,5 +198,25 @@ describe("Dashboard", () => {
 
     expect(screen.getByRole("button", { name: "90d" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "6m" })).toBeDisabled()
+  })
+
+  it("reaches the settings entries in the profile menu", async () => {
+    // Guards the whole chain — Dashboard → DashboardControls → ProfileMenu.
+    // Passing the handlers straight to ProfileMenu in its own test hid a prop
+    // that never got forwarded.
+    const onOpenDeploymentTracking = vi.fn()
+    render(
+      <Dashboard
+        repos={defaultRepos}
+        onOpenTeam={vi.fn()}
+        onOpenRepos={vi.fn()}
+        onOpenDeploymentTracking={onOpenDeploymentTracking}
+      />
+    )
+
+    await userEvent.click(await screen.findByRole("button", { name: "Account menu" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Deployment Tracking" }))
+
+    expect(onOpenDeploymentTracking).toHaveBeenCalled()
   })
 })

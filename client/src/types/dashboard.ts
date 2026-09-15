@@ -70,6 +70,7 @@ export interface FreshnessInfo {
 export interface SetupInfo {
   has_production_environment: boolean
   production_environments: string[]
+  deployment_source: DeploymentSource
 }
 
 export interface DataQuality {
@@ -78,11 +79,14 @@ export interface DataQuality {
   setup: SetupInfo
 }
 
+export type DeploymentSource = "deployment" | "release"
+
 export interface Repo {
   id: string
   github_id: number
   full_name: string
   default_branch: string
+  deployment_source: DeploymentSource
   created_at: string
 }
 

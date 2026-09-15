@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { screen } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/render"
 import { ProfileMenu } from "@/components/ProfileMenu"
@@ -19,5 +19,31 @@ describe("ProfileMenu", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Create workspace/ }))
     expect(await screen.findByText("Create a workspace")).toBeInTheDocument()
+  })
+
+  it("offers Deployment Tracking to owners", async () => {
+    const onOpenDeploymentTracking = vi.fn()
+    renderWithProviders(<ProfileMenu onOpenDeploymentTracking={onOpenDeploymentTracking} />)
+
+    await userEvent.click(await screen.findByRole("button", { name: "Account menu" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Deployment Tracking" }))
+
+    expect(onOpenDeploymentTracking).toHaveBeenCalled()
+  })
+
+  it("groups the settings entries under a Settings heading", async () => {
+    renderWithProviders(
+      <ProfileMenu onOpenTeam={vi.fn()} onOpenRepos={vi.fn()} onOpenDeploymentTracking={vi.fn()} />
+    )
+
+    await userEvent.click(await screen.findByRole("button", { name: "Account menu" }))
+
+    const settings = await screen.findByRole("group", { name: "Settings" })
+    expect(within(settings).getByRole("button", { name: "Team" })).toBeInTheDocument()
+    expect(within(settings).getByRole("button", { name: "Repositories" })).toBeInTheDocument()
+    expect(
+      within(settings).getByRole("button", { name: "Deployment Tracking" })
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Team Settings" })).not.toBeInTheDocument()
   })
 })

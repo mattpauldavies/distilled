@@ -19,9 +19,11 @@ export function OnboardingScreen({
 
   const [installUrl, setInstallUrl] = useState<string | null>(null)
   const [intentError, setIntentError] = useState(false)
-  // Mint exactly one intent per mount cycle: StrictMode double-fires the
-  // effect, and a second concurrent mint supersedes the first — leaving the
-  // rendered install link carrying a dead nonce.
+  // Mint exactly one intent per mount cycle: a second concurrent mint
+  // supersedes the first, leaving the rendered install link carrying a dead
+  // nonce. StrictMode's remount skips this guard, so the run that did mint must
+  // apply its result even after being torn down — discarding it leaves the
+  // screen on "Preparing GitHub connection…" for good.
   const mintedRef = useRef(false)
 
   // The install link carries a workspace-bound state nonce, so GitHub's
@@ -30,10 +32,8 @@ export function OnboardingScreen({
   useEffect(() => {
     if (!isOwner || mintedRef.current) return
     mintedRef.current = true
-    let cancelled = false
     apiFetch("/installations/intents", { method: "POST" })
       .then(async (res) => {
-        if (cancelled) return
         if (!res.ok) {
           setIntentError(true)
           return
@@ -42,12 +42,7 @@ export function OnboardingScreen({
         setInstallUrl(data.install_url)
         setIntentError(false)
       })
-      .catch(() => {
-        if (!cancelled) setIntentError(true)
-      })
-    return () => {
-      cancelled = true
-    }
+      .catch(() => setIntentError(true))
   }, [apiFetch, isOwner])
 
   useEffect(() => {

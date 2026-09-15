@@ -9,6 +9,7 @@ import { OnboardingScreen } from "@/components/OnboardingScreen"
 import { ReposErrorScreen } from "@/components/ReposErrorScreen"
 import { SignInPage } from "@/components/SignInPage"
 import { RepositoriesPage } from "@/components/repos/RepositoriesPage"
+import { DeploymentTrackingPage } from "@/components/settings/DeploymentTrackingPage"
 import { TeamPage } from "@/components/team/TeamPage"
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage"
 import { GitHubSetupPage } from "@/pages/GitHubSetupPage"
@@ -22,7 +23,9 @@ function Home() {
     activeWorkspace,
   } = useWorkspaceContext()
   const { repos, loading, error, refetch } = useRepos()
-  const [settingsPage, setSettingsPage] = useState<"none" | "team" | "repos">("none")
+  const [settingsPage, setSettingsPage] = useState<"none" | "team" | "repos" | "deployments">(
+    "none"
+  )
 
   if (workspaceLoading) return <InitialisingScreen />
   if (workspaceError)
@@ -34,6 +37,9 @@ function Home() {
   if (settingsPage === "repos" && activeWorkspace.role === "owner") {
     return <RepositoriesPage onClose={() => setSettingsPage("none")} />
   }
+  if (settingsPage === "deployments" && activeWorkspace.role === "owner") {
+    return <DeploymentTrackingPage onClose={() => setSettingsPage("none")} />
+  }
   if (loading) return <InitialisingScreen />
   if (error) return <ReposErrorScreen error={error} onRetry={refetch} />
   if (repos.length === 0) return <OnboardingScreen onReposDetected={refetch} />
@@ -42,6 +48,7 @@ function Home() {
       repos={repos}
       onOpenTeam={() => setSettingsPage("team")}
       onOpenRepos={() => setSettingsPage("repos")}
+      onOpenDeploymentTracking={() => setSettingsPage("deployments")}
     />
   )
 }

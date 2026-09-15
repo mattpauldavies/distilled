@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.deployment_event import ProductionDeploymentEvent
+from app.models.deployment_event import SOURCE_DEPLOYMENT, ProductionDeploymentEvent
 from app.models.environment import Environment
 from app.models.repository import Repository
 from app.services.attribution_service import attribute_prs_to_deployment
@@ -38,6 +38,14 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
 
     handled = False
     for repo in repos:
+        if repo.deployment_source != SOURCE_DEPLOYMENT:
+            logger.info(
+                "repo_not_tracking_deployments repo=%s tenant=%s — skipping",
+                repo.full_name,
+                repo.tenant_id,
+            )
+            continue
+
         # Environment classification is per workspace — one workspace may mark
         # this environment production while another doesn't.
         env_result = await session.execute(
@@ -79,15 +87,14 @@ async def handle_deployment_status_event(payload: dict, session: AsyncSession) -
                 repo_id=repo.id,
                 environment_name=env_name,
                 deployment_id=deployment["id"],
-                commit_sha=deployment.get("sha", ""),
-                ref=deployment.get("ref", ""),
+                source=SOURCE_DEPLOYMENT,
                 started_at=started_at,
                 completed_at=completed_at,
                 deployed_at=deployed_at,
                 html_url=validate_github_url(deployment_status.get("target_url", "")),
             )
             .on_conflict_do_nothing(
-                index_elements=["tenant_id", "deployment_id"],
+                index_elements=["tenant_id", "source", "deployment_id"],
             )
         )
         insert_result = await session.execute(stmt)

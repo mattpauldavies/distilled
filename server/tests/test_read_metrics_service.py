@@ -273,3 +273,61 @@ async def test_get_pr_cycle_time_aggregate_empty_returns_none(mock_session):
 
     assert result["median_seconds"] is None
     assert result["sample_size"] == 0
+
+
+def _empty_result():
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = []
+    result.all.return_value = []
+    return result
+
+
+@pytest.mark.asyncio
+async def test_deployment_frequency_section_skips_environment_gate_for_releases(mock_session):
+    """A repo tracking releases has no environment to classify, so it must never
+    sit in setup_required."""
+    from app.services.read_metrics_service import get_deployment_frequency_section
+
+    repo = make_repo(id=REPO_ID, deployment_source="release")
+    mock_session.execute = AsyncMock(side_effect=[_empty_result()])
+
+    section = await get_deployment_frequency_section(TENANT_ID, repo, mock_session)
+
+    assert section.status == "ok"
+    assert mock_session.execute.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_lead_time_section_skips_environment_gate_for_releases(mock_session):
+    from app.services.read_metrics_service import get_lead_time_section
+
+    repo = make_repo(id=REPO_ID, deployment_source="release")
+    mock_session.execute = AsyncMock(side_effect=[_empty_result(), _empty_result()])
+
+    section = await get_lead_time_section(TENANT_ID, repo, mock_session)
+
+    assert section.status == "ok"
+
+
+@pytest.mark.asyncio
+async def test_pr_cycle_time_section_skips_environment_gate_for_releases(mock_session):
+    from app.services.read_metrics_service import get_pr_cycle_time_section
+
+    repo = make_repo(id=REPO_ID, deployment_source="release")
+    mock_session.execute = AsyncMock(side_effect=[_empty_result(), _empty_result()])
+
+    section = await get_pr_cycle_time_section(TENANT_ID, repo, mock_session)
+
+    assert section.status == "ok"
+
+
+@pytest.mark.asyncio
+async def test_deployment_tracked_repo_still_requires_production_environment(mock_session):
+    from app.services.read_metrics_service import get_deployment_frequency_section
+
+    repo = make_repo(id=REPO_ID, deployment_source="deployment")
+    mock_session.execute = AsyncMock(side_effect=[_empty_result()])
+
+    section = await get_deployment_frequency_section(TENANT_ID, repo, mock_session)
+
+    assert section.status == "setup_required"

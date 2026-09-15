@@ -23,7 +23,6 @@ class DeploymentSummary(BaseModel):
     id: uuid.UUID
     environment_name: str
     deployed_at: datetime
-    commit_sha: str
 
     model_config = {"from_attributes": True}
 

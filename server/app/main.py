@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 import app.services.ingest_deployment_service
 import app.services.ingest_installation_service
 import app.services.ingest_pr_service
+import app.services.ingest_release_service
 
 
 @asynccontextmanager

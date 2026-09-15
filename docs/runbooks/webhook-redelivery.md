@@ -21,7 +21,7 @@ statuses: `received`, `succeeded`, `failed`, `skipped`, `no_handler`.
 ```sql
 SELECT delivery_id, event_type, action, status, error_message, received_at, processed_at
 FROM webhook_events
-WHERE event_type IN ('deployment_status', 'pull_request')
+WHERE event_type IN ('deployment_status', 'release', 'pull_request')
   AND received_at > now() - interval '1 day'
 ORDER BY received_at DESC;
 ```
@@ -39,12 +39,15 @@ What to look for:
   installation isn't in our database, or the action isn't one we process. A run
   of `skipped` `pull_request`/`deployment_status` events usually means the
   `installation` event that should have created the repos was never processed —
-  fix that first, then redeliver the skipped events. A `skipped`
+  fix that first, then redeliver the skipped events. A `skipped` `release` (or
+  `deployment_status`) event with a `repo_not_tracking_releases` or
+  `repo_not_tracking_deployments` log line is not a fault: the repo counts the
+  other source, and redelivery will skip it again. A `skipped`
   `installation:created` with a "held unclaimed" warning means nobody had an
   open install intent (e.g. the App was installed directly from GitHub): the
   installation is recorded globally but attached to no workspace — have the
   user run **Connect GitHub** from their workspace rather than redelivering.
-  Note `pull_request`/`deployment_status` events fan out to every workspace
+  Note `pull_request`/`deployment_status`/`release` events fan out to every workspace
   tracking the repo; a redelivery re-runs the fan-out and stays idempotent per
   workspace.
 - **`status = 'no_handler'`** → we received the event but have no handler
@@ -80,8 +83,8 @@ button next to the delivery in GitHub. Notes:
   brand-new row in `webhook_events`. This is correct — it is a new delivery
   attempt from our perspective, even though the payload is identical.
 - The dispatcher is idempotent for the events we currently handle:
-  `deployment_status` UPSERTs on `(tenant_id, deployment_id)` and
-  `pull_request` UPSERTs on `(tenant_id, repo_id, number)`. Redelivery cannot
+  `deployment_status` and `release` UPSERT on `(tenant_id, source, deployment_id)`
+  and `pull_request` UPSERTs on `(tenant_id, repo_id, number)`. Redelivery cannot
   produce duplicate domain rows.
 
 ## When NOT to redeliver

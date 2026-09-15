@@ -111,6 +111,7 @@ Note: the webhook secret is used to authenticate the webhook, it is separate fro
 | Pull requests | Read-only                | `pull_request` event subscription              |
 | Deployments   | Read-only                | `deployment_status` event subscription         |
 | Actions       | Read-only                | `GET /repos/{owner}/{repo}/environments`       |
+| Contents      | Read-only                | `release` event subscription                   |
 
 **Actions: read** is not a typo. GitHub checks the Actions permission for the
 environments list endpoint; the `Environments` permission covers environment
@@ -255,6 +256,22 @@ Push a commit to `main` on your test repo. This will:
 1. Run the workflow targeting the `production` environment
 2. GitHub sends a `deployment_status` webhook with `state: success`
 3. Distilled detects the production environment and creates a deployment event
+
+### Testing release tracking instead
+
+Switch the repo to releases in **Settings · Deployment Tracking**, or directly:
+
+```sh
+curl -X PATCH http://localhost:8000/repos/{repo_id} \
+  -H 'Content-Type: application/json' \
+  -d '{"deployment_source": "release"}'
+```
+
+Then publish a release on the test repo (a tag alone is not enough, and drafts
+and pre-releases are ignored). GitHub sends a `release` webhook with action
+`published` and Distilled records a deployment with `environment_name` of
+`release` and the tag as its ref. Deployment statuses on that repo are ignored
+while it is in release mode, recorded as `skipped` in `webhook_events`.
 
 ### Verify
 

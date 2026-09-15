@@ -25,3 +25,29 @@
 - The same applies to inferred state: a missing `Environment` row was logged as
   "non-prod environment", which conflated "classified not production" with
   "never discovered". Distinguish the cases, or say only what you know.
+
+## Working with the repo
+
+- Fetch and rebase from `main` *before* writing new design documents. A PRD and
+  an RFC were written into `docs/prds/` and `docs/rfcs/` while main was
+  consolidating both into `docs/proposals/`, so the work had to be redone in the
+  new structure.
+
+## React effects
+
+- A `startedRef`/`mintedRef` "run once" guard combined with a `cancelled` flag in
+  the cleanup is a deadlock under StrictMode: the first run mints and is torn
+  down (setting `cancelled`), the remount hits the guard and returns, and the
+  in-flight result is then discarded. The screen sits on its pending state for
+  ever. Keep the guard, drop the cancellation — or the run that did the work
+  must still apply its result.
+- Mount components in tests the way the app mounts them. `OnboardingScreen`'s
+  tests passed for months because the test provider resolved the workspace
+  *after* mount, so `isOwner` started false and the effect re-ran on a
+  dependency change instead of being double-invoked. The app renders it only
+  once the workspace is known, which is the broken path.
+- Wire a new prop through the real composition, and test it there. A
+  `ProfileMenu` entry was added and unit-tested by passing the handler straight
+  to `ProfileMenu`, but the app renders it via `DashboardControls`, which never
+  forwarded the prop — so the menu item did not exist in the running app while
+  its test passed.

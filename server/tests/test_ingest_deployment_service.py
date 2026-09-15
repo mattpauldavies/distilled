@@ -181,3 +181,19 @@ async def test_fan_out_skips_workspace_without_production_env(mock_attribute, mo
 
     assert result is None
     assert mock_attribute.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_skips_repo_tracking_releases(mock_session, caplog):
+    """A repo switched to release tracking ignores its deployment statuses."""
+    repo = make_repo(github_id=111, deployment_source="release")
+    payload = _deployment_status_payload()
+
+    mock_session.execute.side_effect = [mock_result(rows=[repo])]
+
+    with caplog.at_level(logging.DEBUG, logger="app.services.ingest_deployment_service"):
+        result = await handle_deployment_status_event(payload, mock_session)
+
+    assert mock_session.execute.call_count == 1
+    assert result == SKIPPED
+    assert any("repo_not_tracking_deployments" in r.getMessage() for r in caplog.records)

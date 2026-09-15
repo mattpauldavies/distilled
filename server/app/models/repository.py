@@ -5,6 +5,7 @@ from sqlalchemy import BigInteger, DateTime, ForeignKey, String, UniqueConstrain
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
+from app.models.deployment_event import SOURCE_DEPLOYMENT
 
 
 class Repository(TimestampMixin, Base):
@@ -17,6 +18,10 @@ class Repository(TimestampMixin, Base):
     github_id: Mapped[int] = mapped_column(BigInteger)
     full_name: Mapped[str] = mapped_column(String(255))
     default_branch: Mapped[str] = mapped_column(String(255), default="main")
+    # Which webhook event counts as a deployment for this repo.
+    deployment_source: Mapped[str] = mapped_column(
+        String(20), default=SOURCE_DEPLOYMENT, server_default=SOURCE_DEPLOYMENT
+    )
     # Soft delete: set when the repo is removed from the GitHub App installation,
     # cleared when it is re-added. Historical PRs/deployments/metrics keep their FK.
     removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

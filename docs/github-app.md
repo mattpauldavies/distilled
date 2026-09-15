@@ -22,6 +22,7 @@ All four calls live in `server/app/services/github_client.py`.
 | --------------------------- | ------------------------------------------------------------ | ------------------------------ | ----------------------- |
 | `pull_request`              | `opened`, `reopened`, `closed`, `converted_to_draft`, `ready_for_review` | subscribe in App settings | **Pull requests: read** |
 | `deployment_status`         | `success` states only                                         | subscribe in App settings      | **Deployments: read**   |
+| `release`                   | `published`, excluding drafts and pre-releases                | subscribe in App settings      | **Contents: read**      |
 | `installation`              | `created`, `deleted`                                          | always delivered               | none                    |
 | `installation_repositories` | `added`, `removed`                                            | always delivered               | none                    |
 
@@ -33,7 +34,14 @@ All four calls live in `server/app/services/github_client.py`.
 | Pull requests | Read-only | `pull_request` event subscription                          |
 | Deployments   | Read-only | `deployment_status` event subscription                     |
 | Actions       | Read-only | `GET /repos/{owner}/{repo}/environments`                   |
+| Contents      | Read-only | `release` event subscription                               |
 
-Deliberately **not** requested: Contents, Checks, Commit statuses, Issues,
-Administration, Members, Environments. Distilled reads no source code.
+Contents is the only permission GitHub offers for release events: the gate is on
+**event delivery**, not on reading anything, and there is no narrower scope. Distilled
+makes no Contents API call. An installation must accept the permission before its release
+events are delivered — until it does, a repository set to release tracking records nothing.
+
+Deliberately **not** requested: Checks, Commit statuses, Issues, Administration,
+Members, Environments. Distilled does not modify source code, cannot write to a
+repository, and never stores user code.
 

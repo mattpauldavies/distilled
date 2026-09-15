@@ -20,7 +20,7 @@ async def test_list_deployments(client, mock_session):
     assert data["total"] == 1
     assert len(data["items"]) == 1
     assert data["items"][0]["id"] == str(deployment.id)
-    assert data["items"][0]["commit_sha"] == deployment.commit_sha
+    assert data["items"][0]["source"] == deployment.source
     assert data["items"][0]["environment_name"] == deployment.environment_name
 
 
