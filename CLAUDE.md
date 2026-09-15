@@ -2,28 +2,16 @@
 
 ## Workflow
 
-For most tasks, our default work process is:
+For small tasks (1-2 files affected) you might just make a change. For most tasks (>2 files affected), our default work process is:
 
-1. Read a PRD or create a lightweight PRD in `/docs/prds`
+1. Read a proposal in `/docs/proposals`
 2. Read relevant documentation in `/docs` for context
 3. Read relevant code in either `/server` or `/client` for context
-4. Create a technical design and create an RFC in `/docs/rfcs`
+4. Create a technical design and append it to the proposal
 5. Allow user to review and approve the technical design
-6. Once approved, create an implementation plan and append this to the same RFC document. **Never save plans to `docs/superpowers/plans/` — always append to the RFC.**
+6. If the change is especially large, create an implementation plan and append this to the same proposal document.
 7. When the plan is agreed, begin implementation following red/green test driven development
-8. Note any architectural decisions or technical decisions outside of the RFC in ADR documents in `/docs/adrs`
-
-Note you may be asked for ad-hoc tasks, such as UI design changes, that fall outside of this workflow.
-
-I might say to you something like "tackle <file path>" with the file being a Product Requirements Document. What I mean is "Read the PRD @<file path> and build a solution that meets the requirements laid out in the document"
-
-## Superpowers Skill Overrides
-
-These project conventions override superpowers skill defaults:
-
-- **Spec location** (`brainstorming` skill default: `docs/superpowers/specs/`): Save specs as the next numbered RFC in `docs/rfcs/NNN-topic.md` and match the existing RFC format.
-- **Plan location** (`writing-plans` skill default: `docs/superpowers/plans/`): Append the implementation plan to the **bottom of the same RFC file**. Never create a separate plan file.
-- **Commit messages**: No `Co-Authored-By: Claude` lines — see "No Promo" below.
+8. Note any technical decisions about this feature in the proposal. Large architectural decisions can be noted in `docs/architecture.md`
 
 ## Core Principles
 
@@ -31,6 +19,7 @@ These project conventions override superpowers skill defaults:
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
 - **No Promo:** Don't include any references to yourself (Claude Code) when writing commit messages or PR descriptions.
+- **Code Should Explain Itself:** Go light on the comments and make the code self-explanatory
 
 ## Engineering Context
 
