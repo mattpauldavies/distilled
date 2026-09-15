@@ -98,9 +98,7 @@ export function DeploymentTrackingPage({ onClose }: Props) {
               Repositories ({repos.length})
             </h2>
             {repos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No repositories yet. Add one from Settings · Repositories first.
-              </p>
+              <p className="text-sm text-muted-foreground">No repositories yet.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {repos.map((repo) => (
