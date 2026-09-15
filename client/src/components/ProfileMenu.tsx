@@ -8,6 +8,7 @@ import { useWorkspaceContext } from "@/lib/workspaceContext"
 interface Props {
   onOpenTeam?: () => void
   onOpenRepos?: () => void
+  onOpenDeploymentTracking?: () => void
 }
 
 /**
@@ -18,7 +19,7 @@ interface Props {
  * the dashboard header focused on metrics controls and folds account
  * actions behind one affordance.
  */
-export function ProfileMenu({ onOpenTeam, onOpenRepos }: Props) {
+export function ProfileMenu({ onOpenTeam, onOpenRepos, onOpenDeploymentTracking }: Props) {
   const { user } = useUser()
   const { signOut } = useClerk()
   const { memberships, activeWorkspace, setActiveWorkspace } = useWorkspaceContext()
@@ -92,7 +93,8 @@ export function ProfileMenu({ onOpenTeam, onOpenRepos }: Props) {
           </div>
         ) : null}
 
-        {activeWorkspace?.role === "owner" && (onOpenTeam || onOpenRepos) ? (
+        {activeWorkspace?.role === "owner" &&
+        (onOpenTeam || onOpenRepos || onOpenDeploymentTracking) ? (
           <div className="border-b border-border py-1">
             {onOpenTeam ? (
               <button
@@ -110,6 +112,15 @@ export function ProfileMenu({ onOpenTeam, onOpenRepos }: Props) {
                 className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
               >
                 Repositories
+              </button>
+            ) : null}
+            {onOpenDeploymentTracking ? (
+              <button
+                type="button"
+                onClick={onOpenDeploymentTracking}
+                className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
+              >
+                Deployment Tracking
               </button>
             ) : null}
           </div>

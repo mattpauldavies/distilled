@@ -1,6 +1,6 @@
 # Server
 
-FastAPI backend for deployment detection and DORA metrics. Ingests GitHub webhooks, detects production deployments, and attributes PRs to deployments.
+FastAPI backend for deployment detection and DORA metrics. Ingests GitHub webhooks, detects production deployments — from deployment events or published releases, per repository — and attributes PRs to deployments.
 
 ## Setup
 
@@ -68,6 +68,7 @@ database/          # Alembic migrations
 | POST   | `/webhooks/github`              | GitHub webhook receiver (HMAC verified)                         |
 | GET    | `/repos`                        | List repos for the active workspace (paginated)                 |
 | POST   | `/repos`                        | Add granted repos to the active workspace (owner only)          |
+| PATCH  | `/repos/{repo_id}`              | Set a repo's deployment source (owner only)                     |
 | DELETE | `/repos/{repo_id}`              | Soft-remove a repo from the active workspace (owner only)       |
 | GET    | `/environments`                 | List environments (optional `?repo_id=`)                        |
 | PATCH  | `/environments/{env_id}`        | Toggle `is_production`                                          |
@@ -183,9 +184,10 @@ fans out one call per repository — see [Scheduled metrics](#scheduled-metrics)
 | `installation_repositories` (added)            | Repos added to install   | Upsert repos, discover environments, clear `removed_at`    |
 | `installation_repositories` (removed)          | Repos removed from install | Soft-delete listed repos (`removed_at`)                  |
 | `deployment_status` (success)                  | Deployment succeeds      | Create deployment event if production environment          |
+| `release` (published)                          | Release published        | Create deployment event, unless draft or pre-release       |
 | `pull_request` (opened, reopened, closed, ...) | PR lifecycle event       | Upsert PR record (capture draft, closed_at status)         |
 
-Only `deployment_status` and `pull_request` are subscribed to in App settings;
+Only `deployment_status`, `release` and `pull_request` are subscribed to in App settings;
 `installation` and `installation_repositories` are delivered to every GitHub
 App automatically. The permissions these events and the four GitHub API calls
 require are set out in [GitHub App surface](../docs/github-app.md).

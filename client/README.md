@@ -142,6 +142,8 @@ src/
       DeploymentChart.tsx         # Daily deployment bar chart
       WeeklyPercentilesChart.tsx  # Weekly median + p75 line chart (lead time and cycle time)
       PRAgeingChart.tsx           # Open PR age distribution bar chart
+    settings/
+      DeploymentTrackingPage.tsx  # Per-repo choice of deployment vs release tracking (owner only)
     ui/                           # shadcn components (added via CLI)
 ```
 

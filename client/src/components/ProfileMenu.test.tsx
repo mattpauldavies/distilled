@@ -20,4 +20,14 @@ describe("ProfileMenu", () => {
     await userEvent.click(screen.getByRole("button", { name: /Create workspace/ }))
     expect(await screen.findByText("Create a workspace")).toBeInTheDocument()
   })
+
+  it("offers Deployment Tracking to owners", async () => {
+    const onOpenDeploymentTracking = vi.fn()
+    renderWithProviders(<ProfileMenu onOpenDeploymentTracking={onOpenDeploymentTracking} />)
+
+    await userEvent.click(await screen.findByRole("button", { name: "Account menu" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Deployment Tracking" }))
+
+    expect(onOpenDeploymentTracking).toHaveBeenCalled()
+  })
 })
