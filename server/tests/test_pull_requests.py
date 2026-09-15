@@ -73,7 +73,6 @@ async def test_get_pull_request_with_deployment(client, mock_session):
     assert data["deployment"] is not None
     assert data["deployment"]["id"] == str(deployment.id)
     assert data["deployment"]["environment_name"] == deployment.environment_name
-    assert data["deployment"]["commit_sha"] == deployment.commit_sha
 
 
 @pytest.mark.asyncio

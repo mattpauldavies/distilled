@@ -78,6 +78,7 @@ class FreshnessInfo(BaseModel):
 class SetupInfo(BaseModel):
     has_production_environment: bool
     production_environments: list[str]
+    deployment_source: str
 
 
 class DataQuality(BaseModel):

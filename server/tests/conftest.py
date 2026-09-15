@@ -115,6 +115,7 @@ def make_repo(**overrides):
         github_id=12345,
         full_name="org/repo",
         default_branch="main",
+        deployment_source="deployment",
         created_at=NOW,
         updated_at=NOW,
     )
@@ -167,8 +168,7 @@ def make_deployment(**overrides):
         repo_id=uuid.uuid4(),
         environment_name="production",
         deployment_id=1001,
-        commit_sha="aaa111" + "0" * 34,
-        ref="main",
+        source="deployment",
         started_at=NOW,
         completed_at=NOW,
         deployed_at=NOW,
