@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useId, useState } from "react"
 import { useClerk, useUser } from "@clerk/clerk-react"
 import { Check, CircleUser, Plus } from "lucide-react"
 import { CreateWorkspaceModal } from "@/components/CreateWorkspaceModal"
@@ -24,6 +24,7 @@ export function ProfileMenu({ onOpenTeam, onOpenRepos, onOpenDeploymentTracking 
   const { signOut } = useClerk()
   const { memberships, activeWorkspace, setActiveWorkspace } = useWorkspaceContext()
   const [createOpen, setCreateOpen] = useState(false)
+  const settingsHeadingId = useId()
 
   const displayName =
     user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress || "Signed in"
@@ -95,14 +96,24 @@ export function ProfileMenu({ onOpenTeam, onOpenRepos, onOpenDeploymentTracking 
 
         {activeWorkspace?.role === "owner" &&
         (onOpenTeam || onOpenRepos || onOpenDeploymentTracking) ? (
-          <div className="border-b border-border py-1">
+          <div
+            role="group"
+            aria-labelledby={settingsHeadingId}
+            className="border-b border-border py-1"
+          >
+            <p
+              id={settingsHeadingId}
+              className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+            >
+              Settings
+            </p>
             {onOpenTeam ? (
               <button
                 type="button"
                 onClick={onOpenTeam}
                 className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
               >
-                Team Settings
+                Team
               </button>
             ) : null}
             {onOpenRepos ? (
@@ -126,7 +137,7 @@ export function ProfileMenu({ onOpenTeam, onOpenRepos, onOpenDeploymentTracking 
           </div>
         ) : null}
 
-        <div className="py-1">
+        <div className="mt-1 py-1">
           <button
             type="button"
             onClick={() => signOut()}
