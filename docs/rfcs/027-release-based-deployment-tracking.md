@@ -32,7 +32,13 @@ Client settings today: `App.tsx` holds `settingsPage: "none" | "team" | "repos"`
 
 ### The GitHub constraint
 
-A GitHub App may only subscribe to the `release` webhook event if it holds **Contents: read**. `docs/github-app.md` currently records Contents as deliberately not requested ("Distilled reads no source code"). There is no way to receive release events without it, and adding a permission puts every existing installation into GitHub's "review requested permissions" state until an admin approves — during which release events are not delivered. This is the single largest cost of the feature and is recorded as ADR 011.
+A GitHub App may only subscribe to the `release` webhook event if it holds **Contents: read** — ["To subscribe to this event, a GitHub App must have at least read-level access for the 'Contents' repository permission"](https://docs.github.com/en/webhooks/webhook-events-and-payloads). `docs/github-app.md` currently records Contents as deliberately not requested ("Distilled reads no source code").
+
+The gate is on **event delivery, not on reading anything**: the payload is pushed to us and no API call is involved. It applies to the event as a whole, so every action (`created`, `published`, …) sits behind the same permission — there is no narrower subscription. GitHub has no separate Releases permission; releases live under Contents, and so does every alternative route to the same signal (the Releases REST API, `push` with tag refs, the `create` tag event).
+
+Adding the permission puts every existing installation into GitHub's "review requested permissions" state until an admin approves — during which release events are not delivered. This is the single largest cost of the feature and is recorded as ADR 011.
+
+The one signal that needs no new permission is `workflow_run` (Actions: read, already held): "a deployment is a successful run of a named workflow". It is a weaker signal — the workflow name is a per-repo configuration string rather than a fact GitHub models — and a different feature. Noted here as the fallback if the permission widening is ever refused.
 
 ---
 
@@ -47,7 +53,7 @@ A GitHub App may only subscribe to the `release` webhook event if it holds **Con
 7. **`environment_name = "release"` for release-sourced rows** → the column is `NOT NULL` and is surfaced in the deployments list and its environment filter. A fixed, honest label is better than an empty string (looks like a bug) or the tag name (an environment filter that lists every version ever shipped). The tag goes in `ref`, where it belongs.
 8. **`published_at` is the deployment time** → `deployed_at = completed_at = published_at`, `started_at = created_at` (the release's creation, i.e. when the draft or tag was made). Falling back to `created_at` if `published_at` is absent. Publication is the moment the team shipped.
 9. **No tag → SHA resolution in v1** → the release payload carries `target_commitish` (a branch name *or* a SHA), not the tag's commit. `commit_sha` is stored only when `target_commitish` is a 40-character hex SHA, otherwise empty. Nothing reads `commit_sha`: attribution is time-window based, and no metric touches it. Resolving the tag would need a second GitHub API call per release for a field no one reads.
-10. **`release.published` only, drafts and pre-releases excluded** → a pre-release promoted to GA fires `release.released`, which v1 does not handle; it is a small, additive follow-up if teams ask for it.
+10. **`release.published` only, drafts and pre-releases excluded** → `published` is the only action that reliably marks "this shipped". `created` is explicitly rejected: GitHub fires it when a **draft is saved**, and does *not* fire it when that draft is later published, so every draft-first workflow (release-drafter, semantic-release, or simply reviewing before publishing) would record a deployment at draft time and nothing at ship time. `published` fires whenever a release goes live, including one promoted from a draft. A pre-release promoted to GA fires `release.released`, which v1 does not handle; it is a small, additive follow-up if teams ask for it.
 11. **Owner-only mutation via `PATCH /repos/{repo_id}`** → matches the existing destructive/administrative model (`require_owner` on add, remove, unlink). The setting changes what the whole workspace's numbers mean.
 12. **No backfill, no recomputation on switch** → consistent with deployment tracking, which has never imported history. Switching takes effect from the next matching event; nothing is deleted or recomputed.
 
