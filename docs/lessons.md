@@ -46,3 +46,8 @@
   *after* mount, so `isOwner` started false and the effect re-ran on a
   dependency change instead of being double-invoked. The app renders it only
   once the workspace is known, which is the broken path.
+- Wire a new prop through the real composition, and test it there. A
+  `ProfileMenu` entry was added and unit-tested by passing the handler straight
+  to `ProfileMenu`, but the app renders it via `DashboardControls`, which never
+  forwarded the prop — so the menu item did not exist in the running app while
+  its test passed.

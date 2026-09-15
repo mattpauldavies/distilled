@@ -19,6 +19,7 @@ interface Props {
   daysOfData: number
   onOpenTeam?: () => void
   onOpenRepos?: () => void
+  onOpenDeploymentTracking?: () => void
 }
 
 export function DashboardControls({
@@ -30,6 +31,7 @@ export function DashboardControls({
   daysOfData,
   onOpenTeam,
   onOpenRepos,
+  onOpenDeploymentTracking,
 }: Props) {
   return (
     <div className="flex items-center gap-4">
@@ -58,7 +60,11 @@ export function DashboardControls({
         ))}
       </div>
 
-      <ProfileMenu onOpenTeam={onOpenTeam} onOpenRepos={onOpenRepos} />
+      <ProfileMenu
+        onOpenTeam={onOpenTeam}
+        onOpenRepos={onOpenRepos}
+        onOpenDeploymentTracking={onOpenDeploymentTracking}
+      />
     </div>
   )
 }

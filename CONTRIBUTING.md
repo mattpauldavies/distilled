@@ -166,7 +166,7 @@ extensionless URL (`/terms`, not `/terms.html`) — see
 
 ### Frontend (TypeScript/React)
 
-- Run `npm run lint` before committing
+- Run `npm run lint` before committing — it typechecks (`tsc -b`), lints and checks formatting
 - Use TypeScript strictly — no `any` unless absolutely necessary
 - Tailwind CSS for styling
 - shadcn/ui for UI components
