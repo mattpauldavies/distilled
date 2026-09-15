@@ -33,7 +33,7 @@ All four calls live in `server/app/services/github_client.py`.
 | Pull requests | Read-only | `pull_request` event subscription                          |
 | Deployments   | Read-only | `deployment_status` event subscription                     |
 | Actions       | Read-only | `GET /repos/{owner}/{repo}/environments`                   |
-| Contents      | Read-only | `release` event subscription — GitHub's gate for release delivery |
+| Contents      | Read-only | `release` event subscription                               |
 
 Contents is the only permission GitHub offers for release events: the gate is on
 **event delivery**, not on reading anything, and there is no narrower scope. Distilled
