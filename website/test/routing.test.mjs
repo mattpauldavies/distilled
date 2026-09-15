@@ -1,5 +1,5 @@
 // Serving-layer tests: they boot the real Caddyfile over the built _site so
-// that the site's URL contract (see docs/adrs/006-website-url-canonicalisation.md)
+// that the site's URL contract (see docs/proposals/007-build-and-deployment.md)
 // is verified against the server that actually serves it in production.
 //
 // Requires the `caddy` binary on PATH (or CADDY_BIN pointing at it) and a

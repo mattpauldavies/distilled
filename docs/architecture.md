@@ -25,9 +25,9 @@ GitHub webhook ──► FastAPI ──► PostgreSQL
 
 Note `app/middleware/` holds per-route FastAPI dependencies; cross-cutting ASGI middleware (CORS, security headers, rate limiting) lives in `app/main.py`.
 
-Conventions the layers follow are recorded as ADRs: transaction ownership in
-[ADR 003](adrs/003-transaction-boundaries.md), query placement in
-[ADR 004](adrs/004-query-placement-and-domain-predicates.md).
+The conventions these layers follow — transaction ownership, query placement, and the
+service-name prefixes below — are recorded in
+[Proposal 008: Engineering Practice](proposals/008-engineering-practice.md).
 
 ### Key services
 
@@ -86,7 +86,7 @@ and reused by every metric query.
 
 - The server, client and website are each built as a container; the platform runs the
   image rather than inferring a build. See
-  [ADR 005](adrs/005-containerised-server-build.md).
+  [Proposal 007: Build and Deployment](proposals/007-build-and-deployment.md).
 - Database migrations run as an explicit release-phase command (`alembic upgrade head`),
   never from a container entrypoint.
 
@@ -114,7 +114,7 @@ and reused by every metric query.
 
 ### Workspaces (tenants in the schema)
 
-The product term is **workspace**; the database and internal identifiers say `tenant` — the two are the same thing (ADR 009). All domain tables carry `tenant_id`. Membership is a many-to-many relationship in `tenant_users`, with a `(user_id, tenant_id, role)` row per membership and a partial unique index enforcing exactly one owner per workspace. Users can own several workspaces: first login auto-provisions one named "My Workspace", and `POST /workspaces` creates more. `users.last_active_tenant_id` is a per-user default — the workspace a fresh sign-in resolves to in the absence of an explicit choice.
+The product term is **workspace**; the database and internal identifiers say `tenant` — the two are the same thing ([Proposal 004](proposals/004-accounts-and-workspaces.md)). All domain tables carry `tenant_id`. Membership is a many-to-many relationship in `tenant_users`, with a `(user_id, tenant_id, role)` row per membership and a partial unique index enforcing exactly one owner per workspace. Users can own several workspaces: first login auto-provisions one named "My Workspace", and `POST /workspaces` creates more. `users.last_active_tenant_id` is a per-user default — the workspace a fresh sign-in resolves to in the absence of an explicit choice.
 
 The active workspace for any given request is resolved as:
 
@@ -124,13 +124,13 @@ The active workspace for any given request is resolved as:
 
 `require_owner` is the dependency used for owner-only routes (`/team/*`, installation and repo management); membership lookups use indexed columns and add a single join per authenticated request. `require_user` authenticates by JWT alone for workspace-agnostic endpoints (membership list, invitation redemption, workspace creation, installation claims).
 
-Workspace deletion is a single `DELETE FROM tenants WHERE id = ...`: every workspace-scoped FK (`repositories`, `pull_requests`, `deployment_events`, `tenant_users`, `tenant_installations`, `invitations`, all metrics tables) carries `ON DELETE CASCADE`. ADR 002 documents the rationale.
+Workspace deletion is a single `DELETE FROM tenants WHERE id = ...`: every workspace-scoped FK (`repositories`, `pull_requests`, `deployment_events`, `tenant_users`, `tenant_installations`, `invitations`, all metrics tables) carries `ON DELETE CASCADE`. [Proposal 004](proposals/004-accounts-and-workspaces.md) documents the rationale.
 
 ### GitHub installations and workspace repositories
 
 `github_installations` is a **global** record — one row per GitHub App installation (unique on `installation_id`), owned by no workspace, because a GitHub App installs at most once per GitHub account. `tenant_installations` links workspaces to installations many-to-many, so two users' private workspaces can both track repos from the same organisation.
 
-Binding an installation to a workspace is explicit: the client requests an **installation intent** (`POST /installations/intents`, owner-only), whose nonce travels through GitHub's `state` parameter. Because the setup callback (`/github/setup` → `POST /installations/claim`) carries a client-supplied `installation_id`, claiming requires proof the caller controls that installation (ADR 010): user-type installations verify the installation's account against the caller's GitHub account id and bind immediately; org-type installations bind only via webhook **sender matching** — the installation event's `sender.id` is matched against the open intent of that user — while the callback answers `202 pending` and the client polls until the webhook lands. Binding syncs all granted repos into the workspace and discovers their environments.
+Binding an installation to a workspace is explicit: the client requests an **installation intent** (`POST /installations/intents`, owner-only), whose nonce travels through GitHub's `state` parameter. Because the setup callback (`/github/setup` → `POST /installations/claim`) carries a client-supplied `installation_id`, claiming requires proof the caller controls that installation ([Proposal 004](proposals/004-accounts-and-workspaces.md)): user-type installations verify the installation's account against the caller's GitHub account id and bind immediately; org-type installations bind only via webhook **sender matching** — the installation event's `sender.id` is matched against the open intent of that user — while the callback answers `202 pending` and the client polls until the webhook lands. Binding syncs all granted repos into the workspace and discovers their environments.
 
 Repositories are per-workspace rows (`UNIQUE(tenant_id, github_id)`): the same GitHub repo tracked by three workspaces is three `repositories` rows, each accumulating its own PRs, deployments, environments, and metrics. `pull_request` and `deployment_status` ingest fans one webhook event out to every workspace tracking the repo. Repo lifecycle:
 

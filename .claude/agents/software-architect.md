@@ -37,7 +37,7 @@ Design software architectures that balance competing concerns:
 
 ## 📋 Architecture Decision Record Template
 
-Store ADRs in `/docs/adrs/`
+Record architectural decisions in the relevant `/docs/proposals/` document
 
 ```markdown
 # ADR-001: [Decision Title]

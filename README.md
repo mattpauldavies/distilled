@@ -42,7 +42,7 @@ For full setup including the GitHub App integration, see the [local setup runboo
 server/   # FastAPI + Poetry
 client/   # React + Vite + TypeScript + Tailwind
 e2e/      # Playwright browser smoke tests
-docs/     # Architecture, RFCs, ADRs, runbooks
+docs/     # Architecture, proposals, runbooks
 Makefile  # dev commands + database management
 ```
 
@@ -84,6 +84,7 @@ Makefile  # dev commands + database management
 Everything lives in `/docs`; key starting points:
 
 - [Architecture](docs/architecture.md)
+- [Proposals](docs/proposals/README.md)
 - [GitHub App surface](docs/github-app.md)
 - [Metrics](docs/metrics.md)
 - [Analytics](docs/analytics.md)
