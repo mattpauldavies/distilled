@@ -33,7 +33,16 @@ All four calls live in `server/app/services/github_client.py`.
 | Pull requests | Read-only | `pull_request` event subscription                          |
 | Deployments   | Read-only | `deployment_status` event subscription                     |
 | Actions       | Read-only | `GET /repos/{owner}/{repo}/environments`                   |
+| Contents      | Read-only | `release` event subscription — GitHub's gate for release delivery |
 
-Deliberately **not** requested: Contents, Checks, Commit statuses, Issues,
-Administration, Members, Environments. Distilled reads no source code.
+Contents is the only permission GitHub offers for release events: the gate is on
+**event delivery**, not on reading anything, and there is no narrower scope. Distilled
+makes no Contents API call. Release tracking itself is
+[proposed, not yet built](proposals/001-deployment-ingest.md#release-based-deployment-tracking) —
+the permission is already on both App registrations, and installations must accept it
+before release events are delivered.
+
+Deliberately **not** requested: Checks, Commit statuses, Issues, Administration,
+Members, Environments. Distilled does not modify source code, cannot write to a
+repository, and never stores user code.
 

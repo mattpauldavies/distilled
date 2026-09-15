@@ -25,3 +25,10 @@
 - The same applies to inferred state: a missing `Environment` row was logged as
   "non-prod environment", which conflated "classified not production" with
   "never discovered". Distinguish the cases, or say only what you know.
+
+## Working with the repo
+
+- Fetch and rebase from `main` *before* writing new design documents. A PRD and
+  an RFC were written into `docs/prds/` and `docs/rfcs/` while main was
+  consolidating both into `docs/proposals/`, so the work had to be redone in the
+  new structure.
