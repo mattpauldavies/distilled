@@ -1,7 +1,16 @@
 {
+  "extraKnownMarketplaces": {
+    "humanizer": {
+      "source": {
+        "source": "github",
+        "repo": "blader/humanizer"
+      }
+    }
+  },
   "enabledPlugins": {
     "impeccable@impeccable": true,
     "context7@claude-plugins-official": true,
-    "ponytail@ponytail": true
+    "ponytail@ponytail": true,
+    "humanizer@humanizer": true
   }
 }
