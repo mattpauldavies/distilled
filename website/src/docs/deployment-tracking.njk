@@ -18,7 +18,7 @@ lead: Distilled needs one honest answer to "when did this reach production?". Fo
 
   <div class="docs-rows">
     <div class="docs-row">
-      <strong>Deployments — the default</strong>
+      <strong>Deployments (the default)</strong>
       <p>Choose this if your pipeline creates GitHub Deployments against an environment: web apps and services deployed by GitHub Actions, Vercel, Netlify, Railway, Heroku, Render, Argo CD and most other tooling.</p>
       <p>Distilled records a production ship when a <code>deployment_status</code> event arrives with state <code>success</code> for an environment recognised as production.</p>
     </div>
@@ -41,7 +41,7 @@ lead: Distilled needs one honest answer to "when did this reach production?". Fo
 <section id="production-environments">
   <h2>How production environments are detected</h2>
   <p>For repositories tracking deployments, Distilled reads your repository's GitHub Environments when the repository is connected and marks an environment as production if its name contains <code>prod</code> or <code>live</code>, case-insensitively, anywhere in the name.</p>
-  <p>That's deliberately generous. <code>production</code>, <code>prod-eu</code>, <code>web:live</code> and <code>acme / production</code> all qualify. So does <code>preprod</code> — an over-counted environment is visible in your deployment numbers and can be corrected, whereas a missed one is invisible and quietly drags your metrics down.</p>
+  <p>That's deliberately generous. <code>production</code>, <code>prod-eu</code>, <code>web:live</code> and <code>acme / production</code> all qualify, and so does <code>preprod</code>. An over-counted environment shows up in your deployment numbers and can be corrected. A missed one shows up nowhere and drags your metrics down.</p>
 
   <div class="callout">
     <p><strong>Environments are discovered when a repository is connected.</strong> If you create a production environment on an already-connected repository, re-run <strong>Connect GitHub</strong> from Settings → Repositories so Distilled picks it up. Until then its deployments are skipped.</p>
@@ -52,7 +52,7 @@ lead: Distilled needs one honest answer to "when did this reach production?". Fo
   <h2>If you don't use GitHub Deployments</h2>
   <p>You have two options.</p>
   <p><strong>Switch that repository to release tracking</strong>, if publishing a release is genuinely how it ships.</p>
-  <p><strong>Or emit deployment events from your pipeline.</strong> Any CI system can create them with one API call at the end of a successful production deploy — create a deployment for the deployed commit with <code>environment: production</code>, then post a deployment status of <code>success</code> against it. That's all Distilled needs, and it's a standard GitHub API any pipeline can call.</p>
+  <p><strong>Or emit deployment events from your pipeline.</strong> Any CI system can create them with one API call at the end of a successful production deploy: create a deployment for the deployed commit with <code>environment: production</code>, then post a deployment status of <code>success</code> against it. That's all Distilled needs, and it's a standard GitHub API any pipeline can call.</p>
 </section>
 
 <section id="what-counts">
@@ -64,11 +64,11 @@ lead: Distilled needs one honest answer to "when did this reach production?". Fo
       </thead>
       <tbody>
         <tr><td>Successful deployment to a production environment</td><td>Yes, on repositories tracking deployments</td></tr>
-        <tr><td>Failed or in-progress deployment</td><td>No — ignored until it resolves to success</td></tr>
+        <tr><td>Failed or in-progress deployment</td><td>No, ignored until it resolves to success</td></tr>
         <tr><td>Successful deployment to staging or preview</td><td>No, unless the environment name contains <code>prod</code> or <code>live</code></td></tr>
         <tr><td>Published release</td><td>Yes, on repositories tracking releases</td></tr>
         <tr><td>Draft or pre-release</td><td>No</td></tr>
-        <tr><td>Re-delivered duplicate of an event</td><td>Counted once — events are de-duplicated on GitHub's own id</td></tr>
+        <tr><td>Re-delivered duplicate of an event</td><td>Counted once; events are de-duplicated on GitHub's own id</td></tr>
       </tbody>
     </table>
   </div>

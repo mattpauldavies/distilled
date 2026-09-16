@@ -6,7 +6,7 @@ summary: Invite people, manage roles, and transfer ownership.
 order: 9
 eyebrow: Using Distilled
 heading: Adding team members
-lead: Invitations are a link in an email. No seats to assign, no GitHub org membership to mirror — send the link, they sign in, they're in.
+lead: Invitations are a link in an email. There are no seats to assign and no GitHub org membership to mirror. Send the link, they sign in, and they're in.
 ---
 {% extends "docs.njk" %}
 
@@ -21,7 +21,7 @@ lead: Invitations are a link in an email. No seats to assign, no GitHub org memb
     </li>
     <li class="docs-step">
       <h3>Name your workspace, if you haven't</h3>
-      <p>The first time you invite someone to a workspace still called "My Workspace", Distilled offers to rename it — so the invitation says <em>Acme Engineering</em> rather than something nobody recognises. You can skip it; the prompt won't come back.</p>
+      <p>The first time you invite someone to a workspace still called "My Workspace", Distilled offers to rename it, so the invitation says <em>Acme Engineering</em> rather than something nobody recognises. You can skip it; the prompt won't come back.</p>
     </li>
     <li class="docs-step">
       <h3>Send the invite</h3>
@@ -29,7 +29,7 @@ lead: Invitations are a link in an email. No seats to assign, no GitHub org memb
     </li>
     <li class="docs-step">
       <h3>They sign in</h3>
-      <p>They click the link and sign in with GitHub. That's it — no approval step, no second confirmation. They land on the same dashboard you see.</p>
+      <p>They click the link and sign in with GitHub. There's no approval step and no second confirmation. They land on the same dashboard you see.</p>
     </li>
   </ol>
 </section>
@@ -39,7 +39,7 @@ lead: Invitations are a link in an email. No seats to assign, no GitHub org memb
   <div class="docs-rows">
     <div class="docs-row">
       <strong>Owner</strong>
-      <p>Full access: the dashboard plus every setting — team management, repositories, GitHub connections and deployment tracking. Exactly one owner per workspace.</p>
+      <p>Full access: the dashboard plus every setting, covering team management, repositories, GitHub connections and deployment tracking. Exactly one owner per workspace.</p>
     </div>
     <div class="docs-row">
       <strong>Member</strong>
@@ -56,24 +56,24 @@ lead: Invitations are a link in an email. No seats to assign, no GitHub org memb
     <li><strong>Already have one?</strong> The link redeems against their current sign-in. The new workspace becomes their active one; the switcher gets them back.</li>
     <li><strong>Signed in without clicking the link?</strong> If the invited address is one of their verified GitHub emails, a banner appears on the dashboard offering to accept or decline.</li>
   </ul>
-  <p>The email on their GitHub account doesn't have to match the address you invited. The link itself is the credential — so treat it like one and send it to an address only that person can read.</p>
+  <p>The email on their GitHub account doesn't have to match the address you invited. The link itself is the credential, so treat it like one and send it to an address only that person can read.</p>
 </section>
 
 <section id="managing">
   <h2>Managing the team</h2>
   <p>Settings → Team lists members and pending invitations.</p>
   <ul>
-    <li><strong>Remove</strong> — revokes a member's access on their next interaction. Their memberships of other workspaces are unaffected.</li>
-    <li><strong>Transfer ownership</strong> — promotes a member to owner and makes you a regular member. Do this before you leave.</li>
-    <li><strong>Resend</strong> — issues a fresh link for a pending invitation and restarts the 14-day clock. The old link stops working.</li>
-    <li><strong>Revoke</strong> — kills a pending invitation's link.</li>
-    <li><strong>Rename</strong> — changes the workspace name everywhere, for everyone.</li>
+    <li><strong>Remove</strong> revokes a member's access on their next interaction. Their memberships of other workspaces are unaffected.</li>
+    <li><strong>Transfer ownership</strong> promotes a member to owner and makes you a regular member. Do this before you leave.</li>
+    <li><strong>Resend</strong> issues a fresh link for a pending invitation and restarts the 14-day clock. The old link stops working.</li>
+    <li><strong>Revoke</strong> kills a pending invitation's link.</li>
+    <li><strong>Rename</strong> changes the workspace name everywhere, for everyone.</li>
   </ul>
 </section>
 
 <section id="github">
   <h2>Team membership and GitHub access</h2>
-  <p>They're separate on purpose. Being a member of a Distilled workspace grants no access to your repositories — Distilled's own GitHub App holds that, read-only, and it isn't delegated to anyone you invite. A colleague with no GitHub access to a repository can still read its delivery metrics, which is usually exactly what you want for an engineering leader or a delivery manager.</p>
+  <p>They're separate on purpose. Being a member of a Distilled workspace grants no access to your repositories. Distilled's own GitHub App holds that access, read-only, and it isn't delegated to anyone you invite. A colleague with no GitHub access to a repository can still read its delivery metrics, which is usually exactly what you want for an engineering leader or a delivery manager.</p>
 </section>
 
 {% endblock %}

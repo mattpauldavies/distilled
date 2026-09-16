@@ -1,12 +1,12 @@
 ---
 title: Data Quality — Distilled
-description: How Distilled reports on its own pipeline — attribution coverage, metrics freshness, days of data and setup status — so you know when to trust a number.
+description: How Distilled reports on its own pipeline, covering attribution coverage, metrics freshness, days of data and setup status, so you know when to trust a number.
 navTitle: Data quality
 summary: How to tell when the numbers are ready to act on.
 order: 7
 eyebrow: Reference
 heading: Knowing when to trust a number
-lead: A metric you can't interrogate is a metric you shouldn't act on. Distilled reports on the state of its own pipeline alongside your delivery data.
+lead: Distilled reports on the state of its own pipeline alongside your delivery data, so you can tell how much weight a number will take before you act on it.
 ---
 {% extends "docs.njk" %}
 
@@ -26,7 +26,7 @@ lead: A metric you can't interrogate is a metric you shouldn't act on. Distilled
     </div>
     <div class="docs-row">
       <strong>Days of data</strong>
-      <p>The span between today and the oldest pull request Distilled has recorded for this repository. This is what gates the wider time windows — a 90-day chart needs more than 30 days of history behind it.</p>
+      <p>The span between today and the oldest pull request Distilled has recorded for this repository. It's what holds the wider time windows back: a 90-day chart needs more than 30 days of history behind it.</p>
     </div>
   </div>
   <p>A repository that has never been recomputed shows a one-time <strong>"Your data is on its way"</strong> dialog rather than an empty dashboard, with the commands to generate a pull request if you want to prove the connection works.</p>
@@ -42,9 +42,9 @@ lead: A metric you can't interrogate is a metric you shouldn't act on. Distilled
 
   <h3>Reading the coverage figure</h3>
   <ul>
-    <li><strong>High coverage</strong> — merges are reliably followed by deployments, so lead time is trustworthy.</li>
-    <li><strong>Low coverage</strong> — many merges never got linked to a ship. Lead time is computed from the minority that did, which usually biases it optimistically.</li>
-    <li><strong>No figure</strong> — nothing merged in the window, so there's nothing to attribute.</li>
+    <li><strong>High coverage</strong> means merges are reliably followed by deployments, so lead time is trustworthy.</li>
+    <li><strong>Low coverage</strong> means many merges never got linked to a ship. Lead time is computed from the minority that did, which usually biases it optimistically.</li>
+    <li><strong>No figure at all</strong> means nothing merged in the window, so there's nothing to attribute.</li>
   </ul>
   <p>The usual cause of low coverage is a gap in deployment tracking: an unrecognised production environment, a pipeline that doesn't emit deployment events, or a repository that ships by release but is still set to deployment tracking.</p>
 </section>
@@ -60,7 +60,7 @@ lead: A metric you can't interrogate is a metric you shouldn't act on. Distilled
   <ul>
     <li><strong>No backfill.</strong> Distilled reports on events it received as they happened. Reconstructing history from the GitHub API would produce numbers nobody could verify against what actually occurred.</li>
     <li><strong>No guessing.</strong> A pull request that can't be attributed to a deployment stays unattributed and shows up in coverage, rather than being assigned to the nearest plausible ship.</li>
-    <li><strong>Gaps are visible.</strong> A missing production environment is reported on the card that needs it. Silence would be worse than a blank.</li>
+    <li><strong>Gaps are visible.</strong> A missing production environment is reported on the card that needs it, instead of leaving you to work out why the card is blank.</li>
   </ul>
 </section>
 

@@ -17,7 +17,7 @@ lead: Distilled asks for read-only access to metadata about how your team works.
   <div class="docs-rows">
     <div class="docs-row">
       <strong>Can</strong>
-      <p>Read pull request metadata, deployment statuses, published releases, environment names and repository metadata — for the repositories you explicitly granted, and nothing else.</p>
+      <p>Read pull request metadata, deployment statuses, published releases, environment names and repository metadata, for the repositories you explicitly granted and nothing else.</p>
     </div>
     <div class="docs-row">
       <strong>Cannot</strong>
@@ -30,18 +30,18 @@ lead: Distilled asks for read-only access to metadata about how your team works.
 <section id="stored">
   <h2>What's stored</h2>
   <ul>
-    <li><strong>Pull request facts</strong> — number, title, author login, target branch, draft state, and the opened, merged and closed timestamps.</li>
-    <li><strong>Deployment facts</strong> — when a production deployment succeeded or a release was published, and which repository it belonged to.</li>
-    <li><strong>Repository and environment metadata</strong> — names, default branch, and whether an environment is treated as production.</li>
-    <li><strong>Computed metrics</strong> — the daily and weekly aggregates behind the charts.</li>
-    <li><strong>Account information</strong> — your name, email and profile from GitHub, held by our authentication provider.</li>
+    <li><strong>Pull request facts</strong>: number, title, author login, target branch, draft state, and the opened, merged and closed timestamps.</li>
+    <li><strong>Deployment facts</strong>: when a production deployment succeeded or a release was published, and which repository it belonged to.</li>
+    <li><strong>Repository and environment metadata</strong>: names, default branch, and whether an environment is treated as production.</li>
+    <li><strong>Computed metrics</strong>: the daily and weekly aggregates behind the charts.</li>
+    <li><strong>Account information</strong>: your name, email and profile from GitHub, held by our authentication provider.</li>
   </ul>
 
   <h3>What isn't</h3>
   <ul>
     <li><strong>Your source code.</strong> Not cloned, not read, not stored.</li>
     <li><strong>Diffs, file contents or commit messages.</strong> None of them are needed to compute the metrics.</li>
-    <li><strong>Raw webhook payloads.</strong> Events are parsed into the facts above and the payload is discarded. Only delivery metadata — an id, a type, a size — is kept, so we can tell whether an event was processed.</li>
+    <li><strong>Raw webhook payloads.</strong> Events are parsed into the facts above and the payload is discarded. Only delivery metadata (an id, a type, a size) is kept, so we can tell whether an event was processed.</li>
   </ul>
 </section>
 
@@ -53,7 +53,7 @@ lead: Distilled asks for read-only access to metadata about how your team works.
 <section id="integrity">
   <h2>How events are trusted</h2>
   <p>Every incoming webhook is verified with an HMAC signature before it's parsed, so nothing can inject delivery data by posting to the endpoint. A delivery with a missing or wrong signature is rejected without being processed. Repeated deliveries of the same event are recorded once.</p>
-  <p>Binding a GitHub installation to a workspace requires proof that you control that installation — you can't attach someone else's organisation to your workspace by guessing its id.</p>
+  <p>Binding a GitHub installation to a workspace requires proof that you control that installation, so you can't attach someone else's organisation to your workspace by guessing its id.</p>
 </section>
 
 <section id="removing">
@@ -68,7 +68,7 @@ lead: Distilled asks for read-only access to metadata about how your team works.
 
 <section id="open-source">
   <h2>Verify it yourself</h2>
-  <p>Distilled is open source under the AGPL-3.0 licence. The webhook handlers, the metric queries and the permission set are all in the <a href="https://github.com/mattpauldavies/distilled">public repository</a> — you don't have to take any of this on trust. See <a href="/docs/self-hosting">Self-hosting</a> if you'd rather run it yourself.</p>
+  <p>Distilled is open source under the AGPL-3.0 licence. The webhook handlers, the metric queries and the permission set are all in the <a href="https://github.com/mattpauldavies/distilled">public repository</a>, so you don't have to take any of this on trust. See <a href="/docs/self-hosting">Self-hosting</a> if you'd rather run it yourself.</p>
   <p>Found a security issue? Email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a> rather than opening a public issue.</p>
 </section>
 

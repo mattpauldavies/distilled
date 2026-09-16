@@ -17,7 +17,7 @@ lead: Six metrics, each with a precise definition. If a number is going to chang
   <p>Two rules apply everywhere, and they explain most surprises:</p>
   <ul>
     <li><strong>Only pull requests targeting the repository's default branch</strong> count towards merged-PR metrics. Feature-branch merges and stacked PRs into an integration branch are excluded, because they don't represent work leaving the team.</li>
-    <li><strong>Only production ships count as deployments</strong> — a successful deployment to a production environment, or a published release, depending on the repository's <a href="/docs/deployment-tracking">tracking setting</a>.</li>
+    <li><strong>Only production ships count as deployments</strong>: a successful deployment to a production environment, or a published release, depending on the repository's <a href="/docs/deployment-tracking">tracking setting</a>.</li>
   </ul>
 </section>
 
@@ -28,36 +28,36 @@ lead: Six metrics, each with a precise definition. If a number is going to chang
   <p><strong>How often code reaches production.</strong> Distilled counts production deployments per day and reports the rate as deploys per week across your selected window, with the daily counts plotted as a chart.</p>
   <p>It's the most honest single indicator of delivery health, because it's hard to fake and it correlates with batch size: teams that deploy often are shipping small changes, which are easier to review, safer to release and quicker to fix.</p>
   <p><strong>Read it as:</strong> cadence and consistency, not a target. A steady three a day is healthier than fifteen on a Thursday and nothing else.</p>
-  <p><strong>Where it misleads:</strong> a repository behind a monorepo pipeline may deploy on every merge regardless of content. A repository whose deployments aren't visible to GitHub shows zero — that's a tracking gap, not a delivery problem.</p>
+  <p><strong>Where it misleads:</strong> a repository behind a monorepo pipeline may deploy on every merge regardless of content. A repository whose deployments aren't visible to GitHub shows zero, which is a tracking gap rather than a delivery problem.</p>
 
   <h3>Lead Time for Changes</h3>
   <p><strong>How long merged code waits before users get it.</strong> Measured from the moment a pull request is merged to the moment the production deployment that carried it succeeded. Reported as a median headline, and as a weekly median and 75th percentile on the chart.</p>
-  <p>Merge-to-production isolates the part of the pipeline you control as an engineering organisation: release process, batching, approvals, queueing. Time spent in review is deliberately excluded — that's cycle time's job.</p>
+  <p>Merge-to-production isolates the part of the pipeline you control as an engineering organisation: release process, batching, approvals, queueing. Time spent in review is deliberately excluded; that's cycle time's job.</p>
   <p><strong>Read it as:</strong> the cost of your release process. Hours means continuous delivery. Days means batching. Weeks means a release train someone is waiting on.</p>
   <p><strong>Where it misleads:</strong> it depends entirely on pull requests being linked to deployments. Check <a href="/docs/data-quality">attribution coverage</a> before you trust it.</p>
 
   <h3>PR Cycle Time</h3>
   <p><strong>How long work takes from open to merge.</strong> The full review-and-iterate loop, from the moment a pull request is opened to the moment it merges. Reported as a median headline, plus weekly median and P75.</p>
   <p><strong>Read it as:</strong> the health of your review process. The gap between median and P75 matters more than either figure: a tight pair means predictable review, a wide one means some work sits.</p>
-  <p><strong>Where it misleads:</strong> a pull request opened as a placeholder days before the work starts inflates it. So does a team that opens drafts early — drafts are excluded from ageing, but cycle time runs from the moment the pull request was opened, draft or not.</p>
+  <p><strong>Where it misleads:</strong> a pull request opened as a placeholder days before the work starts inflates it. So does a team that opens drafts early. Drafts are excluded from ageing, but cycle time runs from the moment the pull request was opened, draft or not.</p>
 
   <h3>PR Throughput</h3>
   <p><strong>How much work the team completes.</strong> The headline is merged pull requests per engineer per month, normalised by the number of distinct authors who merged in the window. The chart shows the raw weekly count of merged pull requests.</p>
   <p>Normalising is what makes the number comparable over time: the raw count rises when you hire and falls in August, neither of which tells you anything.</p>
-  <p><strong>Read it as:</strong> a companion to cycle time. Throughput rising while cycle time holds steady is a genuine improvement. Throughput rising while cycle time falls sharply usually means smaller pull requests — which is good, but it's a change in unit, not in output.</p>
+  <p><strong>Read it as:</strong> a companion to cycle time. Throughput rising while cycle time holds steady is a genuine improvement. Throughput rising while cycle time falls sharply usually means smaller pull requests. That's good, though it's a change in the size of the unit rather than in output.</p>
   <p><strong>Where it misleads:</strong> it counts pull requests, not value. It's a terrible individual performance measure and a useful capacity signal.</p>
 </section>
 
 <section id="wip">
   <h2>Work in progress</h2>
-  <p>These two describe right now, not the selected window — they're the state of your open pull requests at this moment.</p>
+  <p>These two describe right now rather than the selected window: they're the state of your open pull requests at this moment.</p>
 
   <h3>Open PR Count</h3>
   <p><strong>How much work is in flight.</strong> Open pull requests targeting the default branch, split into <strong>live</strong> and <strong>draft</strong>.</p>
   <p><strong>Read it as:</strong> queue depth. A live count that's consistently larger than the number of reviewers means review is the constraint, whatever cycle time says on average.</p>
 
   <h3>PR Ageing</h3>
-  <p><strong>How long open work has been waiting.</strong> Live pull requests bucketed by how long they've been open: under 2 days, 2–7 days, 7–14 days, and over 14 days. Drafts are excluded — they're not waiting on anyone.</p>
+  <p><strong>How long open work has been waiting.</strong> Live pull requests bucketed by how long they've been open: under 2 days, 2–7 days, 7–14 days, and over 14 days. Drafts are excluded, because they're not waiting on anyone.</p>
   <p><strong>Read it as:</strong> where to look today. Anything in the oldest bucket is either blocked, forgotten or too big, and all three need a person rather than a metric.</p>
 </section>
 
@@ -68,7 +68,7 @@ lead: Six metrics, each with a precise definition. If a number is going to chang
 
 <section id="dora">
   <h2>Relationship to DORA</h2>
-  <p>Deployment frequency and lead time for changes are two of the four DORA metrics, measured the way DORA describes them. The other two — change failure rate and time to restore service — need incident data, which Distilled doesn't have yet. Rather than approximate them from deployment patterns and present a guess as a measurement, we've left them out until they can be backed by real incidents.</p>
+  <p>Deployment frequency and lead time for changes are two of the four DORA metrics, measured the way DORA describes them. The other two, change failure rate and time to restore service, need incident data, which Distilled doesn't have yet. Rather than approximate them from deployment patterns and present a guess as a measurement, we've left them out until they can be backed by real incidents.</p>
   <p>Cycle time, throughput, open PRs and ageing aren't DORA metrics at all. They're flow metrics, and they're here because when a DORA number moves, they're what tells you why.</p>
 </section>
 
