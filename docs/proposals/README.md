@@ -18,6 +18,7 @@ were current.
 | [007](007-build-and-deployment.md)               | Containerised builds, migrations, website URL contract                  | Shipped |
 | [008](008-engineering-practice.md)               | Testing, linting, demo data, layering conventions                       | Shipped |
 | [009](009-reliability-metrics.md)                | Change failure rate and MTTR via incident.io                            | **Proposed** |
+| [010](010-documentation-site.md)                 | Public documentation section on the marketing website                   | Shipped |
 
 ## Where things live
 
@@ -28,6 +29,7 @@ reference documentation.
 - [metrics.md](../metrics.md) — what each metric means
 - [github-app.md](../github-app.md) — the GitHub App surface and permissions
 - [getting-started.md](../getting-started.md) — using the product
+- [website/src/docs/](../../website/src/docs/) — the public product documentation served at `/docs`
 - [analytics.md](../analytics.md) — what we collect
 - [runbooks/](../runbooks/) — operational procedures
 - [lessons.md](../lessons.md) — patterns learnt from corrections

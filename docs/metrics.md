@@ -1,5 +1,9 @@
 # Metrics Taxonomy
 
+The definitions below are the engineering reference. Their user-facing counterpart is
+[website/src/docs/metrics.njk](../website/src/docs/metrics.njk), served at
+`/docs/metrics` — change a definition here and that page needs the same change.
+
 ## Delivery Metrics
 
 - **Deployment Frequency** — How often code ships to production. Tracks daily deployment counts to reveal release cadence and consistency.

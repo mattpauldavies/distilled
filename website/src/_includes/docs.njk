@@ -1,0 +1,524 @@
+{% extends "base.njk" %}
+
+{% block extraStyles %}
+<style>
+  /* ─── Shell ─────────────────────────────────────────────── */
+  .docs {
+    padding: calc(var(--nav-height) + 48px) 0 96px;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+
+  /* ─── Sidebar ───────────────────────────────────────────── */
+  .docs-sidebar {
+    position: sticky;
+    top: calc(var(--nav-height) + 48px);
+  }
+
+  .docs-sidebar-heading {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .docs-sidebar ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .docs-sidebar a {
+    display: block;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 6px 10px;
+    margin-left: -10px;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .docs-sidebar a:hover {
+    color: var(--text-primary);
+    background: var(--bg-surface);
+  }
+
+  .docs-sidebar a[aria-current="page"] {
+    color: var(--accent-light);
+    background: var(--accent-glow);
+    font-weight: 500;
+  }
+
+  /* ─── Article ───────────────────────────────────────────── */
+  .docs-article {
+    max-width: 720px;
+  }
+
+  .docs-eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(200, 151, 58, 0.25);
+    padding: 4px 12px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  .docs-article h1 {
+    font-size: clamp(30px, 4vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+
+  .docs-lead {
+    font-size: 17px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    margin-bottom: 48px;
+  }
+
+  .docs-content > section {
+    margin-bottom: 48px;
+  }
+
+  .docs-content h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    scroll-margin-top: calc(var(--nav-height) + 16px);
+  }
+
+  .docs-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 28px 0 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .docs-content p,
+  .docs-content li {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .docs-content p {
+    margin-bottom: 14px;
+  }
+
+  .docs-content ul,
+  .docs-content ol {
+    margin: 0 0 16px 20px;
+    padding: 0;
+  }
+
+  .docs-content li {
+    margin-bottom: 8px;
+  }
+
+  .docs-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .docs-content code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--text-primary);
+  }
+
+  .docs-content pre {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin: 0 0 16px;
+    overflow-x: auto;
+  }
+
+  .docs-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .docs-content a {
+    color: var(--accent-light);
+    text-decoration: none;
+  }
+
+  .docs-content a:hover {
+    text-decoration: underline;
+  }
+
+  /* ─── Tables ────────────────────────────────────────────── */
+  .docs-table-wrap {
+    overflow-x: auto;
+    margin: 0 0 16px;
+  }
+
+  .docs-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .docs-content th,
+  .docs-content td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  .docs-content th {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  /* ─── Callouts ──────────────────────────────────────────── */
+  .callout {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+
+  .callout p:last-child {
+    margin-bottom: 0;
+  }
+
+  .callout strong {
+    color: var(--accent-light);
+  }
+
+  /* ─── Steps ─────────────────────────────────────────────── */
+  .docs-steps {
+    list-style: none;
+    counter-reset: step;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .docs-step {
+    counter-increment: step;
+    position: relative;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 24px 20px 68px;
+  }
+
+  .docs-step::before {
+    content: counter(step);
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .docs-step h3 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    font-size: 16px;
+  }
+
+  .docs-step p {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .docs-step p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ─── Definition rows ───────────────────────────────────── */
+  .docs-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+
+  .docs-row {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+  }
+
+  .docs-row strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 14px;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .docs-row p {
+    font-size: 13px;
+    margin: 0 0 8px;
+    line-height: 1.6;
+  }
+
+  .docs-row p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ─── Page cards (index) ────────────────────────────────── */
+  .docs-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+
+  .docs-card {
+    display: block;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-decoration: none;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .docs-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+
+  .docs-card strong {
+    display: block;
+    font-size: 15px;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+
+  .docs-card span {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ─── Prev / next ───────────────────────────────────────── */
+  .docs-pager {
+    display: flex;
+    gap: 12px;
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  .docs-pager a {
+    flex: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .docs-pager a:hover {
+    border-color: var(--border-strong);
+    text-decoration: none;
+  }
+
+  .docs-pager span {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .docs-pager strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .docs-pager .is-next {
+    text-align: right;
+  }
+
+  /* ─── Help footer ───────────────────────────────────────── */
+  .docs-help {
+    margin-top: 32px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .docs-help a {
+    color: var(--accent-light);
+    text-decoration: none;
+  }
+
+  .docs-help a:hover {
+    text-decoration: underline;
+  }
+
+  /* ─── Responsive ────────────────────────────────────────── */
+  /* On narrow screens the page list moves below the article: a reader lands
+     on what they came for, with the rest of the section after it. */
+  @media (max-width: 900px) {
+    .docs-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+
+    .docs-article {
+      order: 1;
+    }
+
+    .docs-sidebar {
+      order: 2;
+      position: static;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+
+    .docs-sidebar a {
+      margin-left: 0;
+      padding: 8px 10px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .docs-step {
+      padding: 20px 20px 18px 20px;
+    }
+
+    .docs-step::before {
+      position: static;
+      display: inline-flex;
+      margin-bottom: 12px;
+    }
+
+    .docs-pager {
+      flex-direction: column;
+    }
+
+    .docs-pager .is-next {
+      text-align: left;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main>
+  <div class="docs container">
+    <div class="docs-grid">
+
+      <nav class="docs-sidebar" aria-label="Documentation">
+        <p class="docs-sidebar-heading">Documentation</p>
+        <ul role="list">
+          <li>
+            <a href="/docs" {% if page.url == "/docs.html" %}aria-current="page"{% endif %}>Overview</a>
+          </li>
+          {% for item in collections.docs %}
+          <li>
+            <a href="{{ item.url | canonical }}" {% if item.url == page.url %}aria-current="page"{% endif %}>{{ item.data.navTitle }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </nav>
+
+      <article class="docs-article">
+        <span class="docs-eyebrow">{{ eyebrow | default("Docs") }}</span>
+        <h1>{{ heading }}</h1>
+        <p class="docs-lead">{{ lead }}</p>
+
+        <div class="docs-content">
+          {% block doc %}{% endblock %}
+        </div>
+
+        {# The section index carries no `docs` tag, so it is not in the
+           collection and has no neighbours to page between. #}
+        {% if tags and ("docs" in tags) %}
+        {% set previous = collections.docs | getPreviousCollectionItem %}
+        {% set next = collections.docs | getNextCollectionItem %}
+        <nav class="docs-pager" aria-label="Documentation pages">
+          {% if previous %}
+          <a href="{{ previous.url | canonical }}">
+            <span>Previous</span>
+            <strong>{{ previous.data.navTitle }}</strong>
+          </a>
+          {% else %}
+          <a href="/docs">
+            <span>Previous</span>
+            <strong>Overview</strong>
+          </a>
+          {% endif %}
+          {% if next %}
+          <a href="{{ next.url | canonical }}" class="is-next">
+            <span>Next</span>
+            <strong>{{ next.data.navTitle }}</strong>
+          </a>
+          {% endif %}
+        </nav>
+        {% endif %}
+
+        <p class="docs-help">
+          Something missing or wrong? Email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a>.
+        </p>
+      </article>
+
+    </div>
+  </div>
+</main>
+{% endblock %}

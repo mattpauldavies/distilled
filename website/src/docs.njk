@@ -1,0 +1,39 @@
+---
+title: Documentation — Distilled
+description: Everything you need to set up Distilled, connect your repositories, and read your delivery metrics with confidence.
+permalink: /docs.html
+eyebrow: Overview
+heading: Distilled documentation
+lead: Distilled turns your pull requests and deployments into delivery metrics you can trust. These pages cover getting connected, reading the numbers, and knowing when to believe them.
+---
+{% extends "docs.njk" %}
+
+{% block doc %}
+
+<section id="pages">
+  <h2>Every page</h2>
+  <p>In reading order: the first three get you connected, the rest explain what you're looking at.</p>
+  <div class="docs-cards">
+    {% for item in collections.docs %}
+    <a class="docs-card" href="{{ item.url | canonical }}">
+      <strong>{{ item.data.navTitle }}</strong>
+      <span>{{ item.data.summary }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section id="how-it-works">
+  <h2>How Distilled works, in one paragraph</h2>
+  <p>You install a read-only GitHub App on the repositories you want to track. GitHub then sends Distilled a webhook every time a pull request opens, closes or merges, and every time a deployment succeeds or a release is published. Distilled turns those events into six metrics, links each merged pull request to the deployment that shipped it, and recomputes the trends hourly. There is nothing to instrument, no agent to run, and no manual data entry — and because every number traces back to a real pull request or deployment, you can always ask why it says what it says.</p>
+  <div class="callout">
+    <p><strong>Distilled does not backfill.</strong> Tracking starts from your next GitHub event, not from your repository's history. Expect the dashboard to fill out over the first few weeks — see <a href="/docs/data-quality">Data quality</a> for how to tell when the numbers are ready to act on.</p>
+  </div>
+</section>
+
+<section id="questions">
+  <h2>Still have a question?</h2>
+  <p>Distilled is open source under the AGPL-3.0 licence — you can read exactly how every metric is computed in the <a href="https://github.com/mattpauldavies/distilled">GitHub repository</a>. For anything else, email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a>.</p>
+</section>
+
+{% endblock %}

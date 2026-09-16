@@ -36,11 +36,15 @@ make dev
 
 For full setup including the GitHub App integration, see the [local setup runbook](docs/runbooks/local-setup.md).
 
+Using the hosted product rather than running it? The user documentation lives at
+[distilledmetrics.com/docs](https://distilledmetrics.com/docs).
+
 ## Structure
 
 ```
 server/   # FastAPI + Poetry
 client/   # React + Vite + TypeScript + Tailwind
+website/  # Eleventy marketing site + public docs (/docs)
 e2e/      # Playwright browser smoke tests
 docs/     # Architecture, proposals, runbooks
 Makefile  # dev commands + database management

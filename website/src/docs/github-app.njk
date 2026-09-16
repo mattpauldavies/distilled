@@ -1,0 +1,92 @@
+---
+title: The GitHub App — Distilled
+description: How to install the Distilled GitHub App, what permissions it asks for, why each one is needed, and how to change which repositories it can see.
+navTitle: The GitHub App
+summary: What Distilled asks GitHub for, why, and how to install it.
+order: 2
+eyebrow: Setup
+heading: The GitHub App
+lead: Distilled's only connection to your code is a read-only GitHub App. This page lists exactly what it asks for, why each permission is needed, and how to change your mind later.
+---
+{% extends "docs.njk" %}
+
+{% block doc %}
+
+<section id="installing">
+  <h2>Installing it</h2>
+  <p>Start the install from inside Distilled, not from GitHub. The install link is minted for your workspace and carries a one-time token — that's how the installation gets bound to the right workspace when you come back.</p>
+  <ul>
+    <li><strong>First time:</strong> the onboarding screen shows <strong>Install GitHub App</strong>.</li>
+    <li><strong>Afterwards:</strong> profile menu → <strong>Settings → Repositories</strong> → <strong>Connect GitHub</strong>.</li>
+  </ul>
+  <p>GitHub asks which account to install on and whether to grant all repositories or a selected list. Choose a list if you'd rather start small; you can widen it at any time.</p>
+
+  <h3>If you're not an organisation owner</h3>
+  <p>GitHub will offer to <strong>request</strong> the installation instead of performing it. An organisation owner has to approve the request before anything is connected. Until they do, Distilled sits on the onboarding screen waiting.</p>
+
+  <div class="callout">
+    <p><strong>Organisation installs take a moment to bind.</strong> For organisation accounts, Distilled waits for GitHub's installation webhook to confirm who performed the install before linking it to your workspace. The screen may show a pending state for a few seconds. Personal-account installs bind immediately.</p>
+  </div>
+</section>
+
+<section id="permissions">
+  <h2>Permissions, and why each one exists</h2>
+  <p>Every permission is read-only, and each is there because a specific event or API call needs it. Nothing is requested "just in case".</p>
+
+  <div class="docs-table-wrap">
+    <table>
+      <thead>
+        <tr><th>Permission</th><th>Access</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Metadata</td><td>Read-only</td><td>Mandatory for any GitHub App. Lets Distilled list the repositories you granted.</td></tr>
+        <tr><td>Pull requests</td><td>Read-only</td><td>Receives pull request events — the basis of cycle time, throughput, open PRs and ageing.</td></tr>
+        <tr><td>Deployments</td><td>Read-only</td><td>Receives deployment status events, which is how Distilled knows code reached production.</td></tr>
+        <tr><td>Actions</td><td>Read-only</td><td>Reads the list of environments on a repository, so production environments can be detected by name.</td></tr>
+        <tr><td>Contents</td><td>Read-only</td><td>The only permission GitHub offers for release events. Distilled makes no Contents API call and never reads your code.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p><strong>About the Contents permission.</strong> GitHub gates <em>event delivery</em> for releases behind Contents, with no narrower scope available. Distilled subscribes to the release event and calls nothing. If your installation predates release tracking, it must accept the updated permission before release events are delivered — until it does, a repository set to release tracking records nothing.</p>
+  </div>
+
+  <h3>Deliberately not requested</h3>
+  <p>Checks, commit statuses, issues, administration, members, and write access to anything. Distilled cannot modify your source code, cannot open or close pull requests, and never stores your code.</p>
+</section>
+
+<section id="events">
+  <h2>What GitHub sends</h2>
+  <p>Distilled subscribes to five webhook events and stores the facts it needs from each. Raw payloads are never kept.</p>
+
+  <div class="docs-table-wrap">
+    <table>
+      <thead>
+        <tr><th>Event</th><th>What Distilled does with it</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>pull_request</code></td><td>Records opens, reopens, draft toggles, closes and merges.</td></tr>
+        <tr><td><code>deployment_status</code></td><td>Records a production deployment when the state is <code>success</code> on a production environment.</td></tr>
+        <tr><td><code>release</code></td><td>Records a production deployment when a release is published (drafts and pre-releases ignored).</td></tr>
+        <tr><td><code>installation</code></td><td>Syncs repositories and discovers environments on install; marks them removed on uninstall.</td></tr>
+        <tr><td><code>installation_repositories</code></td><td>Adds or removes repositories when you change the app's access on GitHub.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="changing-access">
+  <h2>Changing or removing access</h2>
+  <h3>Add or remove repositories on GitHub</h3>
+  <p>Go to your organisation's <strong>Settings → GitHub Apps → Distilled → Configure</strong> (or <a href="https://github.com/settings/installations">your personal installed apps page</a>) and change the repository selection. Newly granted repositories become available to add in Distilled straight away; revoked ones stop sending events and are marked removed.</p>
+
+  <h3>Uninstall entirely</h3>
+  <p>Uninstalling the app from GitHub stops all event delivery immediately and marks every connected repository as removed in each workspace using that installation. Historical metrics are retained but hidden; reinstalling brings them back.</p>
+
+  <div class="callout">
+    <p><strong>Removing a repository in Distilled is not the same as revoking it on GitHub.</strong> One hides it from a single workspace; the other cuts off event delivery everywhere. See <a href="/docs/repositories">Connecting repositories</a>.</p>
+  </div>
+</section>
+
+{% endblock %}
