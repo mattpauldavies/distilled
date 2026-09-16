@@ -15,7 +15,7 @@ export function LeadTimeChartPanel({ section }: Props) {
     <ChartPanel
       title="Lead Time"
       caption="Median and 75th percentile by week (hours)"
-      info="Time from first commit to production deploy, shown as median and 75th percentile (P75). Lower lead time means faster delivery and shorter feedback loops."
+      info="Time from PR merge to production deploy, shown as median and 75th percentile (P75). Lower lead time means faster delivery and shorter feedback loops."
       loading={loading}
       error={error}
       onRetry={retry}

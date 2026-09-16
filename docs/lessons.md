@@ -26,6 +26,17 @@
   "non-prod environment", which conflated "classified not production" with
   "never discovered". Distinguish the cases, or say only what you know.
 
+## Tooling
+
+- `poetry run <tool>` falls back to `PATH` when the project venv is empty, so a
+  missing `poetry install` surfaces as a bogus source error rather than
+  "command not found". A uv-installed mypy on Python 3.11 reported
+  `pagination.py: Expected '('` — it cannot parse PEP 695 generics — and that
+  was reported to the user as a pre-existing failure on `main`. Confirming the
+  file is unchanged on `main` does not establish that: check the tool is the
+  project's own (`poetry run which <tool>`, `poetry env info --path`) before
+  calling any baseline failure pre-existing.
+
 ## Working with the repo
 
 - Fetch and rebase from `main` *before* writing new design documents. A PRD and

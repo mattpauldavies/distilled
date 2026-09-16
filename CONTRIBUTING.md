@@ -195,13 +195,20 @@ e2e/              # Playwright browser smoke tests
 
 website/          # Eleventy marketing site
   src/            # pages and templates
+  src/docs/       # public product documentation (/docs on the site)
   test/           # URL contract tests (run against Caddyfile)
   Caddyfile       # how the built site is served
 
-docs/
+docs/             # engineering documentation, for people working on Distilled
   proposals/      # Design documents and decision records
   runbooks/       # Operational guides
 ```
+
+`docs/` and `website/src/docs/` are different audiences and both need keeping
+current: `docs/` explains the system to whoever changes it, `website/src/docs/`
+explains the product to whoever uses it. A change to how a metric is computed,
+to the GitHub App's permissions, or to a setting in the app usually touches
+both.
 
 ## Database Changes
 

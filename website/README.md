@@ -10,11 +10,14 @@ website/
     _includes/
       base.njk      # shared HTML shell: nav, footer, shared CSS, mobile menu JS
       legal.njk     # legal page layout (extends base, adds legal-specific CSS)
+      docs.njk      # documentation layout (sidebar, article styles, prev/next)
     index.njk       # homepage
     privacy.njk     # privacy policy
     terms.njk       # website terms of use
     app-terms.njk   # application terms and conditions
-    getting-started.njk  # setup guide
+    docs.njk        # documentation index, served at /docs
+    docs/           # documentation pages, served at /docs/<name>
+      docs.11tydata.js  # tags + permalink applied to every page in the folder
     images/         # static assets (copied as-is to output)
   test/
     routing.test.mjs     # URL contract tests, run against the real Caddyfile
@@ -69,17 +72,63 @@ permalink: /your-page.html
 
 Use `{% extends "base.njk" %}` instead of `legal.njk` if the page needs a custom layout rather than the standard legal article format.
 
+## Adding a documentation page
+
+Documentation pages live in `src/docs/` and are the public product docs served
+at `/docs`. Adding one is a single file — `docs.11tydata.js` gives every page in
+the folder its `docs` tag and its permalink, and the sidebar and previous/next
+links are generated from that collection, so there is no navigation list to
+update:
+
+```nunjucks
+---
+title: Page Title — Distilled
+description: One sentence, used as the meta description.
+navTitle: Sidebar label
+summary: One line, shown on the /docs index card.
+order: 14
+eyebrow: Reference
+heading: The headline shown on the page
+lead: The standfirst under the headline.
+---
+{% extends "docs.njk" %}
+
+{% block doc %}
+<section id="something">
+  <h2>Something</h2>
+  <p>...</p>
+</section>
+{% endblock %}
+```
+
+`order` sets the position in the sidebar and the reading order the previous/next
+links follow. The layout provides `.callout`, `.docs-steps` / `.docs-step`,
+`.docs-rows` / `.docs-row`, `.docs-cards` / `.docs-card` and `.docs-table-wrap`;
+pages carry content only, never their own `<style>` block.
+
+Then run `make website-test` — the routing tests walk every page listed on the
+`/docs` index and assert it serves.
+
 ## URLs
 
 Pages are served at extensionless URLs — `/terms`, not `/terms.html`. The build
 emits flat `terms.html` files and `Caddyfile` maps between the two:
 
-| URL              | Response                                    |
-| ---------------- | ------------------------------------------- |
-| `/terms`         | 200, served from `_site/terms.html`         |
-| `/terms.html`    | 301 → `/terms` (query string preserved)     |
-| `/index.html`    | 301 → `/`                                   |
-| `/no-such-page`  | 404 — there is no homepage fallback         |
+| URL                 | Response                                        |
+| ------------------- | ----------------------------------------------- |
+| `/terms`            | 200, served from `_site/terms.html`             |
+| `/terms.html`       | 301 → `/terms` (query string preserved)         |
+| `/index.html`       | 301 → `/`                                       |
+| `/docs`             | 200, served from `_site/docs.html`              |
+| `/docs/`            | 301 → `/docs`                                   |
+| `/docs/metrics`     | 200, served from `_site/docs/metrics.html`      |
+| `/getting-started`  | 301 → `/docs/getting-started` (the guide moved) |
+| `/no-such-page`     | 404 — there is no homepage fallback             |
+
+`/docs` resolves to the flat `docs.html` rather than the `docs/` directory
+beside it: Caddy's file matcher skips directories, so `try_files` falls through
+to the `.html` file. That is why the section index needs no directory index and
+why `/docs/` is redirected rather than served.
 
 That contract predates the container: it is what Cloudflare Pages served, so it
 is what search engines index and what browsers have cached 301s for. Always
