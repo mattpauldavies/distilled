@@ -80,11 +80,32 @@ test("extensionless page URLs serve the page", async () => {
     ["/terms", "Website Terms of Use — Distilled"],
     ["/privacy", "Privacy Policy — Distilled"],
     ["/app-terms", "Application Terms and Conditions — Distilled"],
-    ["/getting-started", "Getting Started — Distilled"],
+    ["/docs", "Documentation — Distilled"],
+    ["/docs/getting-started", "Getting Started — Distilled"],
+    ["/docs/metrics", "Metrics Reference — Distilled"],
   ]) {
     const response = await get(path);
     assert.equal(response.status, 200, `${path} should serve the page`);
     assert.match(await response.text(), new RegExp(`<title>${title}</title>`));
+  }
+});
+
+// The sidebar is generated from the docs collection, so a page that builds but
+// is not in the collection would be unreachable from the section itself.
+test("every documentation page is reachable and linked from the sidebar", async () => {
+  const index = await (await get("/docs")).text();
+  const pages = [...index.matchAll(/class="docs-card" href="(\/docs\/[^"]+)"/g)].map((m) => m[1]);
+
+  assert.ok(pages.length >= 10, `expected the docs index to list its pages, found ${pages.length}`);
+
+  for (const path of pages) {
+    const response = await get(path);
+    assert.equal(response.status, 200, `${path} should serve the page`);
+    assert.match(
+      await response.text(),
+      new RegExp(`<a href="${path}" aria-current="page"`),
+      `${path} should be the current page in its own sidebar`
+    );
   }
 });
 
@@ -95,7 +116,7 @@ test("the homepage serves at the site root", async () => {
 });
 
 test(".html URLs redirect permanently to their canonical extensionless form", async () => {
-  for (const path of ["/terms", "/privacy", "/app-terms", "/getting-started"]) {
+  for (const path of ["/terms", "/privacy", "/app-terms", "/docs", "/docs/metrics"]) {
     const response = await get(`${path}.html`);
     assert.equal(response.status, 301, `${path}.html should redirect`);
     assert.equal(response.headers.get("location"), path);
@@ -129,6 +150,29 @@ test("a missing page 404s rather than falling back to the homepage", async () =>
   const response = await get("/no-such-page");
   assert.equal(response.status, 404);
   assert.doesNotMatch(await response.text(), /Engineering intelligence/);
+});
+
+// The guide lived at /getting-started for the site's whole life: it is in the
+// footer of every page shipped so far, in the app's onboarding screen, and
+// indexed. Moving it into /docs must not break any of those.
+test("the old getting-started URL redirects into the docs section", async () => {
+  for (const path of ["/getting-started", "/getting-started.html"]) {
+    const response = await get(path);
+    assert.equal(response.status, 301, `${path} should redirect`);
+    assert.equal(response.headers.get("location"), "/docs/getting-started");
+  }
+});
+
+test("the moved guide's redirect keeps the query string", async () => {
+  const response = await get("/getting-started?utm_source=newsletter");
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get("location"), "/docs/getting-started?utm_source=newsletter");
+});
+
+test("the docs index has one canonical URL", async () => {
+  const response = await get("/docs/");
+  assert.equal(response.status, 301, "/docs/ should redirect to /docs");
+  assert.equal(response.headers.get("location"), "/docs");
 });
 
 test("backslash paths cannot mint off-site redirects", async () => {

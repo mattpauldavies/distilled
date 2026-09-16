@@ -1,0 +1,91 @@
+---
+title: Getting Started — Distilled
+description: Set up Distilled in a few minutes. Sign in with GitHub, install the app, choose your repositories, and start tracking deployments, pull requests, and the rest of your delivery metrics.
+navTitle: Getting started
+summary: Sign in, install the GitHub App, and see your first metrics.
+order: 1
+eyebrow: Getting started
+heading: Up and running in minutes.
+lead: Connect Distilled to your GitHub organisation and start tracking how your team ships. No code changes, no manual data entry — install the app and we'll do the rest.
+---
+{% extends "docs.njk" %}
+
+{% block doc %}
+
+<section id="before-you-begin">
+  <h2>Before you begin</h2>
+  <p>Distilled reads directly from GitHub, so there's very little to prepare. You'll need:</p>
+  <ul>
+    <li>A <strong>GitHub organisation</strong> (or a personal account) where you can install GitHub Apps.</li>
+    <li>Permission to <strong>authorise the Distilled GitHub App</strong> on the repositories you want to track. Organisation owners can install directly; everyone else may need to request approval.</li>
+    <li>At least one repository that <strong>ships to production in a way GitHub can see</strong> — either a successful deployment to a production environment, or a published release. If you use GitHub Actions, Vercel, Netlify, Railway, Heroku, or anything else that writes deployment events to GitHub, you're good to go. If you ship by publishing releases instead, see <a href="/docs/deployment-tracking">Deployment tracking</a>.</li>
+  </ul>
+
+  <div class="callout">
+    <p><strong>Read-only access.</strong> Distilled cannot write to your repositories and never modifies your source code. We ask for the minimum permissions needed to read pull requests, deployments, releases and repository metadata — and we never store your code. The full list is on <a href="/docs/github-app">The GitHub App</a>.</p>
+  </div>
+</section>
+
+<section id="setup">
+  <h2>Setup</h2>
+  <p>The whole thing takes about two minutes. You'll sign in, install the GitHub App, and start capturing delivery data from your next pull request or deployment onward.</p>
+
+  <ol class="docs-steps">
+    <li class="docs-step">
+      <h3>Create your Distilled account</h3>
+      <p>Head to <a href="https://app.distilledmetrics.com">app.distilledmetrics.com</a> and sign in with GitHub. Your account is provisioned automatically the first time you sign in, along with a workspace called <strong>My Workspace</strong> that you own.</p>
+    </li>
+
+    <li class="docs-step">
+      <h3>Install the Distilled GitHub App</h3>
+      <p>From the onboarding screen, click <strong>Install GitHub App</strong>. You'll be taken to GitHub to choose the organisation and the repositories to connect. You can grant access to every repository or to a specific list — whichever you prefer.</p>
+      <p>Always start the install from inside Distilled. The link is minted for your workspace, and that's what binds the installation to it.</p>
+    </li>
+
+    <li class="docs-step">
+      <h3>Wait for your next GitHub event</h3>
+      <p>Distilled doesn't backfill history. It captures delivery data from GitHub webhooks as events happen, so your first metric appears on your next pull request or deployment. Depending on how active your repositories are, that can be minutes, hours or days.</p>
+    </li>
+
+    <li class="docs-step">
+      <h3>Open the dashboard</h3>
+      <p>As soon as the first events arrive, the onboarding screen hands off to the dashboard. Pick a repository and a time window to see deployment frequency, lead time, cycle time and the rest side by side. Trends fill in as your team keeps shipping.</p>
+    </li>
+  </ol>
+
+  <div class="callout">
+    <p><strong>Nothing happening?</strong> If your repositories are quiet, you can prove the pipeline works by opening a throwaway pull request. Distilled shows you the exact commands on the dashboard while it waits for data.</p>
+  </div>
+</section>
+
+<section id="first-week">
+  <h2>What to expect in the first week</h2>
+  <p>Metrics arrive in the order your team generates them, so the dashboard fills out in stages.</p>
+  <div class="docs-rows">
+    <div class="docs-row">
+      <strong>Within minutes</strong>
+      <p>Open PR count and PR ageing populate as soon as Distilled sees your open pull requests — these read current state rather than history.</p>
+    </div>
+    <div class="docs-row">
+      <strong>Within a day or two</strong>
+      <p>PR cycle time and throughput appear once pull requests opened after the install start merging. Deployment frequency starts counting from your first successful production deployment.</p>
+    </div>
+    <div class="docs-row">
+      <strong>Within a couple of weeks</strong>
+      <p>Lead time becomes meaningful once enough merged pull requests have been linked to deployments, and the weekly trend charts have enough points to show a direction rather than a dot.</p>
+    </div>
+  </div>
+  <p>The 90-day and 6-month time windows stay disabled until you have enough history to fill them, and the dashboard holds you at 30 days in the meantime. Hovering a disabled window tells you how many days of data exist so far.</p>
+</section>
+
+<section id="next">
+  <h2>Next steps</h2>
+  <ul>
+    <li><a href="/docs/deployment-tracking">Choose how each repository is tracked</a> — deployments or releases.</li>
+    <li><a href="/docs/team">Invite your team</a> so they see the same dashboard you do.</li>
+    <li><a href="/docs/metrics">Read what each metric means</a> before you act on it.</li>
+    <li><a href="/docs/troubleshooting">Troubleshooting</a> if something isn't showing up.</li>
+  </ul>
+</section>
+
+{% endblock %}

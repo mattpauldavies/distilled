@@ -26,6 +26,23 @@
 	}
 	redir /index.html / 301
 	redir /index / 301
+
+	# The getting-started guide moved into the documentation section. Its old
+	# URL is in the footer of every page we ever shipped, in the app's
+	# onboarding screen, and indexed — so it redirects rather than 404s. These
+	# come before the generic .html rule so the .html form lands on the new
+	# page in one hop rather than two.
+	@moved_query {
+		path /getting-started /getting-started.html
+		expression {query} != ""
+	}
+	@moved path /getting-started /getting-started.html
+	redir @moved_query /docs/getting-started?{query} 301
+	redir @moved /docs/getting-started 301
+
+	# /docs is served from the flat docs.html, so the trailing-slash form has
+	# no file behind it and would otherwise 404.
+	redir /docs/ /docs 301
 	redir @html_query /{re.page.1}?{query} 301
 	redir @html /{re.page.1} 301
 

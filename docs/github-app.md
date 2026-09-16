@@ -3,6 +3,10 @@
 Everything Distilled asks of GitHub: the four API calls and two webhook events we subscribe to.
 The permission set below is the minimum that makes all of it work; anything beyond it is access we do not use.
 
+The user-facing version of this page is
+[website/src/docs/github-app.njk](../website/src/docs/github-app.njk), served at
+`/docs/github-app`. A permission or event added here has to be added there too.
+
 ---
 
 ## What the server calls via the API
