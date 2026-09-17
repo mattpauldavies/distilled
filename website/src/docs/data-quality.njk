@@ -32,36 +32,9 @@ lead: Distilled reports on the state of its own pipeline alongside your delivery
   <p>A repository that has never been recomputed shows a one-time <strong>"Your data is on its way"</strong> dialog rather than an empty dashboard, with the commands to generate a pull request if you want to prove the connection works.</p>
 </section>
 
-<section id="attribution">
-  <h2>Attribution coverage</h2>
-  <p>Lead time only exists if Distilled can say which deployment shipped a given pull request. <strong>Attribution coverage</strong> is the percentage of merged pull requests in the last 30 days that are linked to a deployment.</p>
-
-  <h3>How the link is made</h3>
-  <p>When a production deployment arrives, Distilled attributes to it every pull request merged into the default branch since the previous production deployment on that repository. The first deployment Distilled ever sees for a repository looks back 30 days.</p>
-  <p>This is a time-window heuristic, not commit ancestry. It was chosen because it needs no extra calls to GitHub and because it's explainable: any attribution can be checked by looking at two timestamps. The trade is that it can be wrong when deployments run out of order, or when a deployment ships from a branch other than the default one.</p>
-
-  <h3>Reading the coverage figure</h3>
-  <ul>
-    <li><strong>High coverage</strong> means merges are reliably followed by deployments, so lead time is trustworthy.</li>
-    <li><strong>Low coverage</strong> means many merges never got linked to a ship. Lead time is computed from the minority that did, which usually biases it optimistically.</li>
-    <li><strong>No figure at all</strong> means nothing merged in the window, so there's nothing to attribute.</li>
-  </ul>
-  <p>The usual cause of low coverage is a gap in deployment tracking: an unrecognised production environment, a pipeline that doesn't emit deployment events, or a repository that ships by release but is still set to deployment tracking.</p>
-</section>
-
 <section id="setup">
   <h2>Setup status</h2>
   <p>Where a metric can't be computed for a structural reason, Distilled says so rather than showing zero. A card reading <strong>"Requires a connected production environment"</strong> means the repository tracks deployments but has no environment whose name Distilled recognises as production.</p>
-  <p>Two fixes: connect or rename the environment (see <a href="/docs/deployment-tracking">Deployment tracking</a>), or switch the repository to release tracking if publishing a release is how it really ships. Release-tracked repositories never need an environment.</p>
-</section>
-
-<section id="principles">
-  <h2>Why it works this way</h2>
-  <ul>
-    <li><strong>No backfill.</strong> Distilled reports on events it received as they happened. Reconstructing history from the GitHub API would produce numbers nobody could verify against what actually occurred.</li>
-    <li><strong>No guessing.</strong> A pull request that can't be attributed to a deployment stays unattributed and shows up in coverage, rather than being assigned to the nearest plausible ship.</li>
-    <li><strong>Gaps are visible.</strong> A missing production environment is reported on the card that needs it, instead of leaving you to work out why the card is blank.</li>
-  </ul>
 </section>
 
 {% endblock %}

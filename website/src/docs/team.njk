@@ -6,7 +6,7 @@ summary: Invite people, manage roles, and transfer ownership.
 order: 9
 eyebrow: Using Distilled
 heading: Adding team members
-lead: Invitations are a link in an email. There are no seats to assign and no GitHub org membership to mirror. Send the link, they sign in, and they're in.
+lead: Invite teammates to a Distilled workspace quickly and easily.
 ---
 {% extends "docs.njk" %}
 
@@ -17,11 +17,11 @@ lead: Invitations are a link in an email. There are no seats to assign and no Gi
   <ol class="docs-steps">
     <li class="docs-step">
       <h3>Open Settings → Team</h3>
-      <p>From the profile menu, top right. Owners only.</p>
+      <p>From the profile menu, top right. (Owners only.)</p>
     </li>
     <li class="docs-step">
       <h3>Name your workspace, if you haven't</h3>
-      <p>The first time you invite someone to a workspace still called "My Workspace", Distilled offers to rename it, so the invitation says <em>Acme Engineering</em> rather than something nobody recognises. You can skip it; the prompt won't come back.</p>
+      <p>The first time you invite someone to a workspace still called "My Workspace", Distilled offers to rename it, so the invitation says <em>Acme Engineering</em> rather than something nobody recognises.</p>
     </li>
     <li class="docs-step">
       <h3>Send the invite</h3>
@@ -73,7 +73,7 @@ lead: Invitations are a link in an email. There are no seats to assign and no Gi
 
 <section id="github">
   <h2>Team membership and GitHub access</h2>
-  <p>They're separate on purpose. Being a member of a Distilled workspace grants no access to your repositories. Distilled's own GitHub App holds that access, read-only, and it isn't delegated to anyone you invite. A colleague with no GitHub access to a repository can still read its delivery metrics, which is usually exactly what you want for an engineering leader or a delivery manager.</p>
+  <p>They're separate on purpose. Being a member of a Distilled workspace grants no access to your repositories. Distilled's own GitHub App holds that access, read-only, and it isn't delegated to anyone you invite. A colleague with no GitHub access to a repository can still read its delivery metrics.</p>
 </section>
 
 {% endblock %}

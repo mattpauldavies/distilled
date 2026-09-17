@@ -31,7 +31,7 @@ lead: One repository, one time window, everything that matters on one screen. He
 
 <section id="key-metrics">
   <h2>Key metrics</h2>
-  <p>The top row answers "how are we doing right now?" in five numbers. Each reflects the selected repository and time window, except the open-PR figures, which are always current state.</p>
+  <p>The top row answers "how are we doing right now?" with five metrics. Each reflects the selected repository and time window, except the open-PR figures, which are always current state.</p>
 
   <div class="docs-rows">
     <div class="docs-row">
@@ -48,38 +48,25 @@ lead: One repository, one time window, everything that matters on one screen. He
     </div>
     <div class="docs-row">
       <strong>Throughput (PRs / engineer / month)</strong>
-      <p>Merged pull requests, normalised by the number of distinct authors in the window, so the number doesn't jump when the team grows or shrinks.</p>
+      <p>Merged pull requests, normalised by the number of distinct authors.</p>
     </div>
     <div class="docs-row">
       <strong>Open PRs (live and draft)</strong>
       <p>How much work is in flight right now.</p>
     </div>
   </div>
-
-  <p>A card reading <strong>"Requires a connected production environment"</strong> isn't an error: that repository tracks deployments but has no environment Distilled recognises as production. See <a href="/docs/deployment-tracking">Deployment tracking</a>.</p>
 </section>
 
 <section id="trends">
   <h2>Trends</h2>
-  <p>Four charts answer "and is that getting better or worse?". Each has an <strong>info</strong> button explaining what it plots.</p>
+  <p>Four charts answer the question "are things getting better or worse?". Each chart has an <strong>info</strong> button explaining what it plots.</p>
   <ul>
-    <li><strong>Deployment Frequency</strong>: deployments per day across the window. Look for consistency as much as height; a flat line of small ships beats a spike before a quiet fortnight.</li>
-    <li><strong>Lead Time</strong>: weekly median and 75th percentile in hours. The gap between the two lines is your tail. A low median with a high P75 means most changes ship quickly and some get stuck.</li>
-    <li><strong>PR Cycle Time</strong>: weekly median and P75, read the same way.</li>
-    <li><strong>PR Ageing</strong>: the age distribution of pull requests open right now. A healthy repository is weighted towards the youngest bucket.</li>
+    <li><strong>Deployment Frequency</strong>: deployments per day across the current time window.</li>
+    <li><strong>Lead Time</strong>: weekly median and 75th percentile in hours.</li>
+    <li><strong>PR Cycle Time</strong>: weekly median and 75th percentile in hours.</li>
+    <li><strong>PR Ageing</strong>: the age distribution of pull requests open right now.</li>
   </ul>
   <p>Headline numbers are computed live over exactly the window you selected; the weekly chart series are recomputed on a schedule. That's why a chart can lag a headline figure by up to an hour.</p>
-</section>
-
-<section id="reading-it">
-  <h2>Reading it well</h2>
-  <p>Distilled is built to be glanced at for thirty seconds rather than studied. A few habits make that reliable:</p>
-  <ul>
-    <li><strong>Read the pair, not the number.</strong> Cycle time with throughput. Deployment frequency with lead time. Either one alone can be improved in ways nobody wants.</li>
-    <li><strong>Trust the trend before the value.</strong> The absolute median depends on how your team splits work; the direction over six weeks doesn't.</li>
-    <li><strong>Check data quality before acting on a surprise.</strong> A sudden improvement is often a pipeline change, not a team change.</li>
-    <li><strong>Don't compare engineers.</strong> These are pipeline metrics. Throughput per engineer describes the system's capacity to move work, not anyone's contribution.</li>
-  </ul>
 </section>
 
 {% endblock %}

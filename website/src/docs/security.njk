@@ -17,7 +17,7 @@ lead: Distilled asks for read-only access to metadata about how your team works.
   <div class="docs-rows">
     <div class="docs-row">
       <strong>Can</strong>
-      <p>Read pull request metadata, deployment statuses, published releases, environment names and repository metadata, for the repositories you explicitly granted and nothing else.</p>
+      <p>Read pull request metadata, deployment statuses, published releases, environment names and repository metadata, for the repositories you explicitly granted access to and nothing else.</p>
     </div>
     <div class="docs-row">
       <strong>Cannot</strong>
@@ -47,7 +47,7 @@ lead: Distilled asks for read-only access to metadata about how your team works.
 
 <section id="isolation">
   <h2>Isolation between workspaces</h2>
-  <p>Every record Distilled stores is tagged with the workspace it belongs to, and every request verifies your membership of the workspace it's asking about on the server, not in the browser. Two workspaces tracking the same repository each hold their own separate copy of the data. There is no shared view across workspaces, and no cross-workspace query.</p>
+  <p>Every record Distilled stores is tagged with the workspace it belongs to, and every request verifies your membership of the workspace it's asking about on the server, not in the browser.</p>
 </section>
 
 <section id="integrity">
