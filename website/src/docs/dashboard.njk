@@ -16,17 +16,17 @@ lead: One repository, one time window, everything that matters on one screen. He
   <h2>The controls</h2>
 
   <h3>Repository selector</h3>
-  <p>The dashboard shows one repository at a time, because delivery health is a property of a codebase and its pipeline, not of an average across them. Pick a repository from the selector in the top right; the whole page reloads for it. The repository's name is the page heading, so it's always obvious what you're looking at.</p>
+  <p>The dashboard is your primary view within Distilled. The page shows you metrics for one repository at a time; Distilled allows you to focus on the delivery health of a codebase and its pipeline, but not of an average across them. Switch repositories via the selector at the top right of the page.</p>
 
   <h3>Time window</h3>
-  <p>Three windows: <strong>30d</strong>, <strong>90d</strong> and <strong>6m</strong>. Ninety days is the default: long enough to see a trend, short enough to reflect how the team works now.</p>
-  <p>A larger window only becomes selectable once you have more history than the window below it, so a chart can never imply six months of data from three weeks of it. As your history grows, the wider windows unlock on their own.</p>
+  <p>Distilled offers you three time windows: <strong>30 days</strong>, <strong>90 days</strong> and <strong>6 months</strong>.</p>
+  <p>Note that when you first start using Distilled the only time window available will be 30 days. Over time as more data is collected the longer time windows will become available.</p>
 
   <h3>Freshness indicator</h3>
-  <p>Underneath the repository name: a dot, when metrics were last recomputed, and how many days of data exist. Green means the numbers are current; anything else means the recompute hasn't run recently and you should treat the trends as slightly behind. Full detail is on <a href="/docs/data-quality">Data quality</a>.</p>
+  <p>Underneath the repository name in the top left you will see a short overview of when metrics were last recomputed and how many days of data exist. If the status dot is red, this means the batch metric calculations have not been run recently and you should treat the data as slightly behind. (Distilled will catch up quickly.) More detail is available here: <a href="/docs/data-quality">Data Quality</a>.</p>
 
   <h3>Profile menu</h3>
-  <p>Top right. Switch or create workspaces and, if you're an owner, reach the <strong>Team</strong>, <strong>Repositories</strong> and <strong>Deployment Tracking</strong> settings.</p>
+  <p>In the top right of the page you will find the profile menu. Switch or create workspaces and, if you're an owner, reach the <strong>Team</strong>, <strong>Repositories</strong> and <strong>Deployment Tracking</strong> settings.</p>
 </section>
 
 <section id="key-metrics">
@@ -52,7 +52,7 @@ lead: One repository, one time window, everything that matters on one screen. He
     </div>
     <div class="docs-row">
       <strong>Open PRs (live and draft)</strong>
-      <p>How much work is in flight right now, split so early-stage drafts don't inflate the review queue.</p>
+      <p>How much work is in flight right now.</p>
     </div>
   </div>
 
