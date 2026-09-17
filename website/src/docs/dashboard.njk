@@ -1,6 +1,6 @@
 ---
 title: Using the Dashboard — Distilled
-description: A tour of the Distilled dashboard — the repository selector, time windows, key metric cards, trend charts and the freshness indicator.
+description: A tour of the Distilled dashboard, covering the repository selector, time windows, key metric cards, trend charts and the freshness indicator.
 navTitle: Using the dashboard
 summary: A tour of the controls, cards and charts you'll use every day.
 order: 5
@@ -16,70 +16,57 @@ lead: One repository, one time window, everything that matters on one screen. He
   <h2>The controls</h2>
 
   <h3>Repository selector</h3>
-  <p>The dashboard shows one repository at a time, because delivery health is a property of a codebase and its pipeline, not of an average across them. Pick a repository from the selector in the top right; the whole page reloads for it. The repository's name is the page heading, so it's always obvious what you're looking at.</p>
+  <p>The dashboard is your primary view within Distilled. The page shows you metrics for one repository at a time; Distilled allows you to focus on the delivery health of a codebase and its pipeline, but not of an average across them. Switch repositories via the selector at the top right of the page.</p>
 
   <h3>Time window</h3>
-  <p>Three windows: <strong>30d</strong>, <strong>90d</strong> and <strong>6m</strong>. Ninety days is the default — long enough to see a trend, short enough to reflect how the team works now.</p>
-  <p>A larger window only becomes selectable once you have more history than the window below it, so a chart can never imply six months of data from three weeks of it. As your history grows, the wider windows unlock on their own.</p>
+  <p>Distilled offers you three time windows: <strong>30 days</strong>, <strong>90 days</strong> and <strong>6 months</strong>.</p>
+  <p>Note that when you first start using Distilled the only time window available will be 30 days. Over time as more data is collected the longer time windows will become available.</p>
 
   <h3>Freshness indicator</h3>
-  <p>Underneath the repository name: a dot, when metrics were last recomputed, and how many days of data exist. Green means the numbers are current; anything else means the recompute hasn't run recently and you should treat the trends as slightly behind. Full detail is on <a href="/docs/data-quality">Data quality</a>.</p>
+  <p>Underneath the repository name in the top left you will see a short overview of when metrics were last recomputed and how many days of data exist. If the status dot is red, this means the batch metric calculations have not been run recently and you should treat the data as slightly behind. (Distilled will catch up quickly.) More detail is available here: <a href="/docs/data-quality">Data Quality</a>.</p>
 
   <h3>Profile menu</h3>
-  <p>Top right. Switch or create workspaces, and — if you're an owner — reach <strong>Team</strong>, <strong>Repositories</strong> and <strong>Deployment Tracking</strong> settings.</p>
+  <p>In the top right of the page you will find the profile menu. Switch or create workspaces and, if you're an owner, reach the <strong>Team</strong>, <strong>Repositories</strong> and <strong>Deployment Tracking</strong> settings.</p>
 </section>
 
 <section id="key-metrics">
   <h2>Key metrics</h2>
-  <p>The top row answers "how are we doing right now?" in five numbers. Each reflects the selected repository and time window, except the open-PR figures, which are always current state.</p>
+  <p>The top row answers "how are we doing right now?" with five metrics. Each reflects the selected repository and time window, except the open-PR figures, which are always current state.</p>
 
   <div class="docs-rows">
     <div class="docs-row">
-      <strong>Deployment Frequency — deploys / week</strong>
+      <strong>Deployment Frequency (deploys / week)</strong>
       <p>Production ships per week across the window.</p>
     </div>
     <div class="docs-row">
-      <strong>Lead Time — median: merge to production</strong>
+      <strong>Lead Time (median: merge to production)</strong>
       <p>How long merged code waits before users get it.</p>
     </div>
     <div class="docs-row">
-      <strong>PR Cycle Time — median: PR open to merge</strong>
+      <strong>PR Cycle Time (median: PR open to merge)</strong>
       <p>How long the review-and-iterate loop takes.</p>
     </div>
     <div class="docs-row">
-      <strong>Throughput — PRs / engineer / month</strong>
-      <p>Merged pull requests, normalised by the number of distinct authors in the window, so the number doesn't jump when the team grows or shrinks.</p>
+      <strong>Throughput (PRs / engineer / month)</strong>
+      <p>Merged pull requests, normalised by the number of distinct authors.</p>
     </div>
     <div class="docs-row">
-      <strong>Open PRs — live and draft</strong>
-      <p>How much work is in flight right now, split so early-stage drafts don't inflate the review queue.</p>
+      <strong>Open PRs (live and draft)</strong>
+      <p>How much work is in flight right now.</p>
     </div>
   </div>
-
-  <p>A card reading <strong>"Requires a connected production environment"</strong> isn't an error: that repository tracks deployments but has no environment Distilled recognises as production. See <a href="/docs/deployment-tracking">Deployment tracking</a>.</p>
 </section>
 
 <section id="trends">
   <h2>Trends</h2>
-  <p>Four charts answer "and is that getting better or worse?". Each has an <strong>info</strong> button explaining what it plots.</p>
+  <p>Four charts answer the question "are things getting better or worse?". Each chart has an <strong>info</strong> button explaining what it plots.</p>
   <ul>
-    <li><strong>Deployment Frequency</strong> — deployments per day across the window. Look for consistency as much as height; a flat line of small ships beats a spike before a quiet fortnight.</li>
-    <li><strong>Lead Time</strong> — weekly median and 75th percentile in hours. The gap between the two lines is your tail: a low median with a high P75 means most changes ship quickly and some get stuck.</li>
-    <li><strong>PR Cycle Time</strong> — weekly median and P75, same reading.</li>
-    <li><strong>PR Ageing</strong> — the age distribution of pull requests open right now. A healthy repository is weighted towards the youngest bucket.</li>
+    <li><strong>Deployment Frequency</strong>: deployments per day across the current time window.</li>
+    <li><strong>Lead Time</strong>: weekly median and 75th percentile in hours.</li>
+    <li><strong>PR Cycle Time</strong>: weekly median and 75th percentile in hours.</li>
+    <li><strong>PR Ageing</strong>: the age distribution of pull requests open right now.</li>
   </ul>
   <p>Headline numbers are computed live over exactly the window you selected; the weekly chart series are recomputed on a schedule. That's why a chart can lag a headline figure by up to an hour.</p>
-</section>
-
-<section id="reading-it">
-  <h2>Reading it well</h2>
-  <p>Distilled is built to be looked at for thirty seconds, not studied. A few habits make that reliable:</p>
-  <ul>
-    <li><strong>Read the pair, not the number.</strong> Cycle time with throughput. Deployment frequency with lead time. Either one alone can be improved in ways nobody wants.</li>
-    <li><strong>Trust the trend before the value.</strong> The absolute median depends on how your team splits work; the direction over six weeks doesn't.</li>
-    <li><strong>Check data quality before acting on a surprise.</strong> A sudden improvement is often a pipeline change, not a team change.</li>
-    <li><strong>Don't compare engineers.</strong> These are pipeline metrics. Throughput per engineer describes the system's capacity to move work, not anyone's contribution.</li>
-  </ul>
 </section>
 
 {% endblock %}

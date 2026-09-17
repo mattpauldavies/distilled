@@ -20,22 +20,22 @@ lead: A workspace tracks whichever repositories you choose from the GitHub accou
 
 <section id="adding">
   <h2>Adding repositories</h2>
-  <p>Click <strong>Add repositories</strong>. Distilled asks GitHub, live, which repositories your installation currently grants and lists them — there's no stale local copy to refresh. Repositories already tracked are shown as added.</p>
-  <p>A newly added repository starts recording on its next pull request, deployment or release. Its environments are discovered as it's added, so production detection works from the start.</p>
-  <p>If a repository you expect isn't listed, the app's access on GitHub doesn't include it yet. Use <strong>Connect GitHub</strong> to update the grant, then add it here.</p>
+  <p>Click <strong>Add repositories</strong>. Distilled asks GitHub which repositories your installation currently grants and lists them; there's no stale local copy to refresh.</p>
+  <p>A newly added repository starts recording on its next pull request, deployment or release.</p>
+  <p>If a repository you expect isn't listed, the app's access on GitHub doesn't include it yet.</p>
 </section>
 
 <section id="connecting-accounts">
   <h2>Connecting another GitHub account</h2>
-  <p><strong>Connect GitHub</strong> installs the Distilled app on another organisation or personal account — or updates which repositories an existing installation can see — and links it to this workspace.</p>
+  <p>Clicking <strong>Connect GitHub</strong> installs the Distilled app on another organisation or personal account, or updates which repositories an existing installation can see, and links it to this workspace.</p>
   <p>One workspace can hold repositories from several organisations and personal accounts at once. A workspace is not a GitHub organisation; it's whatever set of repositories you want to look at together.</p>
 </section>
 
 <section id="removing">
   <h2>Removing a repository</h2>
-  <p><strong>Remove</strong> takes the repository off this workspace's dashboard. Its history is retained but hidden, and you can add it back at any time to get it all back.</p>
+  <p><strong>Remove</strong> takes the repository off this workspace's dashboard. Its history is retained but hidden, and adding the repository back at any time brings all of it with it.</p>
   <div class="callout">
-    <p><strong>Removals stick.</strong> A repository you removed will not reappear because of a GitHub-side sync — reinstalling the app or re-granting access won't resurrect it. Only adding it back in Distilled does.</p>
+    <p><strong>Removals stick.</strong> A repository you removed will not reappear because of a GitHub-side sync. Reinstalling the app or re-granting access won't bring it back; only adding it again in Distilled will.</p>
   </div>
   <p>Removing in Distilled affects one workspace. It does not change the app's permissions on GitHub, and it does not affect another workspace tracking the same repository.</p>
 </section>
@@ -47,7 +47,7 @@ lead: A workspace tracks whichever repositories you choose from the GitHub accou
 
 <section id="moving">
   <h2>Moving a repository between workspaces</h2>
-  <p>Remove it from the first workspace, then add it in the second — connecting the installation there first if needed.</p>
+  <p>Remove it from the first workspace, then add it in the second, connecting the installation there first if needed.</p>
   <p>History stays with the workspace that recorded it. The destination workspace starts accumulating from the moment you add it, because Distilled does not backfill. If you need continuity of the numbers, keep the repository where its history lives.</p>
 </section>
 

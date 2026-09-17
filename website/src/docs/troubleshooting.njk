@@ -1,12 +1,12 @@
 ---
 title: Troubleshooting — Distilled
-description: Fixes for the most common Distilled problems — no data appearing, missing deployments, empty lead time, unavailable time windows and installation trouble.
+description: Fixes for the most common Distilled problems, from no data appearing to missing deployments, empty lead time, unavailable time windows and installation trouble.
 navTitle: Troubleshooting
-summary: Fixes for the problems people actually hit.
+summary: Fixes for common problems
 order: 12
 eyebrow: Help
 heading: Troubleshooting
-lead: Almost every problem with Distilled is one of six things. Here they are, with the fix for each.
+lead: Almost every problem with Distilled is one of a small handful of things; here they are, with fixes for each.
 ---
 {% extends "docs.njk" %}
 
@@ -17,7 +17,7 @@ lead: Almost every problem with Distilled is one of six things. Here they are, w
   <p>This is expected until GitHub sends Distilled an event for a connected repository. There's no backfill, so the dashboard unlocks on your team's next pull request, merge or deployment. On a quiet repository that can be hours or days.</p>
   <p>If your repositories definitely aren't quiet, check the install landed where you think it did:</p>
   <ul>
-    <li>Confirm the installation completed on the right organisation, and that the repositories you expected were selected — <a href="https://github.com/settings/installations">your installed apps page</a> on GitHub shows both.</li>
+    <li>Confirm the installation completed on the right organisation, and that the repositories you expected were selected. <a href="https://github.com/settings/installations">Your installed apps page</a> on GitHub shows both.</li>
     <li>Confirm the repositories appear in <strong>Settings → Repositories</strong> in Distilled. If they don't, use <strong>Connect GitHub</strong> to update the grant.</li>
     <li>Force the issue with a throwaway pull request:</li>
   </ul>
@@ -32,24 +32,16 @@ gh pr create --fill</code></pre>
   <h2>Pull requests show up, but deployments don't</h2>
   <p>The usual cause is that GitHub never sees your deploys, or sees them against an environment Distilled doesn't recognise as production.</p>
   <ul>
-    <li><strong>Does your pipeline create GitHub Deployments?</strong> Many don't. If yours doesn't, either emit them from CI or switch the repository to release tracking — both are covered in <a href="/docs/deployment-tracking">Deployment tracking</a>.</li>
-    <li><strong>Is the environment name recognised?</strong> It must contain <code>prod</code> or <code>live</code>. An environment called <code>main</code> or <code>www</code> won't count.</li>
+    <li><strong>Does your pipeline create GitHub Deployments?</strong> If yours doesn't, either emit them from CI or switch the repository to release tracking; both are covered in <a href="/docs/deployment-tracking">Deployment Tracking</a>.</li>
+    <li><strong>Is the environment name recognised?</strong> It must contain <code>production</code>, <code>prod</code> or <code>live</code>. An environment called <code>main</code> or <code>www</code> won't count.</li>
     <li><strong>Was the environment created after you connected the repository?</strong> Environments are discovered at connection time. Re-run <strong>Connect GitHub</strong> to pick up a new one.</li>
     <li><strong>Did the deployment actually succeed?</strong> Only a <code>success</code> state counts.</li>
   </ul>
-  <p>A card reading "Requires a connected production environment" is Distilled telling you precisely this.</p>
-</section>
-
-<section id="no-lead-time">
-  <h2>Lead time is empty, or looks far too good</h2>
-  <p>Lead time needs merged pull requests linked to a production deployment. If deployments aren't being recorded, there's nothing to link to and the metric stays blank — fix deployments first.</p>
-  <p>If it shows a suspiciously low value, check attribution coverage: when only a handful of merges are linked, lead time is computed from those few and usually flatters you. <a href="/docs/data-quality">Data quality</a> explains how to read it.</p>
-  <p>One structural cause: only pull requests targeting the repository's <strong>default branch</strong> are attributed. If you merge into a release branch and deploy from there, those merges will never link.</p>
 </section>
 
 <section id="missing-window">
   <h2>The 90d or 6m window is greyed out</h2>
-  <p>A wider window unlocks only when you have more history than the window below it — otherwise a six-month chart would be five months of blank space. It unlocks itself as your history builds. The "days of data" figure under the repository name tells you how far off you are.</p>
+  <p>Wider time windows unlock only when you have enough data. Otherwise a six-month chart would be five months of blank space. The menu unlocks itself as your history builds and the "days of data" figure under the repository name tells you how far off you are.</p>
 </section>
 
 <section id="repo-missing">
@@ -66,19 +58,19 @@ gh pr create --fill</code></pre>
   <ul>
     <li><strong>Are you an organisation owner?</strong> If not, GitHub turns the install into a request that an owner must approve. Nothing connects until they do.</li>
     <li><strong>Did you start from inside Distilled?</strong> The install link carries a token that binds the installation to your workspace. Start from the onboarding screen or Settings → Repositories.</li>
-    <li><strong>Stuck on "Preparing GitHub connection"?</strong> Refresh the page — that mints a fresh link.</li>
+    <li><strong>Stuck on "Preparing GitHub connection"?</strong> Refresh the page; that mints a fresh link.</li>
     <li><strong>Not an owner of the Distilled workspace?</strong> Only owners can connect GitHub. A member sees a waiting message instead.</li>
   </ul>
 </section>
 
 <section id="stale">
   <h2>The dashboard says "Data stale"</h2>
-  <p>The scheduled recompute hasn't run in the last two hours. Headline numbers are queried live and remain correct; the weekly trend charts may lag. If it persists for more than a few hours, email us — that's ours to fix, not yours.</p>
+  <p>The scheduled recompute hasn't run in the last two hours. Headline numbers are queried live and remain correct; the weekly trend charts may lag. If it persists for more than a few hours, email us; that one's ours to fix, not yours.</p>
 </section>
 
 <section id="still-stuck">
   <h2>Still stuck?</h2>
-  <p>Email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a> with your GitHub organisation name, the repository involved, and what you expected to see. If a specific pull request or deployment is missing, include its link — that's usually enough to find the answer immediately.</p>
+  <p>Email <a href="mailto:hello@distilledmetrics.com">hello@distilledmetrics.com</a> with your GitHub organisation name, the repository involved, and what you expected to see. If a specific pull request or deployment is missing, include its link. That's usually enough to find the answer immediately.</p>
 </section>
 
 {% endblock %}

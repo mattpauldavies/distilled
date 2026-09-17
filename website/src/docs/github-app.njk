@@ -14,7 +14,7 @@ lead: Distilled's only connection to your code is a read-only GitHub App. This p
 
 <section id="installing">
   <h2>Installing it</h2>
-  <p>Start the install from inside Distilled, not from GitHub. The install link is minted for your workspace and carries a one-time token — that's how the installation gets bound to the right workspace when you come back.</p>
+  <p>Start the install from inside Distilled, not from GitHub. The install link is minted for your workspace and carries a one-time token. That's how the installation gets bound to the right workspace when you come back.</p>
   <ul>
     <li><strong>First time:</strong> the onboarding screen shows <strong>Install GitHub App</strong>.</li>
     <li><strong>Afterwards:</strong> profile menu → <strong>Settings → Repositories</strong> → <strong>Connect GitHub</strong>.</li>
@@ -36,11 +36,11 @@ lead: Distilled's only connection to your code is a read-only GitHub App. This p
   <div class="docs-table-wrap">
     <table>
       <thead>
-        <tr><th>Permission</th><th>Access</th><th>Why</th></tr>
+        <tr><th>Permission</th><th style="width: 100px;">Access</th><th>Why</th></tr>
       </thead>
       <tbody>
         <tr><td>Metadata</td><td>Read-only</td><td>Mandatory for any GitHub App. Lets Distilled list the repositories you granted.</td></tr>
-        <tr><td>Pull requests</td><td>Read-only</td><td>Receives pull request events — the basis of cycle time, throughput, open PRs and ageing.</td></tr>
+        <tr><td>Pull requests</td><td>Read-only</td><td>Receives pull request events, which are the basis of cycle time, throughput, open PRs and ageing.</td></tr>
         <tr><td>Deployments</td><td>Read-only</td><td>Receives deployment status events, which is how Distilled knows code reached production.</td></tr>
         <tr><td>Actions</td><td>Read-only</td><td>Reads the list of environments on a repository, so production environments can be detected by name.</td></tr>
         <tr><td>Contents</td><td>Read-only</td><td>The only permission GitHub offers for release events. Distilled makes no Contents API call and never reads your code.</td></tr>
@@ -49,7 +49,7 @@ lead: Distilled's only connection to your code is a read-only GitHub App. This p
   </div>
 
   <div class="callout">
-    <p><strong>About the Contents permission.</strong> GitHub gates <em>event delivery</em> for releases behind Contents, with no narrower scope available. Distilled subscribes to the release event and calls nothing. If your installation predates release tracking, it must accept the updated permission before release events are delivered — until it does, a repository set to release tracking records nothing.</p>
+    <p><strong>About the Contents permission.</strong> GitHub will only deliver <em>release events</em> to an app that holds Contents, and offers no narrower scope. Distilled subscribes to the release event and calls nothing. If your installation predates release tracking, it has to accept the updated permission before release events are delivered. Until it does, a repository set to release tracking records nothing.</p>
   </div>
 
   <h3>Deliberately not requested</h3>

@@ -2,7 +2,7 @@
 title: Self-Hosting Distilled — Distilled
 description: Distilled is open source under AGPL-3.0. What you need to run your own instance, and what you take on when you do.
 navTitle: Self-hosting
-summary: Run your own instance — what it takes, and what it involves.
+summary: Run your own instance, and what that commits you to.
 order: 11
 eyebrow: Reference
 heading: Self-hosting
@@ -15,31 +15,31 @@ lead: Distilled is open source under the AGPL-3.0 licence. If your delivery data
 <section id="what-you-need">
   <h2>What you'll need</h2>
   <ul>
-    <li><strong>Your own GitHub App</strong>, created in your organisation with the five read-only permissions Distilled uses and the five webhook events it subscribes to. <a href="/docs/github-app">The GitHub App</a> lists both.</li>
+    <li><strong>Your own GitHub App</strong>, created in your organisation with the five read-only permissions Distilled uses and the five webhook events it subscribes to. <a href="/docs/github-app">The GitHub App</a> explains everything you need.</li>
     <li><strong>PostgreSQL</strong> for storage.</li>
-    <li><strong>Somewhere to run two containers</strong> — the API and the frontend — with a public HTTPS endpoint GitHub can deliver webhooks to.</li>
+    <li><strong>Somewhere to run two containers</strong> (the API and the frontend) with a public HTTPS endpoint GitHub can deliver webhooks to.</li>
     <li><strong>A Clerk application</strong> for authentication.</li>
-    <li><strong>A scheduler</strong> — anything that can make an authenticated HTTP request on a timer — to trigger the hourly metrics recompute.</li>
+    <li><strong>A scheduler</strong> that can make an authenticated HTTP request on a timer, to trigger the hourly metrics recompute.</li>
   </ul>
 </section>
 
 <section id="getting-it">
   <h2>Getting started</h2>
-  <p>The repository is at <a href="https://github.com/mattpauldavies/distilled">github.com/mattpauldavies/distilled</a>. Its README covers local setup — dependencies, database, migrations and running both halves — and the repository's own <code>docs/</code> folder holds the architecture notes, the full GitHub App surface, and a local-setup runbook that walks through creating the App and pointing webhooks at your machine.</p>
+  <p>The repository is at <a href="https://github.com/mattpauldavies/distilled">github.com/mattpauldavies/distilled</a>. Its README covers local setup (dependencies, database, migrations and running both halves), and the repository's own <code>docs/</code> folder holds the architecture notes, the full GitHub App surface, and a local-setup runbook that walks through creating the App and pointing webhooks at your machine.</p>
   <p>Everything builds as a container, and database migrations run as an explicit command rather than on startup, so a deploy is: build the image, run the migrations, start the service.</p>
 </section>
 
 <section id="what-you-take-on">
   <h2>What you take on</h2>
-  <p>Self-hosting is a real commitment, and it's worth being clear-eyed about it:</p>
+  <p>Self-hosting is a real commitment. Four things become yours:</p>
   <ul>
-    <li><strong>Webhook delivery is the data.</strong> If your instance is down when GitHub delivers an event, that event is lost — there's no backfill. Redelivering from GitHub's Recent Deliveries page is the recovery path.</li>
+    <li><strong>Webhook delivery is the data.</strong> If your instance is down when GitHub delivers an event, that event is lost; there's no backfill. Redelivering from GitHub's Recent Deliveries page is the recovery path.</li>
     <li><strong>You own upgrades and migrations.</strong> No one will run them for you.</li>
-    <li><strong>Secrets are yours to manage</strong> — the GitHub App private key, the webhook secret, database credentials, the scheduler secret.</li>
-    <li><strong>The AGPL applies.</strong> If you modify Distilled and run it as a network service, those modifications must be made available under the same licence.</li>
+    <li><strong>Secrets are yours to manage</strong>: the GitHub App private key, the webhook secret, database credentials, the scheduler secret.</li>
+    <li><strong>The AGPL applies.</strong> If you modify Distilled, those modifications must be made available under the same licence.</li>
   </ul>
   <div class="callout">
-    <p><strong>Contributions welcome.</strong> Bug reports, fixes and features all go through the public repository — see <code>CONTRIBUTING.md</code> for the local setup, the test commands and the conventions the codebase follows.</p>
+    <p><strong>Contributions welcome.</strong> Bug reports, fixes and features all go through the public repository. See <code>CONTRIBUTING.md</code> for the local setup, the test commands and the conventions the codebase follows.</p>
   </div>
 </section>
 

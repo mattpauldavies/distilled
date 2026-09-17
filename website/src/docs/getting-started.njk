@@ -6,7 +6,7 @@ summary: Sign in, install the GitHub App, and see your first metrics.
 order: 1
 eyebrow: Getting started
 heading: Up and running in minutes.
-lead: Connect Distilled to your GitHub organisation and start tracking how your team ships. No code changes, no manual data entry — install the app and we'll do the rest.
+lead: Connect Distilled to your GitHub organisation and start tracking how your team ships. Install the app and we'll do the rest. You won't change any code or type in a single number.
 ---
 {% extends "docs.njk" %}
 
@@ -18,17 +18,17 @@ lead: Connect Distilled to your GitHub organisation and start tracking how your 
   <ul>
     <li>A <strong>GitHub organisation</strong> (or a personal account) where you can install GitHub Apps.</li>
     <li>Permission to <strong>authorise the Distilled GitHub App</strong> on the repositories you want to track. Organisation owners can install directly; everyone else may need to request approval.</li>
-    <li>At least one repository that <strong>ships to production in a way GitHub can see</strong> — either a successful deployment to a production environment, or a published release. If you use GitHub Actions, Vercel, Netlify, Railway, Heroku, or anything else that writes deployment events to GitHub, you're good to go. If you ship by publishing releases instead, see <a href="/docs/deployment-tracking">Deployment tracking</a>.</li>
+    <li>At least one repository that <strong>ships to production in a way GitHub can see</strong>: either a successful deployment to a production environment, or a published release. If you use GitHub Actions, Vercel, Netlify, Railway, Heroku, or anything else that writes deployment events to GitHub, you're good to go. If you ship by publishing releases instead, see <a href="/docs/deployment-tracking">Deployment tracking</a>.</li>
   </ul>
 
   <div class="callout">
-    <p><strong>Read-only access.</strong> Distilled cannot write to your repositories and never modifies your source code. We ask for the minimum permissions needed to read pull requests, deployments, releases and repository metadata — and we never store your code. The full list is on <a href="/docs/github-app">The GitHub App</a>.</p>
+    <p><strong>Read-only access.</strong> Distilled cannot write to your repositories and never modifies your source code. We ask for the minimum permissions needed to read pull requests, deployments, releases and repository metadata, and we never store your code. The full list is on <a href="/docs/github-app">The GitHub App</a>.</p>
   </div>
 </section>
 
 <section id="setup">
   <h2>Setup</h2>
-  <p>The whole thing takes about two minutes. You'll sign in, install the GitHub App, and start capturing delivery data from your next pull request or deployment onward.</p>
+  <p>The whole thing takes about two minutes. You sign in, install the GitHub App, and start capturing delivery data from your next pull request or deployment onward.</p>
 
   <ol class="docs-steps">
     <li class="docs-step">
@@ -38,7 +38,7 @@ lead: Connect Distilled to your GitHub organisation and start tracking how your 
 
     <li class="docs-step">
       <h3>Install the Distilled GitHub App</h3>
-      <p>From the onboarding screen, click <strong>Install GitHub App</strong>. You'll be taken to GitHub to choose the organisation and the repositories to connect. You can grant access to every repository or to a specific list — whichever you prefer.</p>
+      <p>From the onboarding screen, click <strong>Install GitHub App</strong>. You'll be taken to GitHub to choose the organisation and the repositories to connect. You can grant access to every repository or to a specific list, whichever you prefer.</p>
       <p>Always start the install from inside Distilled. The link is minted for your workspace, and that's what binds the installation to it.</p>
     </li>
 
@@ -64,7 +64,7 @@ lead: Connect Distilled to your GitHub organisation and start tracking how your 
   <div class="docs-rows">
     <div class="docs-row">
       <strong>Within minutes</strong>
-      <p>Open PR count and PR ageing populate as soon as Distilled sees your open pull requests — these read current state rather than history.</p>
+      <p>Open PR count and PR ageing populate as soon as Distilled sees your open pull requests, because they read current state rather than history.</p>
     </div>
     <div class="docs-row">
       <strong>Within a day or two</strong>
@@ -81,7 +81,7 @@ lead: Connect Distilled to your GitHub organisation and start tracking how your 
 <section id="next">
   <h2>Next steps</h2>
   <ul>
-    <li><a href="/docs/deployment-tracking">Choose how each repository is tracked</a> — deployments or releases.</li>
+    <li><a href="/docs/deployment-tracking">Choose how each repository is tracked</a>: deployments or releases.</li>
     <li><a href="/docs/team">Invite your team</a> so they see the same dashboard you do.</li>
     <li><a href="/docs/metrics">Read what each metric means</a> before you act on it.</li>
     <li><a href="/docs/troubleshooting">Troubleshooting</a> if something isn't showing up.</li>
