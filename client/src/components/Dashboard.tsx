@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { SquareArrowOutUpRightIcon } from "lucide-react"
 import { useDataQuality } from "@/hooks/useDataQuality"
 import { useDeploymentFrequency } from "@/hooks/useDeploymentFrequency"
 import { useLeadTime } from "@/hooks/useLeadTime"
@@ -6,6 +7,7 @@ import { useOpenPRs } from "@/hooks/useOpenPRs"
 import { usePRAgeing } from "@/hooks/usePRAgeing"
 import { usePRCycleTime } from "@/hooks/usePRCycleTime"
 import { useThroughput } from "@/hooks/useThroughput"
+import { Button } from "@/components/ui/button"
 import { DashboardControls } from "@/components/DashboardControls"
 import { isWindowAvailable } from "@/lib/daysWindow"
 import { timeAgo } from "@/lib/format"
@@ -60,9 +62,28 @@ export function Dashboard({
       <InvitationBanner />
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1 pr-6">
-          <h1 className="truncate text-2xl font-bold tracking-tight">
-            {selectedRepo?.full_name ?? "Dashboard"}
-          </h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="min-w-0 truncate text-2xl font-bold tracking-tight">
+              {selectedRepo?.full_name ?? "Dashboard"}
+            </h1>
+            {selectedRepo && (
+              <Button
+                asChild
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <a
+                  href={`https://github.com/${selectedRepo.full_name}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open ${selectedRepo.full_name} on GitHub`}
+                >
+                  <SquareArrowOutUpRightIcon />
+                </a>
+              </Button>
+            )}
+          </div>
           {freshness && (
             <div className="mt-1.5 flex items-center gap-1.5">
               <span

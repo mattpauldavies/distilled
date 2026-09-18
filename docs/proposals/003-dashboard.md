@@ -38,6 +38,9 @@ A single page, no routing library for the dashboard itself, no state library. On
 section, each returning `{ data, loading, error, retry }`; `Dashboard.tsx` calls each hook
 exactly once and passes the result down to purely presentational components.
 
+**Header** — the active repository's full name, with an icon link beside it that opens
+that repository on GitHub in a new tab, and the freshness indicator beneath.
+
 **Controls** — workspace-aware repo switcher and a window toggle.
 
 **Metric cards** — deployment frequency, lead time, PR cycle time, throughput, open PR
