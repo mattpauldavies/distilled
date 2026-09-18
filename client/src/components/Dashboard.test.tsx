@@ -145,6 +145,16 @@ describe("Dashboard", () => {
     })
   })
 
+  it("links the active repository title to GitHub in a new window", async () => {
+    render(<Dashboard repos={defaultRepos} />)
+
+    const link = await screen.findByRole("link", { name: "Open org/my-repo on GitHub" })
+
+    expect(link).toHaveAttribute("href", "https://github.com/org/my-repo")
+    expect(link).toHaveAttribute("target", "_blank")
+    expect(link).toHaveAttribute("rel", "noopener noreferrer")
+  })
+
   it("renders the profile menu trigger", async () => {
     render(<Dashboard repos={defaultRepos} />)
 
