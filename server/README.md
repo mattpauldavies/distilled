@@ -56,7 +56,7 @@ database/          # Alembic migrations
 | `EMAIL_BASE_URL`          | Public URL of the frontend (for invite accept links) | `http://localhost:5173`                                  |
 | `EMAIL_PROVIDER`          | `log` (dev) or `resend` (prod)           | `log`                                                               |
 | `RESEND_API_KEY`          | Resend API key (required when `EMAIL_PROVIDER=resend`) | —                                                       |
-| `EMAIL_FROM`              | RFC 5322 from address for invitations    | —                                                                   |
+| `EMAIL_FROM`              | RFC 5322 from address; its domain must be verified in Resend | —                                               |
 | `INVITATION_TTL_DAYS`     | Days before a pending invitation expires | `14`                                                                |
 | `INSTALLATION_INTENT_TTL_MINUTES` | Minutes before an unused install link expires | `30`                                                    |
 
