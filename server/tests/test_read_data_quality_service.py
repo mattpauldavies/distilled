@@ -92,10 +92,12 @@ async def test_freshness_includes_days_of_data(mock_session):
 
     now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
     oldest_pr = now - timedelta(days=45, hours=3)
+    connected_at = now - timedelta(days=60)
     refresh = now - timedelta(minutes=15)
     mock_session.execute = AsyncMock(
         side_effect=[
             mock_result(scalar_or_none=oldest_pr),
+            mock_result(scalar_or_none=connected_at),
             mock_result(scalar_or_none=refresh),
         ]
     )
@@ -125,7 +127,13 @@ async def test_days_of_data_computes_span_from_oldest_pr(mock_session):
 
     now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
     oldest = now - timedelta(days=12, hours=5)
-    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=oldest))
+    connected_at = now - timedelta(days=30)
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=oldest),
+            mock_result(scalar_or_none=connected_at),
+        ]
+    )
 
     result = await get_days_of_data(TENANT_ID, REPO_ID, mock_session, now=now)
 
@@ -138,7 +146,13 @@ async def test_days_of_data_zero_when_pr_is_same_day(mock_session):
 
     now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
     today = now - timedelta(hours=2)
-    mock_session.execute = AsyncMock(return_value=mock_result(scalar_or_none=today))
+    connected_at = now - timedelta(days=5)
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=today),
+            mock_result(scalar_or_none=connected_at),
+        ]
+    )
 
     result = await get_days_of_data(TENANT_ID, REPO_ID, mock_session, now=now)
 
@@ -223,3 +237,54 @@ async def test_attribution_coverage_100_percent(mock_session):
     result = await get_attribution_coverage(TENANT_ID, REPO_ID, "main", mock_session)
 
     assert result == 100.0
+
+
+@pytest.mark.asyncio
+async def test_days_of_data_clamps_to_when_the_repo_was_connected(mock_session):
+    """A PR opened before the repo was connected is ingested with its GitHub
+    creation time, so the raw span over-reports what we actually collected."""
+    from app.services.read_data_quality_service import get_days_of_data
+
+    now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+    oldest = now - timedelta(days=35)
+    connected_at = now - timedelta(days=10, hours=6)
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=oldest),
+            mock_result(scalar_or_none=connected_at),
+        ]
+    )
+
+    result = await get_days_of_data(TENANT_ID, REPO_ID, mock_session, now=now)
+
+    assert result == 10
+
+
+@pytest.mark.asyncio
+async def test_days_of_data_falls_back_to_oldest_pr_without_a_repo_row(mock_session):
+    from app.services.read_data_quality_service import get_days_of_data
+
+    now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
+    oldest = now - timedelta(days=9)
+    mock_session.execute = AsyncMock(
+        side_effect=[
+            mock_result(scalar_or_none=oldest),
+            mock_result(scalar_or_none=None),
+        ]
+    )
+
+    result = await get_days_of_data(TENANT_ID, REPO_ID, mock_session, now=now)
+
+    assert result == 9
+
+
+@pytest.mark.asyncio
+async def test_days_of_data_skips_the_repo_lookup_when_there_are_no_prs(mock_session):
+    from app.services.read_data_quality_service import get_days_of_data
+
+    mock_session.execute = AsyncMock(side_effect=[mock_result(scalar_or_none=None)])
+
+    result = await get_days_of_data(TENANT_ID, REPO_ID, mock_session)
+
+    assert result == 0
+    assert mock_session.execute.await_count == 1

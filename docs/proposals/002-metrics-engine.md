@@ -114,6 +114,8 @@ Three signals, computed live and surfaced in a deliberately low-prominence panel
   `null` when there are no merged PRs.
 - **Freshness** — `max(completed_at)` over successful refresh-log rows. No rows means
   `no_data`; strictly more than two hours old means `stale`; exactly two hours is `ok`.
+  It also carries `days_of_data`, measured from the later of the oldest synced PR and the
+  repository's connection date.
 - **Setup configuration** — whether a production environment is configured, and which.
 
 Metrics that depend on deployments return `setup_required` when no production environment
@@ -121,6 +123,15 @@ exists, rather than a misleading zero. Throughput, open PRs, and ageing do not d
 deployments and always return data.
 
 ## Decisions
+
+**`days_of_data` is bounded by the connection date.** PRs carry GitHub's `created_at` as
+`opened_at`, and a PR is ingested on its first handled action — not only on `opened`. A PR
+opened before the app was installed and merged after it therefore arrives with a timestamp
+from before we were watching, and the raw span over-reported history that was never
+collected (a repo showed 35 days on a workspace days old). Taking the later of the oldest
+PR and `repositories.created_at` reports only what we observed, and keeps the window
+selector from offering a range we cannot fill. It is deliberately not the union of the
+two: a repo connected long ago whose first PR is recent still reports the short span.
 
 **UPSERT per bucket, not DELETE then INSERT.** Safer under partial failure, and retries
 produce identical results.

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.deployment_attribution import DeploymentAttribution
 from app.models.metrics import MetricsRefreshLog
 from app.models.pull_request import PullRequest
+from app.models.repository import Repository
 
 STALE_THRESHOLD = timedelta(hours=2)
 
@@ -59,6 +60,17 @@ async def get_days_of_data(
     *,
     now: datetime | None = None,
 ) -> int:
+    """How many days of delivery history we have actually collected for a repo.
+
+    `opened_at` is GitHub's creation time, not our ingest time, and we ingest a
+    PR on its first handled action — so a PR opened long before the repo was
+    connected arrives carrying that older timestamp and makes the span look
+    wider than anything we observed. Collection starts when the repo was
+    connected, so the later of the two bounds is the honest answer.
+
+    A repo removed and re-added keeps its original row, so a gap in the middle
+    still counts as collected.
+    """
     result = await session.execute(
         select(func.min(PullRequest.opened_at)).where(
             PullRequest.tenant_id == tenant_id,
@@ -70,7 +82,17 @@ async def get_days_of_data(
     if oldest is None:
         return 0
 
-    span = (now or datetime.now(UTC)) - oldest
+    # Repository.id is the primary key, so this matches at most one row.
+    connected = await session.execute(
+        select(Repository.created_at).where(
+            Repository.tenant_id == tenant_id,
+            Repository.id == repo_id,
+        )
+    )
+    connected_at = connected.scalar_one_or_none()
+
+    start = max(oldest, connected_at) if connected_at is not None else oldest
+    span = (now or datetime.now(UTC)) - start
     return max(span.days, 0)
 
 
