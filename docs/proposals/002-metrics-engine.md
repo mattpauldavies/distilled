@@ -132,6 +132,8 @@ collected (a repo showed 35 days on a workspace days old). Taking the later of t
 PR and `repositories.created_at` reports only what we observed, and keeps the window
 selector from offering a range we cannot fill. It is deliberately not the union of the
 two: a repo connected long ago whose first PR is recent still reports the short span.
+Seeded demo repos are backdated to the start of the history they carry, so the demo
+workspace still reports its full span.
 
 **UPSERT per bucket, not DELETE then INSERT.** Safer under partial failure, and retries
 produce identical results.
