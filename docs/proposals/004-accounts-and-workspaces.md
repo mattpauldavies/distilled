@@ -96,6 +96,11 @@ Email delivery sits behind an `EmailService` protocol with `ResendEmailService` 
 production and `LoggingEmailService` for dev and tests — the accept URL is printed to the
 server log, so invitations can be tested end to end without an inbox.
 
+A rejected send raises `EmailDeliveryError` carrying Resend's own `name` and `message` from
+the response body, logged at ERROR before it is raised. The caller still sees a 500, but the
+log line and the Sentry title name the cause — unverified sending domain, restricted key,
+sandbox-only recipient — instead of a bare status code.
+
 ### Leaving, transferring, deleting
 
 - Members can leave at any time; other memberships are unaffected.
@@ -176,6 +181,13 @@ owns identity only.
 **Resend rather than Clerk's invitation primitive.** Clerk's invites are tightly coupled to
 its own user model and do not extend to future product mail — digests, billing receipts. A
 provider-agnostic protocol keeps identity and messaging separate.
+
+**Email failures carry the provider's message.** `raise_for_status()` throws the response
+body away, so a production 403 from Resend reached Sentry with nothing to distinguish an
+unverified domain from a restricted key from a sandbox-only recipient. `ResendEmailService`
+now reads the body's `message` (and `name`) itself, mirroring `_github_message` in
+`github_client`. The detail is truncated to 500 characters so an HTML error page from an
+edge proxy can't flood the log.
 
 **`tenant_users`, not `tenant_memberships`.** Matches the codebase's plural-noun table style
 and reads as "the join between tenants and users" rather than introducing an abstract noun.

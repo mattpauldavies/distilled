@@ -17,6 +17,13 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+_MAX_ERROR_DETAIL = 500
+
+
+class EmailDeliveryError(Exception):
+    """The provider rejected a send. Framework-free so this service stays
+    HTTP-agnostic; the message carries the provider's own explanation."""
+
 
 class EmailService(Protocol):
     async def send_invitation(
@@ -104,6 +111,26 @@ class LoggingEmailService:
         )
 
 
+def _resend_error_detail(response: httpx.Response) -> str:
+    """Resend explains a rejected send in the body's `message` field.
+
+    An unverified sending domain, a restricted API key and a sandbox-only
+    recipient are all 403s, so the status code alone can't tell them apart —
+    the body is the only thing that can.
+    """
+    try:
+        body = response.json()
+    except Exception:
+        text = " ".join(response.text.split())
+        return text[:_MAX_ERROR_DETAIL] if text else "<no body>"
+    if not isinstance(body, dict):
+        return str(body)[:_MAX_ERROR_DETAIL]
+    name = body.get("name")
+    message = body.get("message") or "<no message>"
+    detail = f"{name}: {message}" if name else str(message)
+    return detail[:_MAX_ERROR_DETAIL]
+
+
 class ResendEmailService:
     """Production implementation using Resend's HTTP API."""
 
@@ -144,7 +171,10 @@ class ResendEmailService:
                 headers={"Authorization": f"Bearer {self._api_key}"},
                 timeout=10,
             )
-            resp.raise_for_status()
+        if resp.is_error:
+            detail = _resend_error_detail(resp)
+            logger.error("email[resend]: send rejected status=%s detail=%s", resp.status_code, detail)
+            raise EmailDeliveryError(f"Resend rejected the send (HTTP {resp.status_code}): {detail}")
 
 
 def build_email_service() -> EmailService:
