@@ -19,5 +19,5 @@ The definitions below are the engineering reference. Their user-facing counterpa
 ## Data Quality
 
 - **Attribution Coverage** — How complete our deploy tracking is. Percentage of merged PRs that are linked to a deployment — low coverage means lead time data is unreliable.
-- **Metrics Freshness** — Whether our numbers are current. Reports `ok`, `stale`, or `no_data` based on how recently metrics were recomputed (threshold: 2 hours). Also reports `days_of_data` — the span (in days) between today and the oldest synced pull request.
+- **Metrics Freshness** — Whether our numbers are current. Reports `ok`, `stale`, or `no_data` based on how recently metrics were recomputed (threshold: 2 hours). Also reports `days_of_data` — how much history we have actually collected, measured from the later of the oldest synced pull request and the day the repository was connected.
 - **Setup Configuration** — Whether the pipeline is ready. Checks if a production environment is configured, which is required for repositories tracking deployments. An environment qualifies if its GitHub name contains `prod` or `live`, or if it has been marked production manually. Repositories tracking releases need no environment.

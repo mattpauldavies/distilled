@@ -36,6 +36,9 @@ from app.services.batch_metrics_service import recompute_repo_and_log
 TENANT_ID = UUID("00000000-0000-0000-0000-000000000001")
 INSTALLATION_UUID = UUID("00000000-0000-0000-0000-000000000099")
 SECOND_TENANT_ID = UUID("00000000-0000-0000-0000-000000000002")
+
+# Weeks of merged-PR and deployment history the seed generates.
+HISTORY_WEEKS = 26
 WEB_REPO_ID = UUID("00000000-0000-0000-0000-000000000010")
 API_REPO_ID = UUID("00000000-0000-0000-0000-000000000011")
 GITHUB_INSTALLATION_ID = 99_000_001
@@ -344,6 +347,11 @@ async def main() -> None:
 
         rng = random.Random(42)
         now = datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0)
+        # The seeded repos are meant to look like they have been connected for the
+        # whole span they carry PRs for. days_of_data is measured from the later of
+        # the oldest PR and the repo's connection date, so a row created "now" would
+        # collapse six months of demo history to nothing.
+        connected_at = now - timedelta(weeks=HISTORY_WEEKS)
 
         # ── Ensure dev tenant exists (created by migration, but check defensively) ──
         existing_tenant = await session.get(Tenant, TENANT_ID)
@@ -429,6 +437,7 @@ async def main() -> None:
                 github_id=GITHUB_ID_WEB,  # same repo as the dev workspace
                 full_name="acme-corp/web",
                 default_branch="main",
+                created_at=connected_at,
             )
         )
         session.add(
@@ -439,6 +448,7 @@ async def main() -> None:
                 github_id=GITHUB_ID_API,
                 full_name="acme-corp/api",
                 default_branch="main",
+                created_at=connected_at,
                 removed_at=now,  # sticky removal
             )
         )
@@ -456,6 +466,7 @@ async def main() -> None:
                 github_id=rc["github_id"],
                 full_name=rc["full_name"],
                 default_branch="main",
+                created_at=connected_at,
             )
             session.add(repo)
             seeded_repos.append(repo)
@@ -488,7 +499,7 @@ async def main() -> None:
         api_pr_github_id_counter = [GITHUB_PR_ID_API_START]
         deploy_counter = [9_000_000]
 
-        for weeks_ago in range(25, -1, -1):
+        for weeks_ago in range(HISTORY_WEEKS - 1, -1, -1):
             week_end = now - timedelta(weeks=weeks_ago)
             week_start = week_end - timedelta(days=7)
 
