@@ -15,7 +15,7 @@ export function LeadTimeCard({ section }: Props) {
     <MetricCard
       title="Lead Time"
       value={value}
-      caption="Median: merge to production"
+      caption="Median: from merge to deployment"
       loading={loading}
       error={error}
       onRetry={retry}
